@@ -81,9 +81,9 @@
   .aviso { align-self: center; max-width: 90%; text-align: center; font-size: 13px; color: var(--tenue); }
   .aviso.error { color: var(--no); }
   .pensando { align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tenue); padding-left: 2px; }
-  .pensando .mini { display: flex; gap: 3px; }
-  .pensando .mini i { width: 5px; height: 5px; border-radius: 50%; background: var(--tenue); animation: salto 1s infinite; }
-  .pensando .mini i:nth-child(2) { animation-delay: .15s; } .pensando .mini i:nth-child(3) { animation-delay: .3s; }
+  .mini { display: flex; gap: 3px; }
+  .mini i { width: 5px; height: 5px; border-radius: 50%; background: var(--tenue); animation: salto 1s infinite; }
+  .mini i:nth-child(2) { animation-delay: .15s; } .mini i:nth-child(3) { animation-delay: .3s; }
   @keyframes salto { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-3px); } }
 
   /* --- resultados: una lista, no un mosaico de tarjetas --- */
@@ -106,9 +106,14 @@
   .pago .que { margin: 0; font-weight: 500; }
   .pago .monto { font: 800 34px/1 var(--titular); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
   .pago .monto small { font: 500 13px var(--dato); color: var(--tenue); letter-spacing: 0; margin-right: 6px; }
-  .pago .fila { display: flex; flex-direction: column; gap: 8px; }
-  .pago .nota { font-size: 13px; color: var(--tenue); overflow-wrap: anywhere; }
-  .pago .qr { align-self: center; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--linea); }
+  /* demo reservation: the payment step first, then the confirmed booking eases in */
+  .reserva .paso { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--tenue); }
+  .reserva:not(.procesando) .paso { color: var(--si); font-weight: 600; }
+  .reserva .fin { display: flex; flex-direction: column; gap: 6px; transition: opacity .32s cubic-bezier(.22, .61, .36, 1), transform .32s cubic-bezier(.22, .61, .36, 1); }
+  .reserva.procesando .fin { opacity: 0; transform: translateY(6px); }
+  .reserva h4 { margin: 0; font: 600 19px/1.25 var(--titular); letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .reserva .codigo { margin: 0; font-size: 14px; color: var(--tenue); }
+  .reserva .codigo b { font: 500 15px var(--dato); letter-spacing: .04em; color: var(--tinta); user-select: all; }
   .prueba { align-self: flex-start; font: 500 11px/1 var(--dato); letter-spacing: .06em; text-transform: uppercase; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 6px; padding: 5px 8px; }
   .boton { cursor: pointer; border-radius: 10px; border: 1px solid var(--tinta); background: transparent; padding: 10px 14px; font-weight: 600; text-align: center; }
   .boton.lleno { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
@@ -192,7 +197,7 @@
 
   <div class="voz borde" id="voz" hidden>
     <div class="barras" id="barras" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    <p><b id="vozTitulo">Te escucho</b><span>Hablá con naturalidad. También podés escribir.</span></p>
+    <p><b id="vozTitulo">Te escucho</b><span id="vozNota">Hablá con naturalidad. También podés escribir.</span></p>
     <button class="boton" id="cortar" type="button">Terminar</button>
   </div>
 
@@ -222,7 +227,7 @@ const historial = []; // { rol, texto }: sirve para retomar el hilo al reconecta
 function nodo(tag, clase, texto) { const n = document.createElement(tag); if (clase) n.className = clase; if (texto != null) n.textContent = texto; return n; }
 // Un turno = la pregunta, la respuesta de juju y, debajo, las listas de lugares.
 // Las listas llegan antes que la respuesta, así que la respuesta se inserta arriba de ellas.
-let turno = { ancla: null, grupo: null };
+let turno = { ancla: null, grupo: null, vistos: new Set() };
 function abajo() { // deja a la vista el comienzo del turno; si todo entra, va al final
   const a = turno.ancla;
   if (a?.isConnected && chat.scrollHeight - a.offsetTop > chat.clientHeight) chat.scrollTop = a.offsetTop - 10;
@@ -235,7 +240,7 @@ function agregar(n, arriba) {
 }
 function burbuja(rol, texto) {
   const n = nodo('div', 'msg ' + (rol === 'user' ? 'yo' : 'bot'), texto);
-  if (rol === 'user') { turno = { ancla: n, grupo: null }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
+  if (rol === 'user') { turno = { ancla: n, grupo: null, vistos: new Set() }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
   historial.push({ rol, texto }); if (historial.length > 30) historial.shift();
 }
 function aviso(texto, error, arriba) { agregar(nodo('div', 'aviso' + (error ? ' error' : ''), texto), arriba); }
@@ -255,7 +260,13 @@ const km = (n) => (n < 0.1 ? 'en el centro' : n < 1 ? `a ${Math.round(n * 10) * 
 const precio = (p) => (!p ? null : p.startsWith('gratis') ? 'gratis' : p.replace(' (estimado)', ' aprox.'));
 
 function lista(titulo, lugares) {
-  if (!lugares?.length) return;
+  // The pre-search and a tool call can return the same place in one turn: show each place once.
+  lugares = (lugares || []).filter((l) => {
+    const key = `${l.nombre}|${l.localidad || ''}`;
+    if (turno.vistos.has(key)) return false;
+    turno.vistos.add(key); return true;
+  });
+  if (!lugares.length) return;
   const g = nodo('section', 'grupo'); g.append(nodo('h3', '', titulo));
   const cont = nodo('div', 'lista');
   for (const l of lugares) {
@@ -289,15 +300,32 @@ const post = (ruta, body) => fetch(ruta, { method: 'POST', headers: { 'Content-T
   .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'No se pudo completar el pedido'); return d; });
 // al modelo le va la versión en texto compacto (menos tokens = respuesta más rápida)
 const paraModelo = (d) => d.texto_modelo || JSON.stringify(d, (k, v) => (k === 'mapa' || k === 'categoria' ? undefined : v));
+const contextFor = (texto, extra) => post('/api/contexto', { texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon, ...extra });
 // Búsqueda previa: adjunta al mensaje los lugares ya filtrados, así el modelo responde en una sola pasada.
-async function adjuntarDatos(texto) {
+// Shows the places as soon as the search returns and resolves to the block for the model (or nothing).
+async function adjuntarDatos(pedido) {
   try {
-    const c = await post('/api/contexto', { texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon });
+    const c = await pedido;
     if (c.localidad) ultimaLocalidad = c.localidad;
-    if (!c.texto_modelo) return;
-    conv.sendContextualUpdate(c.texto_modelo);
+    if (!c.texto_modelo) return null;
     for (const g of c.grupos) lista(g.titulo, g.lugares);
-  } catch (e) { console.warn('sin búsqueda previa', e); }
+    return c.texto_modelo;
+  } catch (e) { console.warn('sin búsqueda previa', e); return null; }
+}
+
+// Live voice: what the user says goes straight to ElevenLabs, so nothing can be attached before
+// the answer starts. Instead, nearby places go to the model as soon as the session opens, and
+// every spoken turn gets its places on screen at once (and into the model's context for follow-ups).
+async function primeVoice() {
+  if (!ultimaLocalidad && !ubicacion) return;
+  try {
+    const c = await contextFor('', { nearby: true });
+    if (c.texto_modelo && modo === 'voz') conv?.sendContextualUpdate(c.texto_modelo);
+  } catch (e) { console.warn('no nearby data for voice', e); }
+}
+async function voiceTurn(texto) {
+  const bloque = await adjuntarDatos(contextFor(texto));
+  if (bloque && modo === 'voz') conv?.sendContextualUpdate(bloque);
 }
 const conUbicacion = (p) => (!p.localidad && ubicacion ? { ...p, lat: ubicacion.lat, lon: ubicacion.lon } : p);
 
@@ -317,53 +345,42 @@ const herramientas = {
     pensar();
     return paraModelo(d);
   },
-  async solicitar_pago({ producto_id } = {}) {
-    const cat = await fetch('/api/productos').then((r) => r.json());
-    const prod = cat.lista.find((x) => x.id === producto_id);
-    if (!prod) return `Producto inexistente. Ids válidos: ${cat.lista.map((x) => x.id).join(', ') || 'ninguno'}`;
-    if (cat.proveedor === 'ninguno' || cat.proveedor === 'sin_configurar') return 'Los pagos todavía no están configurados. Avisale al usuario que por ahora no se puede pagar desde el chat.';
-    tarjetaPago(prod, cat);
-    return `Se mostró la tarjeta de pago de "${prod.nombre}" por USD ${prod.precio_usd}. El usuario tiene que elegir la moneda y confirmar en pantalla. Decíselo en una frase y no des el pago por hecho.`;
+  // Demo booking: the agent already asked "USDC or bank transfer?"; the server fakes the payment.
+  async reservar(p = {}) {
+    pensar('Procesando la reserva');
+    try {
+      const r = await post('/api/reservas', p || {});
+      tarjetaReserva(r);
+      return r.texto_modelo;
+    } catch (e) {
+      dejarDePensar();
+      if (/metodo_pago/.test(e.message)) return 'Falta el método de pago. Preguntale al usuario si paga con USDC o con dinero de su cuenta bancaria por transferencia, y después llamá de nuevo a reservar.';
+      return `No se pudo hacer la reserva (${e.message}). Pedile al usuario el nombre del lugar o del producto y probá de nuevo.`;
+    }
   },
 };
 
-function tarjetaPago(prod, cat) {
-  const c = nodo('section', 'pago');
-  if (cat.proveedor === 'simulado') c.append(nodo('span', 'prueba', 'Modo de prueba · no se cobra'));
-  else if (cat.red === 'testnet') c.append(nodo('span', 'prueba', 'Red de prueba · no es dinero real'));
-  c.append(nodo('p', 'que', prod.nombre));
-  const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), String(prod.precio_usd).replace('.', ',')); c.append(monto);
-  const fila = nodo('div', 'fila'); const nota = nodo('span', 'nota');
-  for (const m of cat.monedas) {
-    const b = nodo('button', 'boton' + (m === cat.monedas[0] ? ' lleno' : ''), `Pagar con ${m.etiqueta}`); b.type = 'button';
-    b.onclick = async () => {
-      fila.querySelectorAll('button').forEach((x) => { x.disabled = true; });
-      nota.textContent = 'Generando el pago';
-      try {
-        const p = await post('/api/pagos', { producto_id: prod.id, moneda: m.id });
-        fila.replaceChildren();
-        const a = p.url_pago && enlace('Abrir la página de pago', p.url_pago); if (a) { a.className = 'boton lleno'; a.style.textDecoration = 'none'; fila.append(a); }
-        if (p.qr && String(p.qr).startsWith('data:image/png;base64,')) { const q = nodo('img', 'qr'); q.src = p.qr; q.alt = 'Código QR para pagar desde tu billetera'; q.width = 180; q.height = 180; fila.append(q); fila.append(nodo('span', 'nota', 'O escaneá el código con tu billetera de Stellar.')); }
-        if (p.vence) fila.append(nodo('span', 'nota', `El pedido vence a las ${new Date(p.vence).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.`));
-        nota.textContent = 'Esperando la confirmación del pago';
-        seguirPago(p.id, nota, prod);
-      } catch (e) { nota.textContent = `No se pudo generar el pago. ${e.message}`; fila.querySelectorAll('button').forEach((x) => { x.disabled = false; }); }
-    };
-    fila.append(b);
-  }
-  c.append(fila, nota); dejarDePensar(); agregar(c);
-}
-async function seguirPago(id, nota, prod) {
-  for (let i = 0; i < 225; i++) { // unos 15 minutos
-    await new Promise((r) => setTimeout(r, 4000));
-    const p = await fetch('/api/pagos/' + id).then((r) => r.json()).catch(() => null);
-    if (!p || p.estado === 'pendiente') continue;
-    const ok = p.estado === 'pagado';
-    nota.textContent = ok ? 'Pago acreditado' : `El pago quedó ${p.estado}`; nota.style.color = ok ? 'var(--si)' : 'var(--no)'; nota.style.fontWeight = '600';
-    conv?.sendContextualUpdate(ok ? `El sistema confirma que el pago de "${prod.nombre}" (${p.monto} ${p.moneda}) fue acreditado.` : `El pago de "${prod.nombre}" quedó en estado ${p.estado}.`);
-    return;
-  }
-  nota.textContent = 'Todavía no llegó la confirmación. Si ya pagaste, puede tardar unos minutos.';
+const PROCESSING_MS = 900; // short "processing" beat so the payment step reads before the confirmation
+function tarjetaReserva(r) {
+  const paga = r.amount_usd > 0;
+  const c = nodo('section', 'pago reserva procesando');
+  c.append(nodo('span', 'prueba', 'Demo · pago simulado'));
+  const paso = nodo('p', 'paso'); const mini = nodo('span', 'mini'); mini.append(nodo('i'), nodo('i'), nodo('i'));
+  paso.append(mini, nodo('span', '', paga ? `Procesando el pago con ${r.method_label}` : 'Confirmando la reserva'));
+  const fin = nodo('div', 'fin'); fin.setAttribute('aria-hidden', 'true');
+  fin.append(nodo('p', 'que', 'Reserva confirmada'), nodo('h4', '', r.item.name));
+  const personas = `${r.people} ${r.people === 1 ? 'persona' : 'personas'}`;
+  const noches = r.nights && `${r.nights} ${r.nights === 1 ? 'noche' : 'noches'}`;
+  fin.append(nodo('p', 'meta', [r.item.locality, r.date, r.time && `${r.time} hs`, personas, noches].filter(Boolean).join(' · ')));
+  if (paga) { const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), String(r.amount_usd).replace('.', ',')); fin.append(monto); }
+  const codigo = nodo('p', 'codigo'); codigo.append('Código de reserva ', nodo('b', '', r.code)); fin.append(codigo);
+  c.append(paso, fin); dejarDePensar(); agregar(c);
+  setTimeout(() => {
+    const ok = nodo('span', '', '✓'); ok.setAttribute('aria-hidden', 'true');
+    paso.replaceChildren(ok, nodo('span', '', paga ? `Pago acreditado con ${r.method_label}` : 'Sin costo'));
+    c.classList.remove('procesando'); fin.removeAttribute('aria-hidden');
+    abajo();
+  }, PROCESSING_MS);
 }
 
 // ---------- conexión con ElevenLabs ----------
@@ -372,6 +389,24 @@ function cargarSDK(i = 0) {
   if (i >= SDK.length) return Promise.reject(new Error('No se pudo cargar el SDK de ElevenLabs. Revisá la conexión a internet.'));
   return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = SDK[i]; s.onload = ok; s.onerror = () => { s.remove(); cargarSDK(i + 1).then(ok, mal); }; document.head.append(s); });
 }
+
+// Session credentials are fetched ahead of time (while typing, or when the pointer reaches the mic)
+// so connecting never waits on the ElevenLabs round trip. Each signed URL or token is used once.
+const SESSION_TTL_MS = 60_000;
+const sessionCache = {};
+function prefetchSession(m) {
+  const hit = sessionCache[m];
+  if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.promise;
+  const promise = fetch('/api/sesion?modo=' + m).then(async (r) => {
+    const s = await r.json();
+    if (!r.ok) throw new Error(s.error || 'No se pudo abrir la sesión');
+    return s;
+  });
+  sessionCache[m] = { at: Date.now(), promise };
+  promise.catch(() => { if (sessionCache[m]?.promise === promise) delete sessionCache[m]; });
+  return promise;
+}
+function takeSession(m) { const p = prefetchSession(m); delete sessionCache[m]; return p; }
 
 function verVoz(activa) {
   $('voz').hidden = !activa; $('mic').classList.toggle('activo', activa);
@@ -396,9 +431,7 @@ function conectar(nuevoModo, saludo) {
   conectando = (async () => {
     if (conv) { const v = conv; conv = null; try { await v.endSession(); } catch {} }
     estado('conectando');
-    await cargarSDK();
-    const r = await fetch('/api/sesion?modo=' + nuevoModo); const s = await r.json();
-    if (!r.ok) throw new Error(s.error || 'No se pudo abrir la sesión');
+    const [s] = await Promise.all([takeSession(nuevoModo), cargarSDK()]);
     const retoma = historial.length > 0;
     const overrides = {};
     if (nuevoModo === 'texto') overrides.conversation = { textOnly: true };
@@ -408,7 +441,11 @@ function conectar(nuevoModo, saludo) {
       clientTools: herramientas, overrides, textOnly: nuevoModo === 'texto',
       onMessage: ({ message, role }) => {
         if (!message) return;
-        if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); }
+        if (role === 'user') {
+          if (message === ultimoEnviado) { ultimoEnviado = ''; return; }
+          burbuja('user', message); pensar();
+          if (modo === 'voz') voiceTurn(message);
+        }
         else burbuja('agent', message);
       },
       onModeChange: ({ mode }) => { hablando = mode === 'speaking'; if (modo === 'voz') { $('vozTitulo').textContent = hablando ? 'juju está hablando' : 'Te escucho'; estado(hablando ? 'hablando' : 'escuchando', 'voz'); } },
@@ -422,6 +459,7 @@ function conectar(nuevoModo, saludo) {
     estado(nuevoModo === 'voz' ? 'escuchando' : 'en línea', nuevoModo === 'voz' ? 'voz' : 'on');
     verVoz(nuevoModo === 'voz');
     if (retoma) conv.sendContextualUpdate('Esta sesión continúa una charla anterior con el mismo usuario. Últimos mensajes:\n' + historial.slice(-12).map((h) => `${h.rol === 'user' ? 'Usuario' : 'juju'}: ${h.texto}`).join('\n'));
+    if (nuevoModo === 'voz') primeVoice();
   })().finally(() => { conectando = null; });
   return conectando;
 }
@@ -445,12 +483,25 @@ async function enviar(texto) {
   if (sinAgente) return soloDirectorio(texto);
   pensar();
   try {
+    const datos = adjuntarDatos(contextFor(texto)); // searches while the session connects
     if (!conv) await conectar('texto', ''); // sin saludo: responde directo al mensaje
-    await adjuntarDatos(texto);
+    const bloque = await datos;
+    if (bloque) conv.sendContextualUpdate(bloque);
     ultimoEnviado = texto;
     conv.sendUserMessage(texto);
   } catch (e) { dejarDePensar(); aviso(e.message, true); estado('listo'); }
 }
+
+// Open the text session while the user is still typing, so the first message skips the handshake.
+function warmUp() {
+  if (sinAgente || conv || conectando || !$('texto').value.trim()) return;
+  conectar('texto', '').catch(() => estado('listo')); // a real failure shows up again on send
+}
+$('texto').addEventListener('focus', () => { if (!sinAgente && !conv) prefetchSession('texto').catch(() => {}); });
+$('texto').addEventListener('input', warmUp);
+const prefetchVoice = () => { if (!sinAgente && modo !== 'voz') prefetchSession('voz').catch(() => {}); };
+$('mic').addEventListener('pointerenter', prefetchVoice);
+$('mic').addEventListener('focus', prefetchVoice);
 
 $('enviar').onclick = () => enviar($('texto').value);
 $('texto').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar($('texto').value); } });
@@ -493,14 +544,12 @@ function pintarFunciones(e) {
   const conHorario = e?.datos?.con_horario;
   const funciones = [
     ['chat', 'Preguntá por escrito', 'Decime dónde estás y qué buscás. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora.'],
-    ['mic', 'Hablá en vivo', 'Tocá el micrófono y conversamos con voz. Las siete franjas se mueven mientras escucho o hablo. Con "Terminar" volvés al texto sin perder la charla.'],
+    ['mic', 'Hablá en vivo', (e?.voz?.tiempo_real ? 'Tocá el micrófono y conversamos con voz en tiempo real.' : 'Tocá el micrófono y conversamos con voz.') + ' Las siete franjas se mueven mientras escucho o hablo. Con "Terminar" volvés al texto sin perder la charla.'],
     ['pin', 'Buscá cerca tuyo', 'Con el botón del pin uso tu ubicación para no preguntarte la localidad. Solo se usa en esta charla.'],
     ['reloj', 'Mirá qué está abierto', 'Cada lugar dice si está abierto, cerrado o sin horario.' + (conHorario ? ' Hoy ' + conHorario + ' lugares tienen horario cargado.' : '') + ' Cuando no lo tengo te aviso, no lo invento.'],
     ['lista', 'Llevate los datos', 'Distancia, precio aproximado, mapa, teléfono y sitio web de ' + total + ' lugares de toda la provincia.'],
   ];
-  const p = e?.pagos;
-  if (p?.proveedor === 'cosmospay') funciones.push(['pago', 'Pagá desde el chat', 'Con ' + p.monedas.map((m) => m.etiqueta).join(' o ') + '. Elegís la moneda, se abre la página de pago con un código QR y acá te aviso cuando se acredita.' + (p.red === 'testnet' ? ' Ahora está en red de prueba: no es dinero real.' : '')]);
-  else if (p?.proveedor === 'simulado') funciones.push(['pago', 'Probá un pago', 'El pago está en modo de prueba: podés recorrer todos los pasos y no se cobra nada.']);
+  if (e?.agente_configurado) funciones.push(['pago', 'Reservá y pagá', 'Pedime que te reserve un lugar. Te pregunto si pagás con USDC o con transferencia bancaria y te confirmo la reserva con un código. Es una demo: el pago es simulado y no se cobra nada.']);
   for (const id of ['funciones', 'funcionesDlg']) {
     $(id).replaceChildren(...funciones.map(([icono, titulo, texto]) => {
       const li = nodo('li'); const m = nodo('span', 'marca'); m.setAttribute('aria-hidden', 'true');
@@ -526,6 +575,8 @@ reloj(); setInterval(reloj, 20000);
   if (!e) { $('inicio').hidden = true; return aviso('No hay conexión con el servidor local. Iniciá el servidor con "node server.mjs".', true); }
   $('sobre').textContent = `Provincia de Jujuy · ${e.datos.total.toLocaleString('es-AR')} lugares`;
   pintarFunciones(e);
+  if (e.agente_configurado) cargarSDK().catch(() => {}); // load the SDK now instead of on the first message
+  if (e.voz?.tiempo_real) $('vozNota').textContent = 'Voz en tiempo real. Hablá con naturalidad; también podés escribir.';
   if (!e.agente_configurado) {
     sinAgente = true; $('mic').disabled = true; estado('solo directorio');
     $('notaModo').hidden = false;

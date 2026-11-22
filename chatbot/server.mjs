@@ -17,6 +17,7 @@ const { buscar, planRapido, resumen, localidadMasCercana } = await import('./dat
 const { momento } = await import('./horarios.mjs');
 const pagos = await import('./pagos.mjs');
 const { contexto, comoTexto } = await import('./contexto.mjs');
+const { confirmDemoReservation } = await import('./reservas.mjs');
 const conTexto = (d) => ({ ...d, texto_modelo: comoTexto(d) }); // versión compacta para el modelo
 
 const PUERTO = Number(process.env.PUERTO) || 3000;
@@ -26,6 +27,17 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 const agente = () => process.env.ELEVENLABS_AGENT_ID || '';
 const clave = () => process.env.ELEVENLABS_API_KEY || '';
+// Live voice runs on a second agent in Eleven Realtime mode (speech to speech). Without it,
+// voice falls back to the text agent.
+const voiceAgent = () => process.env.ELEVENLABS_VOICE_AGENT_ID || '';
+const realtimeModel = () => process.env.ELEVENLABS_REALTIME_MODEL || 'eleven_realtime_v1_mini';
+const agentFor = (modo) => (modo === 'voz' && voiceAgent()) || agente();
+
+// Resolves the place the assistant names to a directory entry, preferring matches near the locality.
+function findPlace({ lugar, localidad } = {}) {
+  if (!lugar) return null;
+  return buscar({ texto: lugar, localidad, limite: 1, radio_km: 60 }).resultados[0] || buscar({ texto: lugar, limite: 1 }).resultados[0] || null;
+}
 
 function json(res, codigo, obj) {
   res.writeHead(codigo, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -38,22 +50,20 @@ async function cuerpo(req, max = 100_000) {
 }
 const comoJson = (s) => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
 
+// Catalog products the assistant can also book through the `reservar` tool (payment is a demo).
 function catalogoTexto() {
-  const e = pagos.estadoPagos();
   const ps = pagos.productos();
-  if (e.proveedor === 'ninguno' || e.proveedor === 'sin_configurar' || !ps.length) return 'Pagos no disponibles por ahora.';
-  const modo = e.proveedor === 'simulado' ? ' (modo de prueba, no se cobra de verdad)' : e.red === 'testnet' ? ' (red de prueba, no es dinero real)' : '';
-  return `Se paga con ${e.monedas.map((m) => m.etiqueta).join(' o ')}${modo}. Productos: ` + ps.map((p) => `${p.id} = ${p.nombre}, USD ${p.precio_usd}`).join('; ') + '.';
+  return ps.length ? 'Productos: ' + ps.map((p) => `${p.id} = ${p.nombre}, USD ${p.precio_usd}`).join('; ') + '.' : 'No hay productos extra.';
 }
 
 async function sesion(modo) {
   if (!clave() || !agente()) return [503, { error: 'Falta configurar ELEVENLABS_API_KEY y crear el agente (node crear-agente.mjs).' }];
   const ruta = modo === 'voz' ? 'conversation/token' : 'conversation/get-signed-url';
-  const r = await fetch(`${API}/v1/convai/${ruta}?agent_id=${encodeURIComponent(agente())}`, { headers: { 'xi-api-key': clave() }, signal: AbortSignal.timeout(15000) });
+  const r = await fetch(`${API}/v1/convai/${ruta}?agent_id=${encodeURIComponent(agentFor(modo))}`, { headers: { 'xi-api-key': clave() }, signal: AbortSignal.timeout(15000) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) return [502, { error: `ElevenLabs respondió ${r.status}`, detalle: d }];
   return [200, {
-    signedUrl: d.signed_url, conversationToken: d.token,
+    signedUrl: d.signed_url, conversationToken: d.token, realtime: modo === 'voz' && Boolean(voiceAgent()),
     variables: { fecha_hora_local: momento().etiqueta, catalogo_pagos: catalogoTexto() },
   }];
 }
@@ -71,7 +81,15 @@ const servidor = http.createServer(async (req, res) => {
   const base = `http://${req.headers.host || `localhost:${PUERTO}`}`;
   try {
     if (ruta === '/api/estado') {
-      return json(res, 200, { agente_configurado: Boolean(clave() && agente()), datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos() });
+      return json(res, 200, {
+        agente_configurado: Boolean(clave() && agente()), datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
+        voz: { tiempo_real: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
+      });
+    }
+    if (ruta === '/api/reservas' && req.method === 'POST') {
+      const p = comoJson(await cuerpo(req));
+      const product = p.producto_id ? pagos.productos().find((x) => x.id === p.producto_id) || null : null;
+      try { return json(res, 200, confirmDemoReservation(p, product ? null : findPlace(p), product)); } catch (e) { return json(res, 400, { error: e.message }); }
     }
     if (ruta === '/api/sesion') { const [c, o] = await sesion(url.searchParams.get('modo')); return json(res, c, o); }
     if (ruta === '/api/buscar' && req.method === 'POST') return json(res, 200, conTexto(buscar(comoJson(await cuerpo(req)))));
@@ -121,5 +139,6 @@ servidor.listen(PUERTO, HOST, () => {
   console.log(`juju en http://localhost:${PUERTO}`);
   console.log(`Datos: ${r.total} registros desde ${r.origen} (${r.con_horario} con horario cargado)`);
   console.log(`ElevenLabs: ${clave() ? 'API key OK' : 'FALTA ELEVENLABS_API_KEY en .env'} · ${agente() ? 'agente ' + agente() : 'FALTA crear el agente (node crear-agente.mjs)'}`);
+  console.log(`Voice: ${voiceAgent() ? `Eleven Realtime (${realtimeModel()}) on agent ${voiceAgent()}` : 'text agent (no realtime voice agent configured)'}`);
   console.log(`Pagos: ${JSON.stringify(pagos.estadoPagos())}`);
 });
