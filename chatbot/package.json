@@ -1,0 +1,14 @@
+{
+  "name": "juju",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "juju: chatbot guía de Jujuy (ElevenLabs Agents + directorio turístico + pagos)",
+  "scripts": {
+    "start": "node server.mjs",
+    "crear-agente": "node crear-agente.mjs"
+  },
+  "engines": {
+    "node": ">=21.7"
+  }
+}

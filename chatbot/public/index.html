@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>juju</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Concepto: una sola columna de conversación sobre suelo de salina (blanco frío) con tinta de noche puneña.
+     Lo único vistoso son las siete franjas del aguayo / Cerro de los Siete Colores: marca, borde y medidor de voz. */
+  :root {
+    --suelo: #f2f5f8; --papel: #ffffff; --tinta: #171a2b; --tenue: #5a6177; --linea: #dbe1e8;
+    --acento: #c4175c; --sobre-acento: #ffffff; --yo: #1f2440; --sobre-yo: #f4f5fb;
+    --si: #1b7a4b; --no: #b3261e; --duda: #8a6100; --prueba-fondo: #ffe9a8; --prueba-tinta: #3d2c00;
+    --f1: #e2a02b; --f2: #d4532b; --f3: #c4175c; --f4: #6b3fa0; --f5: #2b7fd1; --f6: #159a9c; --f7: #5e8c3a;
+    --titular: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+    --texto: "Figtree", system-ui, "Segoe UI", sans-serif;
+    --dato: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    --radio: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --suelo: #0f1120; --papel: #181b30; --tinta: #eceef7; --tenue: #9aa1ba; --linea: #2a2e4a;
+      --acento: #ff6b9d; --sobre-acento: #1a0610; --yo: #2c3263; --sobre-yo: #f1f2fb;
+      --si: #5fd39a; --no: #ff8a80; --duda: #e9c46a; --prueba-fondo: #4a3a08; --prueba-tinta: #ffe9a8;
+      --f1: #f0b84a; --f2: #ef7147; --f3: #ff6b9d; --f4: #a47be0; --f5: #5aa6f2; --f6: #3cc4c6; --f7: #8fc15f;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --suelo: #0f1120; --papel: #181b30; --tinta: #eceef7; --tenue: #9aa1ba; --linea: #2a2e4a;
+    --acento: #ff6b9d; --sobre-acento: #1a0610; --yo: #2c3263; --sobre-yo: #f1f2fb;
+    --si: #5fd39a; --no: #ff8a80; --duda: #e9c46a; --prueba-fondo: #4a3a08; --prueba-tinta: #ffe9a8;
+    --f1: #f0b84a; --f2: #ef7147; --f3: #ff6b9d; --f4: #a47be0; --f5: #5aa6f2; --f6: #3cc4c6; --f7: #8fc15f;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--suelo); color: var(--tinta); font: 400 16px/1.5 var(--texto); display: flex; justify-content: center; -webkit-font-smoothing: antialiased; }
+  [hidden] { display: none !important; }
+  button, textarea { font: inherit; color: inherit; }
+  a { color: var(--acento); text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 6px; }
+
+  .app { width: 100%; max-width: 720px; height: 100%; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .borde { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+  /* --- tapa --- */
+  .tapa { display: flex; align-items: baseline; gap: 14px; padding-block: 14px 10px; }
+  .nombre { font: 800 30px/1 var(--titular); letter-spacing: -.04em; }
+  .reloj { font: 500 13px/1 var(--dato); color: var(--tenue); font-variant-numeric: tabular-nums; }
+  .estado { margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--tenue); white-space: nowrap; }
+  .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--linea); }
+  .punto.on { background: var(--si); } .punto.voz { background: var(--acento); }
+  .franjas { display: grid; grid-template-columns: repeat(7, 1fr); height: 5px; flex: none; }
+  .franjas i:nth-child(1), .barras i:nth-child(1) { background: var(--f1); } .franjas i:nth-child(2), .barras i:nth-child(2) { background: var(--f2); }
+  .franjas i:nth-child(3), .barras i:nth-child(3) { background: var(--f3); } .franjas i:nth-child(4), .barras i:nth-child(4) { background: var(--f4); }
+  .franjas i:nth-child(5), .barras i:nth-child(5) { background: var(--f5); } .franjas i:nth-child(6), .barras i:nth-child(6) { background: var(--f6); }
+  .franjas i:nth-child(7), .barras i:nth-child(7) { background: var(--f7); }
+
+  /* --- conversación --- */
+  main { flex: 1; min-height: 0; overflow-y: auto; padding-block: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .inicio { margin-block: auto; display: flex; flex-direction: column; gap: 14px; padding-block: 8px; }
+  .sobre { margin: 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
+  .inicio h1 { margin: 0; font: 800 clamp(40px, 11vw, 68px)/.95 var(--titular); letter-spacing: -.045em; text-wrap: balance; }
+  .inicio h1 em { font-style: normal; color: var(--acento); }
+  .bajada { margin: 0; max-width: 46ch; color: var(--tenue); font-size: 17px; }
+  .ideas { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--linea); }
+  .ideas button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--linea); padding: 13px 2px; cursor: pointer; font-weight: 500; }
+  .ideas button::after { content: "→"; color: var(--acento); font-family: var(--dato); transition: transform .15s; }
+  .ideas button:hover::after { transform: translateX(4px); }
+
+  .msg { max-width: min(85%, 60ch); padding: 10px 14px; border-radius: var(--radio); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.bot { align-self: flex-start; background: var(--papel); border: 1px solid var(--linea); border-top-left-radius: 4px; }
+  .msg.yo { align-self: flex-end; background: var(--yo); color: var(--sobre-yo); border-top-right-radius: 4px; }
+  .aviso { align-self: center; max-width: 90%; text-align: center; font-size: 13px; color: var(--tenue); }
+  .aviso.error { color: var(--no); }
+  .pensando { align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tenue); padding-left: 2px; }
+  .pensando .mini { display: flex; gap: 3px; }
+  .pensando .mini i { width: 5px; height: 5px; border-radius: 50%; background: var(--tenue); animation: salto 1s infinite; }
+  .pensando .mini i:nth-child(2) { animation-delay: .15s; } .pensando .mini i:nth-child(3) { animation-delay: .3s; }
+  @keyframes salto { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-3px); } }
+
+  /* --- resultados: una lista, no un mosaico de tarjetas --- */
+  .grupo { align-self: stretch; display: flex; flex-direction: column; gap: 6px; }
+  .grupo h3 { margin: 6px 0 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
+  .lista { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); overflow: hidden; }
+  .lugar { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .lugar + .lugar { border-top: 1px solid var(--linea); }
+  .lugar .cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .lugar h4 { margin: 0; font: 600 17px/1.25 var(--titular); letter-spacing: -.01em; min-width: 0; overflow-wrap: anywhere; }
+  .pill { font: 500 12px/1 var(--dato); padding: 5px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pill.si { color: var(--si); } .pill.no { color: var(--no); } .pill.sin_dato { color: var(--duda); border-style: dashed; }
+  .meta { margin: 0; font-size: 14px; color: var(--tenue); overflow-wrap: anywhere; }
+  .meta .num { font-family: var(--dato); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .acc { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; font-weight: 500; align-items: baseline; }
+  .acc .tel { font: 400 13px var(--dato); color: var(--tenue); user-select: all; }
+
+  /* --- pago: el único bloque con borde fuerte --- */
+  .pago { align-self: flex-start; width: min(100%, 380px); background: var(--papel); border: 2px solid var(--tinta); border-radius: var(--radio); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .pago .que { margin: 0; font-weight: 500; }
+  .pago .monto { font: 800 34px/1 var(--titular); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .pago .monto small { font: 500 13px var(--dato); color: var(--tenue); letter-spacing: 0; margin-right: 6px; }
+  .pago .fila { display: flex; flex-direction: column; gap: 8px; }
+  .pago .nota { font-size: 13px; color: var(--tenue); overflow-wrap: anywhere; }
+  .prueba { align-self: flex-start; font: 500 11px/1 var(--dato); letter-spacing: .06em; text-transform: uppercase; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 6px; padding: 5px 8px; }
+  .boton { cursor: pointer; border-radius: 10px; border: 1px solid var(--tinta); background: transparent; padding: 10px 14px; font-weight: 600; text-align: center; }
+  .boton.lleno { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
+  .boton:disabled { opacity: .5; cursor: default; }
+
+  /* --- voz en vivo: las siete franjas se mueven con la voz --- */
+  .voz { display: flex; align-items: center; gap: 14px; padding-block: 10px; border-top: 1px solid var(--linea); }
+  .barras { display: flex; align-items: center; gap: 4px; height: 36px; flex: none; }
+  .barras i { width: 7px; height: 100%; border-radius: 4px; transform: scaleY(.18); transition: transform .09s linear; }
+  .voz p { margin: 0; flex: 1; min-width: 0; font-size: 14px; color: var(--tenue); }
+  .voz p b { display: block; color: var(--tinta); font: 600 16px/1.2 var(--titular); }
+
+  /* --- redactar --- */
+  .redactar { display: flex; gap: 8px; align-items: flex-end; padding-block: 10px 14px; border-top: 1px solid var(--linea); }
+  .redactar textarea { flex: 1; min-width: 0; resize: none; min-height: 46px; max-height: 130px; padding: 11px 14px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .redactar textarea::placeholder { color: var(--tenue); }
+  .icono { flex: none; width: 46px; height: 46px; display: grid; place-items: center; cursor: pointer; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .icono svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .icono.activo { background: var(--tinta); color: var(--suelo); border-color: var(--tinta); }
+  .icono.enviar { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
+  .icono:disabled, .redactar textarea:disabled { opacity: .45; cursor: default; }
+
+  .falta { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 16px 18px; font-size: 15px; }
+  .falta h2 { margin: 0 0 6px; font: 600 18px var(--titular); }
+  .falta ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+  .falta code { font: 400 13px var(--dato); background: var(--suelo); padding: 2px 6px; border-radius: 5px; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="tapa borde">
+    <span class="nombre">juju</span>
+    <span class="reloj" id="reloj" title="Hora local de Jujuy (UTC−3)">--:-- · Jujuy</span>
+    <span class="estado"><span class="punto" id="punto"></span><span id="estado">listo</span></span>
+  </header>
+  <div class="franjas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <main id="chat" class="borde" aria-live="polite">
+    <section class="inicio" id="inicio">
+      <p class="sobre" id="sobre">Guía de la provincia de Jujuy</p>
+      <h1>¿Qué hacemos <em>ahora</em>?</h1>
+      <p class="bajada">Decime dónde estás y cuánto tiempo te queda. Te armo un plan con algo para hacer y un lugar para comer que esté abierto a esta hora.</p>
+      <ul class="ideas" id="ideas">
+        <li><button type="button">Estoy en San Salvador, mañana me voy. ¿Qué hago ahora y dónde como?</button></li>
+        <li><button type="button">Dónde comer comida regional esta noche en Tilcara</button></li>
+        <li><button type="button">Un hostel económico en Purmamarca</button></li>
+        <li><button type="button">Museos y sitios arqueológicos de la Quebrada</button></li>
+      </ul>
+    </section>
+  </main>
+
+  <div class="voz borde" id="voz" hidden>
+    <div class="barras" id="barras" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p><b id="vozTitulo">Te escucho</b><span>Hablá con naturalidad. También podés escribir.</span></p>
+    <button class="boton" id="cortar" type="button">Terminar</button>
+  </div>
+
+  <footer class="redactar borde">
+    <button class="icono" id="ubic" type="button" title="Usar mi ubicación" aria-label="Usar mi ubicación">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+    </button>
+    <textarea id="texto" rows="1" placeholder="Escribí tu consulta" aria-label="Mensaje"></textarea>
+    <button class="icono" id="mic" type="button" title="Hablar en vivo" aria-label="Hablar en vivo">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+    </button>
+    <button class="icono enviar" id="enviar" type="button" title="Enviar" aria-label="Enviar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const chat = $('chat');
+const SDK = ['/vendor/elevenlabs-client.js', 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.37.1/dist/lib.iife.js', 'https://unpkg.com/@elevenlabs/client@1.37.1/dist/lib.iife.js'];
+
+let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false;
+const historial = []; // { rol, texto }: sirve para retomar el hilo al reconectar o pasar de texto a voz
+
+// ---------- piezas de interfaz ----------
+function nodo(tag, clase, texto) { const n = document.createElement(tag); if (clase) n.className = clase; if (texto != null) n.textContent = texto; return n; }
+function abajo() { chat.scrollTop = chat.scrollHeight; }
+function agregar(n) { $('inicio').hidden = true; if (pensando) chat.insertBefore(n, pensando); else chat.append(n); abajo(); }
+function burbuja(rol, texto) {
+  if (rol !== 'user') dejarDePensar();
+  agregar(nodo('div', 'msg ' + (rol === 'user' ? 'yo' : 'bot'), texto));
+  historial.push({ rol, texto }); if (historial.length > 30) historial.shift();
+}
+function aviso(texto, error) { agregar(nodo('div', 'aviso' + (error ? ' error' : ''), texto)); }
+function pensar(texto = 'juju está pensando') {
+  dejarDePensar();
+  pensando = nodo('div', 'pensando'); const m = nodo('span', 'mini'); m.append(nodo('i'), nodo('i'), nodo('i'));
+  pensando.append(m, nodo('span', '', texto)); $('inicio').hidden = true; chat.append(pensando); abajo();
+}
+function dejarDePensar() { pensando?.remove(); pensando = null; }
+function estado(txt, clase) { $('estado').textContent = txt; $('punto').className = 'punto ' + (clase || ''); }
+function enlace(texto, href) {
+  try { if (!['http:', 'https:', 'tel:'].includes(new URL(href, location.href).protocol)) return null; } catch { return null; }
+  const a = nodo('a', '', texto); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a;
+}
+const legible = (t) => String(t || '').replace(/_/g, ' ');
+const km = (n) => (n < 1 ? `${Math.round(n * 1000 / 50) * 50} m` : `${String(n).replace('.', ',')} km`);
+
+function lista(titulo, lugares) {
+  if (!lugares?.length) return;
+  const g = nodo('section', 'grupo'); g.append(nodo('h3', '', titulo));
+  const cont = nodo('div', 'lista');
+  for (const l of lugares) {
+    const fila = nodo('article', 'lugar');
+    const cab = nodo('div', 'cab'); cab.append(nodo('h4', '', l.nombre));
+    const txt = l.abierto === 'si' ? (l.cierra && l.cierra !== 'no cierra' ? `Abierto hasta ${l.cierra}` : 'Abierto')
+      : l.abierto === 'no' ? (l.abre ? `Cerrado · abre ${l.abre}` : 'Cerrado') : 'Sin horario';
+    cab.append(nodo('span', 'pill ' + l.abierto, txt)); fila.append(cab);
+    const meta = nodo('p', 'meta');
+    meta.append([legible(l.tipo), l.localidad].filter(Boolean).join(' · '));
+    for (const d of [l.distancia_km != null ? km(l.distancia_km) : null, l.precio?.replace(' (estimado)', ' aprox.'), l.altitud_m ? `${l.altitud_m.toLocaleString('es-AR')} msnm` : null].filter(Boolean)) { meta.append(' · '); meta.append(nodo('span', 'num', d)); }
+    fila.append(meta);
+    const extra = [l.cocina && `cocina ${l.cocina}`, l.direccion].filter(Boolean).join(' · ');
+    if (extra) fila.append(nodo('p', 'meta', extra));
+    const acc = nodo('div', 'acc');
+    const mapa = l.mapa && enlace('Ver en el mapa', l.mapa); if (mapa) acc.append(mapa);
+    const web = l.web && /^https?:/.test(l.web) && enlace('Sitio web', l.web); if (web) acc.append(web);
+    if (l.telefono) {
+      const num = String(l.telefono).split(/[;,]/)[0].trim();
+      const tel = enlace('Llamar', 'tel:' + num.replace(/[^+\d]/g, '')); if (tel) acc.append(tel);
+      acc.append(nodo('span', 'tel', num));
+    }
+    if (acc.childNodes.length) fila.append(acc);
+    cont.append(fila);
+  }
+  g.append(cont); agregar(g);
+}
+
+const post = (ruta, body) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+  .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'No se pudo completar el pedido'); return d; });
+// al modelo no le mandamos los links de mapa: ya están en pantalla
+const paraModelo = (d) => JSON.stringify(d, (k, v) => (k === 'mapa' || k === 'categoria' ? undefined : v));
+const conUbicacion = (p) => (!p.localidad && ubicacion ? { ...p, lat: ubicacion.lat, lon: ubicacion.lon } : p);
+
+// ---------- herramientas que el agente ejecuta en esta página ----------
+const herramientas = {
+  async plan_rapido(p) {
+    pensar('Buscando qué hay cerca');
+    const d = await post('/api/plan', conUbicacion(p || {}));
+    lista('Para hacer', d.para_hacer); lista('Para comer', d.para_comer);
+    pensar();
+    return paraModelo(d);
+  },
+  async buscar_lugares(p) {
+    pensar('Buscando en el directorio');
+    const d = await post('/api/buscar', conUbicacion(p || {}));
+    lista(`${d.total_encontrados} ${d.total_encontrados === 1 ? 'lugar' : 'lugares'} · ${d.zona}`, d.resultados);
+    pensar();
+    return paraModelo(d);
+  },
+  async solicitar_pago({ producto_id } = {}) {
+    const cat = await fetch('/api/productos').then((r) => r.json());
+    const prod = cat.lista.find((x) => x.id === producto_id);
+    if (!prod) return `Producto inexistente. Ids válidos: ${cat.lista.map((x) => x.id).join(', ') || 'ninguno'}`;
+    if (cat.proveedor === 'ninguno' || cat.proveedor === 'sin_configurar') return 'Los pagos todavía no están configurados. Avisale al usuario que por ahora no se puede pagar desde el chat.';
+    tarjetaPago(prod, cat);
+    return `Se mostró la tarjeta de pago de "${prod.nombre}" por USD ${prod.precio_usd}. El usuario tiene que elegir la moneda y confirmar en pantalla. Decíselo en una frase y no des el pago por hecho.`;
+  },
+};
+
+function tarjetaPago(prod, cat) {
+  const c = nodo('section', 'pago');
+  if (cat.proveedor === 'simulado') c.append(nodo('span', 'prueba', 'Modo de prueba · no se cobra'));
+  c.append(nodo('p', 'que', prod.nombre));
+  const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), String(prod.precio_usd).replace('.', ',')); c.append(monto);
+  const fila = nodo('div', 'fila'); const nota = nodo('span', 'nota');
+  for (const m of cat.monedas) {
+    const b = nodo('button', 'boton' + (m === 'USD' ? ' lleno' : ''), m === 'USD' ? 'Pagar en dólares' : `Pagar en cripto (${m})`); b.type = 'button';
+    b.onclick = async () => {
+      fila.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+      nota.textContent = 'Generando el pago';
+      try {
+        const p = await post('/api/pagos', { producto_id: prod.id, moneda: m });
+        fila.replaceChildren();
+        const a = p.url_pago && enlace('Abrir la página de pago', p.url_pago); if (a) { a.className = 'boton lleno'; a.style.textDecoration = 'none'; fila.append(a); }
+        if (p.direccion) { const d = nodo('span', 'nota', `Enviá ${p.monto} ${p.moneda} a esta dirección: ${p.direccion}`); d.style.userSelect = 'all'; fila.append(d); }
+        nota.textContent = 'Esperando la confirmación del pago';
+        seguirPago(p.id, nota, prod);
+      } catch (e) { nota.textContent = `No se pudo generar el pago. ${e.message}`; fila.querySelectorAll('button').forEach((x) => { x.disabled = false; }); }
+    };
+    fila.append(b);
+  }
+  c.append(fila, nota); dejarDePensar(); agregar(c);
+}
+async function seguirPago(id, nota, prod) {
+  for (let i = 0; i < 225; i++) { // unos 15 minutos
+    await new Promise((r) => setTimeout(r, 4000));
+    const p = await fetch('/api/pagos/' + id).then((r) => r.json()).catch(() => null);
+    if (!p || p.estado === 'pendiente') continue;
+    const ok = p.estado === 'pagado';
+    nota.textContent = ok ? 'Pago acreditado' : `El pago quedó ${p.estado}`; nota.style.color = ok ? 'var(--si)' : 'var(--no)'; nota.style.fontWeight = '600';
+    conv?.sendContextualUpdate(ok ? `El sistema confirma que el pago de "${prod.nombre}" (${p.monto} ${p.moneda}) fue acreditado.` : `El pago de "${prod.nombre}" quedó en estado ${p.estado}.`);
+    return;
+  }
+  nota.textContent = 'Todavía no llegó la confirmación. Si ya pagaste, puede tardar unos minutos.';
+}
+
+// ---------- conexión con ElevenLabs ----------
+function cargarSDK(i = 0) {
+  if (window.ElevenLabsClient) return Promise.resolve();
+  if (i >= SDK.length) return Promise.reject(new Error('No se pudo cargar el SDK de ElevenLabs. Revisá la conexión a internet.'));
+  return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = SDK[i]; s.onload = ok; s.onerror = () => { s.remove(); cargarSDK(i + 1).then(ok, mal); }; document.head.append(s); });
+}
+
+function verVoz(activa) {
+  $('voz').hidden = !activa; $('mic').classList.toggle('activo', activa);
+  $('texto').placeholder = activa ? 'O escribí acá' : 'Escribí tu consulta';
+  if (activa) requestAnimationFrame(medir);
+}
+function medir() { // las siete franjas siguen el volumen de quien habla
+  if (modo !== 'voz' || !conv) { for (const b of $('barras').children) b.style.transform = ''; return; }
+  let datos = null;
+  try { datos = hablando ? conv.getOutputByteFrequencyData() : conv.getInputByteFrequencyData(); } catch {}
+  const barras = $('barras').children;
+  for (let i = 0; i < 7; i++) {
+    let v = 0;
+    if (datos?.length) { const paso = Math.floor(datos.length / 7) || 1; for (let j = 0; j < paso; j++) v += datos[i * paso + j] || 0; v = v / paso / 255; }
+    barras[i].style.transform = `scaleY(${Math.max(0.18, Math.min(1, v * 1.6)).toFixed(2)})`;
+  }
+  requestAnimationFrame(medir);
+}
+
+function conectar(nuevoModo, saludo) {
+  if (conectando) return conectando;
+  conectando = (async () => {
+    if (conv) { const v = conv; conv = null; try { await v.endSession(); } catch {} }
+    estado('conectando');
+    await cargarSDK();
+    const r = await fetch('/api/sesion?modo=' + nuevoModo); const s = await r.json();
+    if (!r.ok) throw new Error(s.error || 'No se pudo abrir la sesión');
+    const retoma = historial.length > 0;
+    const overrides = {};
+    if (nuevoModo === 'texto') overrides.conversation = { textOnly: true };
+    if (saludo != null) overrides.agent = { firstMessage: saludo };
+    const opciones = {
+      dynamicVariables: { ...s.variables, ubicacion_usuario: ubicacion?.texto || 'desconocida' },
+      clientTools: herramientas, overrides, textOnly: nuevoModo === 'texto',
+      onMessage: ({ message, role }) => {
+        if (!message) return;
+        if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); }
+        else burbuja('agent', message);
+      },
+      onModeChange: ({ mode }) => { hablando = mode === 'speaking'; if (modo === 'voz') { $('vozTitulo').textContent = hablando ? 'juju está hablando' : 'Te escucho'; estado(hablando ? 'hablando' : 'escuchando', 'voz'); } },
+      onError: (m) => { dejarDePensar(); console.error(m); aviso(`Algo falló: ${m}`, true); },
+      onDisconnect: (d) => { conv = null; modo = null; dejarDePensar(); verVoz(false); estado('listo'); if (d?.reason === 'error') aviso(`Se cortó la conexión. ${d.message || ''} Mandá un mensaje para retomar.`, true); },
+    };
+    if (nuevoModo === 'voz') Object.assign(opciones, { conversationToken: s.conversationToken, connectionType: 'webrtc' });
+    else Object.assign(opciones, { signedUrl: s.signedUrl, connectionType: 'websocket' });
+    conv = await window.ElevenLabsClient.Conversation.startSession(opciones);
+    modo = nuevoModo;
+    estado(nuevoModo === 'voz' ? 'escuchando' : 'en línea', nuevoModo === 'voz' ? 'voz' : 'on');
+    verVoz(nuevoModo === 'voz');
+    if (retoma) conv.sendContextualUpdate('Esta sesión continúa una charla anterior con el mismo usuario. Últimos mensajes:\n' + historial.slice(-12).map((h) => `${h.rol === 'user' ? 'Usuario' : 'juju'}: ${h.texto}`).join('\n'));
+  })().finally(() => { conectando = null; });
+  return conectando;
+}
+
+async function enviar(texto) {
+  texto = texto.trim(); if (!texto) return;
+  $('texto').value = ''; $('texto').style.height = '';
+  burbuja('user', texto); pensar();
+  try {
+    if (!conv) await conectar('texto', ''); // sin saludo: responde directo al mensaje
+    ultimoEnviado = texto;
+    conv.sendUserMessage(texto);
+  } catch (e) { dejarDePensar(); aviso(e.message, true); estado('listo'); }
+}
+
+$('enviar').onclick = () => enviar($('texto').value);
+$('texto').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar($('texto').value); } });
+$('texto').addEventListener('input', (e) => { e.target.style.height = ''; e.target.style.height = Math.min(e.target.scrollHeight, 130) + 'px'; });
+$('ideas').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) enviar(b.textContent); });
+
+async function alternarVoz() {
+  try {
+    if (modo === 'voz') return await conectar('texto', 'Listo, seguimos por escrito.');
+    $('inicio').hidden = true;
+    await conectar('voz', historial.length ? 'Dale, te escucho.' : undefined);
+  } catch (e) { aviso((e.name === 'NotAllowedError' ? 'Para hablar necesito permiso de micrófono. Habilitalo en el navegador y probá de nuevo. ' : '') + (e.message || ''), true); verVoz(false); estado('listo'); }
+}
+$('mic').onclick = alternarVoz; $('cortar').onclick = alternarVoz;
+
+$('ubic').onclick = () => {
+  if (!navigator.geolocation) return aviso('Este navegador no permite compartir la ubicación.', true);
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const { latitude: lat, longitude: lon } = pos.coords;
+    const d = await fetch(`/api/cerca?lat=${lat}&lon=${lon}`).then((r) => r.json());
+    if (!d.localidad) return aviso('Parece que no estás en Jujuy. Decime en qué localidad vas a estar.');
+    ubicacion = { lat, lon, texto: `en o cerca de ${d.localidad}` };
+    $('ubic').classList.add('activo');
+    aviso(`Ubicación compartida: cerca de ${d.localidad}`);
+    conv?.sendContextualUpdate(`El usuario compartió su ubicación: está ${ubicacion.texto}. Usá esa localidad en las búsquedas salvo que pida otra.`);
+  }, () => aviso('No pude obtener tu ubicación. Decime en qué localidad estás.', true), { timeout: 10000 });
+};
+
+// ---------- arranque ----------
+function reloj() {
+  const h = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Jujuy', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+  $('reloj').textContent = `${h} · Jujuy`;
+}
+reloj(); setInterval(reloj, 20000);
+
+(async () => {
+  const e = await fetch('/api/estado').then((r) => r.json()).catch(() => null);
+  if (!e) { $('inicio').hidden = true; return aviso('No hay conexión con el servidor local. Iniciá el servidor con "node server.mjs".', true); }
+  $('sobre').textContent = `Provincia de Jujuy · ${e.datos.total.toLocaleString('es-AR')} lugares`;
+  if (e.agente_configurado) return;
+  for (const id of ['enviar', 'mic', 'texto', 'ubic']) $(id).disabled = true;
+  $('ideas').hidden = true; estado('sin configurar');
+  const c = nodo('section', 'falta');
+  c.innerHTML = '<h2>Falta conectar ElevenLabs</h2><ol><li>En la carpeta <code>chatbot</code>, copiá <code>.env.example</code> con el nombre <code>.env</code> y pegá tu clave en <code>ELEVENLABS_API_KEY</code>.</li><li>Ejecutá <code>node crear-agente.mjs</code>. Crea el agente y sus herramientas.</li><li>Iniciá de nuevo con <code>node server.mjs</code> y recargá esta página.</li></ol>';
+  chat.append(c);
+})();
+</script>
+</body>
+</html>
