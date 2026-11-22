@@ -271,6 +271,29 @@ function leerJSONGemini(texto) {
   return { hippie: d.hippie / suma, luxury: d.luxury / suma, razones: d.razones };
 }
 
+// Los nombres de los modelos cambian y se retiran. Si el configurado da 404, se le pregunta a la API qué modelos tiene la
+// clave y se elige el Flash estable más nuevo (rápido y barato, alcanza para esto). El elegido queda para los pedidos siguientes.
+const API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
+let modeloElegido = null;
+export const modeloGeminiEnUso = () => modeloElegido;
+async function modelosDisponibles(apiKey, fetchFn) {
+  try {
+    const r = await fetchFn(`${API_GEMINI}/models?pageSize=200`, { headers: { 'x-goog-api-key': apiKey }, signal: AbortSignal.timeout(ESPERA_MS) });
+    if (!r.ok) return [];
+    const d = await r.json();
+    return (Array.isArray(d?.models) ? d.models : []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => String(m.name || '').replace(/^models\//, ''));
+  } catch {
+    return [];
+  }
+}
+export function mejorModelo(nombres) {
+  const utiles = nombres.filter(n => /^gemini-/.test(n) && !/tts|image|imagen|embedding|live|audio|native|computer|robotics|learnlm|gemma|aqa/i.test(n));
+  const estables = utiles.filter(n => !/preview|exp|latest/i.test(n));
+  const grupo = [estables.filter(n => /flash/.test(n) && !/lite/.test(n)), estables.filter(n => /flash/.test(n)), estables, utiles].find(g => g.length) || [];
+  const version = n => parseFloat((n.match(/^gemini-(\d+(?:\.\d+)?)/) || [])[1] || '0');
+  return [...grupo].sort((a, b) => version(b) - version(a) || a.length - b.length)[0] || null;
+}
+
 async function clasificarConGemini(perfil, apiKey, fetchFn) {
   const urls = (Array.isArray(perfil?.imagenes) ? perfil.imagenes : []).filter(imagenPermitida).slice(0, MAX_IMAGENES);
   const imagenes = (await Promise.all(urls.map(u => bajarImagen(u, fetchFn)))).filter(Boolean);
@@ -285,18 +308,28 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
     contents: [{ parts: [{ text: `${PROMPT}\n\n${descripcion}` }, ...imagenes] }],
     generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
   };
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODELO_GEMINI())}:generateContent`;
-  let r;
-  try {
-    r = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(cuerpo), signal: AbortSignal.timeout(30000) });
-  } catch {
-    throw error('No se pudo conectar con Gemini.', 502);
+  const pedir = async (modelo) => {
+    try {
+      return await fetchFn(`${API_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(cuerpo), signal: AbortSignal.timeout(30000) });
+    } catch {
+      throw error('No se pudo conectar con Gemini.', 502);
+    }
+  };
+  let modelo = modeloElegido || MODELO_GEMINI();
+  let r = await pedir(modelo);
+  if (r.status === 404) { // ese modelo ya no existe para esta clave: se elige uno de los que sí están
+    const otro = mejorModelo(await modelosDisponibles(apiKey, fetchFn));
+    if (otro && otro !== modelo) { modelo = otro; r = await pedir(modelo); }
   }
-  if (!r.ok) throw error(`Gemini respondió con un error (HTTP ${r.status}).`, 502);
+  if (!r.ok) {
+    const detalle = await r.json?.().then(d => String(d?.error?.message || '').slice(0, 160), () => '').catch(() => '') || '';
+    throw error(`Gemini respondió con un error (HTTP ${r.status}${detalle ? `: ${detalle}` : ''}, modelo ${modelo}).`, 502);
+  }
+  modeloElegido = modelo;
   let d;
   try { d = await r.json(); } catch { throw error('Gemini devolvió una respuesta inválida.', 502); }
   const texto = (d?.candidates?.[0]?.content?.parts || []).map(p => p?.text || '').join('');
-  return leerJSONGemini(texto);
+  return { ...leerJSONGemini(texto), modelo };
 }
 
 // ---------------------------------------------------------------- clasificación
@@ -313,15 +346,17 @@ export async function clasificar(perfil, { apiKey = claveGemini(), fetch: fetchF
   let probabilidades = { hippie: palabras.hippie, luxury: palabras.luxury };
   let razones = palabras.razones;
   let fuente = 'palabras-clave';
+  let modelo;
   if (apiKey) {
     const g = await clasificarConGemini(perfil, apiKey, fetchFn);
     const hippie = PESO_GEMINI * g.hippie + (1 - PESO_GEMINI) * palabras.hippie;
     probabilidades = { hippie, luxury: 1 - hippie };
     razones = [...g.razones, ...palabras.razones];
     fuente = 'gemini+palabras-clave';
+    modelo = g.modelo;
   }
   const estilo = probabilidades.hippie === probabilidades.luxury ? 'neutral' : probabilidades.hippie > probabilidades.luxury ? 'hippie' : 'luxury';
-  return { estilo, probabilidades, fuente, razones };
+  return { estilo, probabilidades, fuente, razones, ...(modelo ? { modelo } : {}) };
 }
 
 // ---------------------------------------------------------------- consola

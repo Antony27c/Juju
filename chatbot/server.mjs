@@ -12,7 +12,7 @@ import zlib from 'node:zlib';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { obtenerPerfil, clasificar, claveGemini, estiloDeViaje, AVISO_CONSENTIMIENTO } from './estilo-viaje.mjs';
+import { obtenerPerfil, clasificar, claveGemini, estiloDeViaje, modeloGeminiEnUso, AVISO_CONSENTIMIENTO } from './estilo-viaje.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 if (existsSync(path.join(AQUI, '.env'))) process.loadEnvFile(path.join(AQUI, '.env'));
@@ -148,7 +148,7 @@ async function estiloDePerfil({ perfil, es_mi_perfil } = {}) {
     const estilo = estiloDeViaje(c.probabilidades);
     return [200, {
       red: p.red, usuario: p.usuario, nombre: p.nombre, resumen: p.resumen || null, parcial: Boolean(p.parcial), estilo,
-      porcentajes: { low_cost: Math.round(hippie * 100), fancy: Math.round(luxury * 100) }, fuente: c.fuente, razones: c.razones.slice(0, 3).map((r) => String(r).slice(0, 160)),
+      porcentajes: { low_cost: Math.round(hippie * 100), fancy: Math.round(luxury * 100) }, fuente: c.fuente, ...(c.modelo ? { modelo: c.modelo } : {}), razones: c.razones.slice(0, 3).map((r) => String(r).slice(0, 160)),
     }];
   } catch (e) {
     return [e.status >= 400 && e.status < 600 ? e.status : 502, { error: e.message }];
@@ -216,7 +216,7 @@ const servidor = http.createServer(async (req, res) => {
         datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
         // tiempo_real: el que atiende la voz por defecto; tiempo_real_disponible: se puede pedir con ?voz=tiempo-real
         voz: { tiempo_real: Boolean(voiceAgent()) && realtimePorDefecto(), tiempo_real_disponible: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
-        estilo: { aviso: AVISO_ESTILO(), con_imagenes: Boolean(claveGemini()), analiza: claveGemini() ? 'Google AI Studio (Gemini) + palabras clave' : 'palabras clave', ...(errorGemini ? { error_gemini: errorGemini } : {}) },
+        estilo: { aviso: AVISO_ESTILO(), con_imagenes: Boolean(claveGemini()), analiza: claveGemini() ? 'Google AI Studio (Gemini) + palabras clave' : 'palabras clave', ...(modeloGeminiEnUso() ? { modelo: modeloGeminiEnUso() } : {}), ...(errorGemini ? { error_gemini: errorGemini } : {}) },
         // null = todavía no se sabe (el agente se está preparando, o no se sincronizó en este arranque)
         ingles_por_voz: { chat: niveles.texto == null ? null : niveles.texto >= 3, tiempo_real: niveles.voz == null ? null : niveles.voz >= 3 },
       });
