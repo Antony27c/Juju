@@ -15,10 +15,13 @@ Leer esto primero, porque define qué está comprobado y qué no.
 | Cosmos Pay: crear un pago | Probado contra su red de prueba (devolvió link de pago y QR) |
 | Cosmos Pay: consultar estado y webhook | Firma del webhook probada en local. La consulta de estado necesita una clave propia |
 | Sesión con ElevenLabs (texto y voz) | **Sin probar**: falta la clave de API. Los nombres de campos y métodos se verificaron contra la documentación y contra el código del SDK 1.37.1 |
-| Página en el navegador | Revisada con capturas en escritorio y celular, tema claro y oscuro, en modo "solo directorio" (sin ElevenLabs). La pantalla principal es la vista de voz (micrófono con rótulo, subtítulos en grande y una faja de aguayo que se levanta con la voz); la faja y los estados de escucha y silencio se vieron con una sesión simulada en el navegador, no con una sesión de voz real |
+| Página en el navegador | Revisada con capturas en escritorio y celular, tema claro y oscuro, en modo "solo directorio" (sin ElevenLabs). La pantalla principal es la vista de voz (micrófono con rótulo, subtítulos en grande y un paisaje de cerritos en pixel art que se mueve con la voz); los cerritos y los estados de escucha y silencio se vieron con una sesión simulada en el navegador, no con una sesión de voz real |
 | Reserva de experiencias | Probada de punta a punta con el pago simulado: validación de personas y fecha, total, código de reserva y confirmación. La reserva de demostración (`/api/reservas`) se probó contra el servidor. Las herramientas `ver_experiencias` y `reservar` no se probaron con el agente |
 
 Probado con clave real el 22/11/2026, en el deploy de Railway: el servidor creó solo los dos agentes y las cinco herramientas, `/api/sesion` entregó la URL firmada (texto) y el token (voz en tiempo real), una consulta por chat volvió con respuesta y lugares, y una sesión de voz abrió y movió la faja con un micrófono simulado del navegador. Falta probarlo hablando de verdad: cómo suena la voz, y las herramientas de reserva y de cómo llegar dentro de una charla. Si la API rechaza algún campo, queda el error completo en el log y en `/api/estado`, y se reintenta con una configuración mínima.
+
+
+> **Idioma por voz.** ElevenLabs usa `agent.language` para escuchar y para hablar, así que con la sesión en español el inglés hablado llega mal transcripto (probado con micrófono simulado: "Where can I have dinner tonight?" llegó como "Huerca, Nijabdin Artanayt"). Por eso la página abre la voz con `overrides.agent.language` según el botón ES/EN (habilitado en `platform_settings` junto con el preset de inglés) y reconecta la sesión cuando el usuario saluda o habla en el otro idioma, o cuando el agente llama a la herramienta `cambiar_idioma`. `/api/sesion` devuelve `idiomas` con los que se pueden pedir.
 
 ## Eleven Realtime voice and demo bookings
 

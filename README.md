@@ -4,12 +4,12 @@ Guía de la provincia de Jujuy que se usa hablando. Le contás dónde estás y c
 
 ## Qué hace
 
-- **Voz en vivo.** En la pantalla principal tocás el micrófono y conversás: lo que dice juju se lee en grande y una faja de aguayo se levanta con la voz de quien habla. Usa ElevenLabs Agents: un agente de voz en tiempo real (Eleven Realtime) y, si la cuenta no lo tiene, el agente de texto con la voz Turbo.
+- **Voz en vivo.** En la pantalla principal tocás el micrófono y conversás: lo que dice juju se lee en grande y un paisaje de cerritos en pixel art se mueve con la voz de quien habla. Usa ElevenLabs Agents: un agente de voz en tiempo real (Eleven Realtime) y, si la cuenta no lo tiene, el agente de texto con la voz Turbo.
 - **Chat escrito.** La misma charla, por texto, con las listas de lugares completas.
 - **Directorio.** 2.755 lugares de Jujuy (comida, alojamiento, atractivos, servicios), con distancia, precio aproximado, teléfono, mapa y, cuando está cargado, horario.
 - **Cómo llegar.** Cuando elegís un lugar, juju pregunta si querés que te guíe. Si decís que sí, abre Google Maps con el camino desde donde estás y deja el botón en pantalla. Cada lugar de las listas tiene además su link "Cómo llegar".
 - **Respuesta rápida.** Antes de que el mensaje llegue al modelo, el servidor ya buscó los lugares para esa localidad y esa hora (tarda milisegundos).
-- **Español e inglés.** juju responde en el idioma en que le hablás y cambia si cambiás vos.
+- **Español e inglés.** Por chat, juju responde en el idioma en que le escribís. Por voz, la sesión escucha y habla en un idioma por vez: se elige con el botón ES/EN (la primera vez toma el idioma del navegador) y se reconecta sola si saludás o hablás en el otro idioma.
 - **Respuestas directas.** Hace lo que le pedís y recomienda un lugar, dos como máximo, sin listas de opciones.
 - **Reservas por voz.** Pedís reservar un lugar o una experiencia, juju te dice que hay disponibilidad y te pide que confirmes la actividad, el monto y la hora. Antes te pregunta cómo pagás: con el dinero de tu cuenta de Wells Fargo o con USDC a través de Cosmos Pay. Solo con tu sí paga y te da un código. Es una demostración: el pago es simulado, no se cobra ni se reserva nada, y la disponibilidad no se consulta con nadie.
 - **Reservas en pantalla.** Elegís una experiencia, cuántas personas y la fecha, y ves el total. Con Cosmos Pay configurado se paga de verdad; sin eso usa la misma demostración.
