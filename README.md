@@ -86,6 +86,8 @@ Para tener en cuenta:
 
 - La cuenta Stellar de cobro no es una variable: va en `chatbot/cosmospay.config.json`, dentro del repo. Es la cuenta pública (empieza con `G`).
 - El disco de Railway se borra en cada deploy. Sin un volumen y `PAGOS_ARCHIVO`, el registro de reservas se pierde al redesplegar; los pagos de Cosmos Pay igual quedan en su panel.
+- El contenedor corre sin permisos de administrador (usuario `node`). Si montás un volumen para `PAGOS_ARCHIVO` y Railway lo deja solo con permisos de root, agregá la variable `RAILWAY_RUN_UID=0`; si no, el registro no se puede escribir.
+- Para no depender de jsDelivr ni unpkg en la voz: `cd chatbot && npm run vendor-sdk` guarda el SDK de ElevenLabs en `public/vendor/`. Subí ese archivo al repo.
 - El sitio queda abierto a cualquiera con el link, y cada charla gasta crédito de ElevenLabs. Los topes por visitante frenan el abuso más simple, no reemplazan un login.
 - `GET /api/estado` es la ruta de salud que usa Railway.
 
