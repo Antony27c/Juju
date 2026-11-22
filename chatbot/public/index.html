@@ -3,42 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1120" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0e1a" media="(prefers-color-scheme: dark)">
 <title>juju</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400..700&family=Archivo:wdth,wght@62..125,400..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Plus+Jakarta+Sans:wght@400..800&display=swap">
 <style>
-  /* Concepto: suelo de salina (blanco frío) y tinta de noche puneña. El único color es la faja de aguayo:
-     en reposo es una cinta tejida, y cuando alguien habla cada hilo se levanta y dibuja un cerro.
-     Lo que dice juju va en serif (Alegreya); la interfaz y los datos, en Archivo. Las dos son tipografías argentinas. */
+  /* Concepto: una interfaz de voz limpia (superficies claras, controles redondos, una sola tipografía) con una
+     única pieza con carácter: los cerritos en pixel art. Son los cerros de colores de la Quebrada, y son el medidor
+     de voz: en reposo es una postal quieta; cuando alguien habla, cada cerro sube, baja y se mueve con el sonido.
+     La letra pixelada (Pixelify Sans) se usa solo en la marca y en los rótulos chicos que acompañan al paisaje. */
   :root {
-    --suelo: #f3f5f7; --papel: #ffffff; --tinta: #14172a; --tenue: #586078; --linea: #d8dee6;
-    --acento: #c2185b; --sobre-acento: #ffffff; --yo: #1f2440; --sobre-yo: #f4f5fb;
+    --suelo: #f5f4f0; --papel: #ffffff; --hueco: #eeece6; --tinta: #15172b; --tenue: #5a6077; --linea: #e3e1da;
+    --acento: #c2185b; --sobre-acento: #ffffff; --yo: #1d2140; --sobre-yo: #f4f5fb;
     --si: #17754a; --no: #b3261e; --duda: #8a6100; --prueba-fondo: #ffe9a8; --prueba-tinta: #3d2c00;
-    /* hilos del aguayo: fucsia, rojo, naranja, maíz, verde, turquesa, violeta */
+    /* los siete colores: fucsia, rojo, naranja, maíz, verde, turquesa, violeta */
     --f1: #cf1c6b; --f2: #b5202e; --f3: #e56a1c; --f4: #edb21f; --f5: #2c8a4d; --f6: #1397a6; --f7: #5d3fa6;
-    --titular: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
-    --texto: "Archivo", system-ui, "Segoe UI", Arial, sans-serif;
-    --habla: "Alegreya", Georgia, "Times New Roman", serif;
-    --radio: 10px;
+    /* el paisaje: lomas del frente, cordón del fondo, el sol (o la luna) y las nubes */
+    --cerro-frente: #1d2140; --cerro-fondo: #d5d8e4; --astro: #f2b01e; --nube: #ffffff; --de-noche: 0;
+    --sombra: 0 1px 2px rgb(21 23 43 / .05), 0 10px 28px rgb(21 23 43 / .07);
+    --texto: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+    --titular: var(--texto); --habla: var(--texto);
+    --pixel: "Pixelify Sans", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --radio: 16px; --radio-s: 12px;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --suelo: #0f1120; --papel: #171a2e; --tinta: #eceef7; --tenue: #9aa1ba; --linea: #2a2e4a;
+      --suelo: #0c0e1a; --papel: #161929; --hueco: #1e2237; --tinta: #eef0f8; --tenue: #9ea5bd; --linea: #272b44;
       --acento: #ff6b9d; --sobre-acento: #1a0610; --yo: #2c3263; --sobre-yo: #f1f2fb;
       --si: #5fd39a; --no: #ff8a80; --duda: #e9c46a; --prueba-fondo: #4a3a08; --prueba-tinta: #ffe9a8;
       --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
+      --cerro-frente: #2b3060; --cerro-fondo: #1a1e3a; --astro: #f3f4ff; --nube: #232846; --de-noche: 1;
+      --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .38);
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --suelo: #0f1120; --papel: #171a2e; --tinta: #eceef7; --tenue: #9aa1ba; --linea: #2a2e4a;
+    --suelo: #0c0e1a; --papel: #161929; --hueco: #1e2237; --tinta: #eef0f8; --tenue: #9ea5bd; --linea: #272b44;
     --acento: #ff6b9d; --sobre-acento: #1a0610; --yo: #2c3263; --sobre-yo: #f1f2fb;
     --si: #5fd39a; --no: #ff8a80; --duda: #e9c46a; --prueba-fondo: #4a3a08; --prueba-tinta: #ffe9a8;
     --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
+    --cerro-frente: #2b3060; --cerro-fondo: #1a1e3a; --astro: #f3f4ff; --nube: #232846; --de-noche: 1;
+    --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .38);
     color-scheme: dark;
   }
 
@@ -49,207 +57,224 @@
   button, textarea, input { font: inherit; color: inherit; }
   button { -webkit-tap-highlight-color: transparent; }
   a { color: var(--acento); text-underline-offset: 3px; }
-  :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 6px; }
+  :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 8px; }
 
   .app { width: 100%; max-width: 720px; height: 100%; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); }
   @media (min-width: 760px) { .app { border-inline: 1px solid var(--linea); } }
   .borde { padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
 
   /* --- tapa --- */
-  .tapa { flex: none; display: flex; align-items: baseline; gap: 12px; padding-block: 14px 12px; min-width: 0; }
-  .nombre { font: 800 28px/1 var(--titular); font-stretch: 112%; letter-spacing: -.035em; }
-  .reloj { font-size: 13px; color: var(--tenue); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tapa { flex: none; display: flex; align-items: center; gap: 10px; padding-block: 12px 10px; min-width: 0; }
+  .nombre { font: 700 30px/1 var(--pixel); letter-spacing: .01em; }
+  .reloj { font-size: 12.5px; font-weight: 600; color: var(--tenue); font-variant-numeric: tabular-nums; white-space: nowrap; padding: 5px 10px; background: var(--hueco); border-radius: 999px; }
   .estado { margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--tenue); white-space: nowrap; }
-  .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--linea); }
+  .punto { width: 8px; height: 8px; background: var(--linea); } /* cuadrado: un pixel */
   .punto.on { background: var(--si); } .punto.voz { background: var(--acento); }
-  .ayuda { background: none; border: 0; padding: 4px 0; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; text-decoration: underline; text-decoration-color: var(--tenue); text-underline-offset: 4px; }
-  .ayuda:hover { text-decoration-color: currentColor; }
-  @media (max-width: 480px) { .estado #estado { display: none; } }
-  /* la cinta del chat: el mismo tejido que la faja de voz (el fondo lo arma el script) */
-  .franjas { flex: none; height: 6px; background-color: var(--f1); background-repeat: repeat-x; background-position: center; }
+  .ayuda, .lengua { flex: none; height: 34px; display: grid; place-items: center; cursor: pointer; white-space: nowrap; background: var(--papel); border: 1px solid var(--linea); border-radius: 999px; transition: border-color .15s, background-color .15s; }
+  .ayuda:hover, .lengua:hover { border-color: var(--tenue); }
+  .ayuda { padding: 0 14px; font-size: 13.5px; font-weight: 600; }
+  .ayuda .corto { display: none; }
+  .lengua { min-width: 46px; padding: 0 10px; font: 600 15px/1 var(--pixel); letter-spacing: .04em; }
+  .app[data-vista="voz"] .lengua { margin-left: auto; }
+  .app[data-vista="chat"] .lengua { display: none; }
+  @media (max-width: 480px) { .estado #estado { display: none; } .ayuda { width: 34px; padding: 0; font-weight: 700; } .ayuda .largo { display: none; } .ayuda .corto { display: inline; } }
+  /* la cinta del chat: los siete colores, en pixeles (el fondo lo arma el script) */
+  .franjas { flex: none; height: 4px; background-color: var(--f1); background-repeat: repeat-x; background-position: center; }
 
-  /* --- vista de voz: lo que dice juju es el titular; abajo, la faja y los mandos --- */
+  /* --- vista de voz: lo que dice juju es el titular; abajo, el paisaje y los mandos --- */
   .app[data-vista="voz"] main, .app[data-vista="voz"] .redactar, .app[data-vista="voz"] .voz,
   .app[data-vista="voz"] .franjas, .app[data-vista="voz"] .estado { display: none; }
-  .app[data-vista="voz"] .lengua { margin-left: auto; }
-  .lengua { text-decoration: none; font-weight: 700; padding: 3px 9px; border: 1px solid var(--linea); border-radius: 999px; }
-  .app[data-vista="chat"] .lengua { display: none; }
   .app[data-vista="chat"] .escena { display: none; }
-  .escena { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .dicho { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-block: 20px 18px; }
-  .dicho::before { content: ""; margin-top: auto; } /* empuja el texto contra la faja sin cortar el scroll */
+  .escena { --nivel: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .dicho { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-block: 16px 14px; }
+  .dicho::before { content: ""; margin-top: auto; } /* empuja el texto contra el paisaje sin cortar el scroll */
   .dicho p { margin: 0; overflow-wrap: anywhere; }
   .vos { max-width: 44ch; font-size: 15px; color: var(--tenue); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .vos:empty { display: none; }
-  .dice { max-width: 30em; font: 500 20px/1.36 var(--habla); text-wrap: pretty; }
-  .dice[data-largo="medio"] { font-size: clamp(24px, 6.6vw, 32px); line-height: 1.16; letter-spacing: -.01em; text-wrap: balance; }
-  .dice[data-largo="poco"] { font-size: clamp(33px, 9.4vw, 50px); line-height: 1.03; letter-spacing: -.018em; text-wrap: balance; }
-  .probar { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
-  .rotulo { margin: 0; font-size: 13px; font-weight: 600; color: var(--tenue); }
+  .dice { max-width: 32em; font: 500 18px/1.45 var(--habla); text-wrap: pretty; }
+  .dice[data-largo="medio"] { font: 650 clamp(22px, 6vw, 28px)/1.2 var(--habla); letter-spacing: -.02em; text-wrap: balance; }
+  .dice[data-largo="poco"] { font: 700 clamp(30px, 8.4vw, 44px)/1.08 var(--habla); letter-spacing: -.035em; text-wrap: balance; }
+  .probar { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .rotulo { margin: 0; font: 500 14px/1 var(--pixel); letter-spacing: .06em; text-transform: uppercase; color: var(--tenue); }
 
-  /* frases de ejemplo: filas para tocar, en la voz y en el chat */
-  .ideas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-bottom: 1px solid var(--linea); }
-  .ideas button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 14px; text-align: left; background: none; border: 0; border-top: 1px solid var(--linea); padding: 12px 0; cursor: pointer; font-weight: 500; line-height: 1.3; }
+  /* frases de ejemplo: pastillas para tocar, en la voz y en el chat */
+  .ideas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .ideas button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 14px; text-align: left; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 12px 14px 12px 16px; cursor: pointer; font-size: 15px; font-weight: 550; line-height: 1.3; transition: border-color .15s, transform .15s; }
   .ideas button::after { content: "→"; flex: none; color: var(--tenue); transition: transform .15s, color .15s; }
-  .ideas button:hover::after { transform: translateX(4px); color: var(--acento); }
+  .ideas button:hover { border-color: var(--tenue); }
+  .ideas button:hover::after { transform: translateX(3px); color: var(--acento); }
+  .ideas button:active { transform: scale(.985); }
 
-  .tira { flex: none; display: flex; gap: 10px; overflow-x: auto; padding-block: 2px 14px; scroll-snap-type: x proximity; scroll-padding-inline: 18px; scrollbar-width: thin; }
-  .ficha { flex: none; width: 212px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; padding: 11px 13px 12px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); color: inherit; text-decoration: none; }
+  .tira { flex: none; display: flex; gap: 10px; overflow-x: auto; padding-block: 2px 12px; scroll-snap-type: x proximity; scroll-padding-inline: 18px; scrollbar-width: none; }
+  .ficha { flex: none; width: 216px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 13px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); color: inherit; text-decoration: none; transition: border-color .15s; }
   button.ficha { cursor: pointer; text-align: left; }
   .ficha:hover { border-color: var(--tenue); }
-  .ficha b { font: 650 15px/1.25 var(--titular); overflow-wrap: anywhere; }
-  .ficha .precio { margin-top: 2px; font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .ficha b { font-size: 15px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .ficha .precio { margin-top: 2px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-  .faja { flex: none; display: block; width: 100%; height: clamp(46px, 11vh, 96px); }
-  .pie { flex: none; background: var(--papel); padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); }
-  .aviso-fase { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding-top: 4px; }
-  .fase { margin: 0; display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 500; color: var(--tenue); }
-  .fase::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--linea); }
+  /* el paisaje: cada "pixel" lo dibuja el script en la grilla; acá solo va el tamaño */
+  .faja { flex: none; display: block; width: 100%; height: clamp(132px, 29vh, 264px); image-rendering: pixelated; }
+  .pie { flex: none; position: relative; margin-top: -18px; background: var(--papel); border-radius: 26px 26px 0 0; box-shadow: 0 -1px 0 var(--linea), 0 -14px 30px rgb(21 23 43 / .06); padding-top: 12px; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); }
+  .aviso-fase { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; }
+  .fase { margin: 0; display: inline-flex; align-items: center; gap: 9px; min-width: 0; padding: 7px 13px; background: var(--hueco); border-radius: 999px; font: 500 15px/1 var(--pixel); letter-spacing: .03em; color: var(--tenue); }
+  .fase::before { content: ""; flex: none; width: 8px; height: 8px; background: var(--tenue); opacity: .55; }
   .escena[data-estado="escucha"] .fase, .escena[data-estado="habla"] .fase { color: var(--tinta); }
-  .escena[data-estado="escucha"] .fase::before, .escena[data-estado="habla"] .fase::before { background: var(--acento); }
-  .escena[data-estado="conectando"] .fase::before { background: var(--duda); }
-  .terminar { flex: none; background: none; border: 0; padding: 8px 0 8px 12px; font-size: 14px; font-weight: 650; color: var(--no); cursor: pointer; }
-  .mandos { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; justify-items: center; gap: 6px; padding-top: 2px; }
-  .mando, .hablar { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; cursor: pointer; font-size: 13px; line-height: 1.2; }
-  .mando { min-width: 84px; padding: 8px 6px; border-radius: var(--radio); font-weight: 500; color: var(--tenue); }
-  .mando:hover, .mando[aria-pressed="true"] { color: var(--tinta); }
-  .mando[aria-pressed="true"] { font-weight: 700; }
+  .escena[data-estado="escucha"] .fase::before, .escena[data-estado="habla"] .fase::before { background: var(--acento); opacity: 1; animation: parpadeo 1s steps(2, jump-none) infinite; }
+  .escena[data-estado="conectando"] .fase::before { background: var(--duda); opacity: 1; animation: parpadeo .5s steps(2, jump-none) infinite; }
+  @keyframes parpadeo { 50% { opacity: .25; } }
+  .terminar { flex: none; height: 31px; padding: 0 13px; background: color-mix(in srgb, var(--no) 10%, transparent); border: 0; border-radius: 999px; font-size: 13.5px; font-weight: 700; color: var(--no); cursor: pointer; }
+  .terminar:hover { background: color-mix(in srgb, var(--no) 18%, transparent); }
+  .mandos { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; justify-items: center; gap: 6px; padding-top: 10px; }
+  .mando, .hablar { display: flex; flex-direction: column; align-items: center; gap: 9px; background: none; border: 0; cursor: pointer; font-size: 12.5px; line-height: 1.2; }
+  .mando { min-width: 84px; padding: 4px 6px; font-weight: 600; color: var(--tenue); }
   .mando svg, .boca svg, .icono svg, .cerrar svg, .funciones svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .mando svg { width: 24px; height: 24px; }
-  .hablar { padding: 0 6px 8px; font-weight: 650; }
-  .boca { width: 72px; height: 72px; display: grid; place-items: center; border-radius: 50%; background: var(--tinta); color: var(--suelo); transition: background-color .15s, transform .1s; }
+  .mando svg { box-sizing: content-box; width: 22px; height: 22px; padding: 14px; background: var(--hueco); border-radius: 50%; color: var(--tinta); transition: background-color .15s, color .15s, transform .1s; }
+  .mando:hover svg { background: var(--linea); }
+  .mando:active svg { transform: scale(.94); }
+  .mando[aria-pressed="true"] { color: var(--tinta); font-weight: 700; }
+  .mando[aria-pressed="true"] svg { background: var(--tinta); color: var(--suelo); }
+  .hablar { padding: 0 6px; font-weight: 700; font-size: 13px; }
+  /* el micrófono: el halo crece con el volumen de quien habla (--nivel lo pone el script) */
+  .boca { width: 78px; height: 78px; display: grid; place-items: center; border-radius: 50%; background: var(--tinta); color: var(--suelo); box-shadow: 0 0 0 calc(var(--nivel) * 11px) color-mix(in srgb, var(--acento) 22%, transparent), 0 8px 22px rgb(21 23 43 / .18); transition: background-color .2s, transform .1s, box-shadow .12s linear; }
   .hablar:active .boca { transform: scale(.95); }
-  .hablar:focus-visible { outline: none; } .hablar:focus-visible .boca { outline: 2px solid var(--acento); outline-offset: 3px; }
-  .boca svg { width: 28px; height: 28px; }
+  .hablar:focus-visible { outline: none; } .hablar:focus-visible .boca { outline: 2px solid var(--acento); outline-offset: 4px; }
+  .boca svg { width: 30px; height: 30px; }
   .boca .tachado { display: none; }
   .escena[data-estado="escucha"] .boca, .escena[data-estado="habla"] .boca { background: var(--acento); color: var(--sobre-acento); }
   .escena[data-estado="silencio"] .boca { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 2px var(--tinta); }
   .escena[data-estado="silencio"] .boca .tachado { display: inline; }
-  .escena[data-estado="sin"] .boca { background: var(--linea); color: var(--tenue); }
+  .escena[data-estado="sin"] .boca { background: var(--hueco); color: var(--tenue); box-shadow: none; }
   .escena[data-estado="conectando"] .boca { animation: late 1.1s ease-in-out infinite; }
-  @keyframes late { 50% { opacity: .45; } }
-  @media (max-height: 620px) { .boca { width: 60px; height: 60px; } .dicho { padding-block: 12px; } }
+  @keyframes late { 50% { opacity: .5; } }
+  @media (max-height: 640px) { .boca { width: 64px; height: 64px; } .dicho { padding-block: 10px; } .faja { height: 104px; } .mando svg { padding: 11px; } }
 
   /* --- chat --- */
   main { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding-block: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
   .inicio { margin-block: auto; display: flex; flex-direction: column; gap: 14px; padding-block: 8px; }
-  .sobre { margin: 0; font-size: 13px; font-weight: 600; color: var(--tenue); font-variant-numeric: tabular-nums; }
-  .inicio h1 { margin: 0; font: 800 clamp(46px, 13.5vw, 84px)/.9 var(--titular); font-stretch: 75%; letter-spacing: -.02em; text-wrap: balance; }
-  .bajada { margin: 0; max-width: 46ch; color: var(--tenue); font-size: 17px; }
+  .sobre { margin: 0; font: 500 14px/1.2 var(--pixel); letter-spacing: .05em; text-transform: uppercase; color: var(--tenue); font-variant-numeric: tabular-nums; }
+  .inicio h1 { margin: 0; font: 800 clamp(40px, 11.5vw, 68px)/.98 var(--titular); letter-spacing: -.045em; text-wrap: balance; }
+  .bajada { margin: 0; max-width: 46ch; color: var(--tenue); font-size: 16.5px; }
   .inicio .ideas { margin-top: 6px; }
 
   .msg { white-space: pre-wrap; overflow-wrap: anywhere; }
-  .msg.yo { align-self: flex-end; max-width: min(85%, 56ch); padding: 9px 14px; background: var(--yo); color: var(--sobre-yo); border-radius: 14px 14px 4px 14px; }
-  .msg.bot { align-self: flex-start; max-width: 34em; font: 400 19px/1.42 var(--habla); } /* juju habla sin globo: el serif ya dice quién es */
+  .msg.yo { align-self: flex-end; max-width: min(85%, 56ch); padding: 10px 15px; background: var(--yo); color: var(--sobre-yo); border-radius: 20px 20px 6px 20px; }
+  .msg.bot { align-self: flex-start; max-width: 36em; font-size: 16.5px; line-height: 1.5; }
   .aviso { align-self: flex-start; max-width: 60ch; font-size: 14px; color: var(--tenue); }
-  .aviso.error { color: var(--no); font-weight: 500; }
-  .pensando { align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--tenue); }
+  .aviso.error { color: var(--no); font-weight: 600; }
+  .pensando { align-self: flex-start; display: flex; align-items: center; gap: 9px; font-size: 14px; color: var(--tenue); }
   .mini { display: flex; gap: 3px; }
-  .mini i { width: 5px; height: 5px; border-radius: 50%; background: var(--tenue); animation: salto 1s infinite; }
+  .mini i { width: 5px; height: 5px; background: var(--tenue); animation: salto 1s steps(3, jump-none) infinite; } /* tres pixeles que saltan */
   .mini i:nth-child(2) { animation-delay: .15s; } .mini i:nth-child(3) { animation-delay: .3s; }
-  @keyframes salto { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-3px); } }
+  @keyframes salto { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-4px); } }
 
-  /* resultados: filas sobre el suelo, sin tarjetas */
+  /* resultados: una tarjeta por grupo, con una fila por lugar */
   .grupo { align-self: stretch; display: flex; flex-direction: column; }
-  .grupo h3 { margin: 6px 0 8px; font: 800 15px/1.2 var(--titular); font-stretch: 80%; letter-spacing: .05em; text-transform: uppercase; }
-  .lista { border-bottom: 1px solid var(--linea); }
-  .lugar { padding: 12px 0 13px; border-top: 1px solid var(--linea); display: flex; flex-direction: column; gap: 3px; }
+  .grupo h3 { margin: 6px 2px 8px; font: 500 14px/1.2 var(--pixel); letter-spacing: .06em; text-transform: uppercase; color: var(--tenue); }
+  .lista { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); overflow: hidden; }
+  .lugar { padding: 13px 15px 14px; display: flex; flex-direction: column; gap: 3px; }
+  .lugar + .lugar { border-top: 1px solid var(--linea); }
   .lugar .cab { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
-  .lugar h4 { margin: 0; font: 650 17px/1.25 var(--titular); min-width: 0; overflow-wrap: anywhere; }
-  /* estado del lugar: punto y palabra, no una píldora */
-  .pill { font-size: 13px; font-weight: 600; line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .lugar h4 { margin: 0; font-size: 16.5px; font-weight: 700; line-height: 1.25; letter-spacing: -.012em; min-width: 0; overflow-wrap: anywhere; }
+  /* estado del lugar: un pixel de color y la palabra */
+  .pill { font-size: 13px; font-weight: 650; line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .pill.si, .pill.no, .pill.sin_dato { display: inline-flex; align-items: center; gap: 6px; }
-  .pill.si::before, .pill.no::before, .pill.sin_dato::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.si::before, .pill.no::before, .pill.sin_dato::before { content: ""; flex: none; width: 7px; height: 7px; background: currentColor; }
   .pill.si { color: var(--si); } .pill.no { color: var(--no); }
   .pill.sin_dato { color: var(--tenue); font-weight: 500; } .pill.sin_dato::before { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
   .ficha .pill { align-self: flex-start; margin-top: 2px; }
   .meta { margin: 0; font-size: 14px; line-height: 1.4; color: var(--tenue); overflow-wrap: anywhere; }
   .meta .num { font-variant-numeric: tabular-nums; }
-  .acc { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 3px; font-size: 14px; font-weight: 500; align-items: baseline; }
+  .acc { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px; font-size: 14px; font-weight: 600; align-items: baseline; }
   .acc .tel { font-weight: 400; color: var(--tenue); font-variant-numeric: tabular-nums; user-select: all; }
 
-  .boton { cursor: pointer; border-radius: var(--radio); border: 1.5px solid var(--tinta); background: transparent; padding: 10px 16px; font-weight: 650; text-align: center; }
+  .boton { cursor: pointer; min-height: 46px; border-radius: 14px; border: 1.5px solid var(--linea); background: var(--papel); padding: 10px 18px; font-weight: 700; text-align: center; transition: border-color .15s, transform .1s, filter .15s; }
+  .boton:hover { border-color: var(--tenue); }
+  .boton:active { transform: scale(.985); }
   .boton.lleno { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
-  .boton.chico { align-self: flex-start; margin-top: 5px; padding: 6px 14px; font-size: 14px; }
+  .boton.lleno:hover { filter: brightness(1.06); }
+  .boton.chico { align-self: flex-start; min-height: 0; margin-top: 6px; padding: 7px 14px; font-size: 14px; border-radius: 999px; }
   .boton:disabled { opacity: .5; cursor: default; }
 
   /* comprobante de una reserva hecha en la charla: un boleto, con el código después de la línea de corte */
-  .pago { align-self: flex-start; width: min(100%, 380px); display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .pago { align-self: flex-start; width: min(100%, 380px); display: flex; flex-direction: column; gap: 10px; padding: 16px 18px 18px; background: var(--papel); border: 1px solid var(--linea); border-radius: 20px; box-shadow: var(--sombra); }
   .reserva .paso { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--tenue); }
-  .reserva:not(.procesando) .paso { color: var(--si); font-weight: 600; }
+  .reserva:not(.procesando) .paso { color: var(--si); font-weight: 650; }
   .reserva .fin { display: flex; flex-direction: column; gap: 5px; transition: opacity .32s cubic-bezier(.22, .61, .36, 1), transform .32s cubic-bezier(.22, .61, .36, 1); }
   .reserva.procesando .fin { opacity: 0; transform: translateY(6px); }
-  .pago .que { margin: 0; font-size: 13px; font-weight: 600; color: var(--tenue); }
-  .reserva h4 { margin: 0; font: 800 24px/1.05 var(--titular); font-stretch: 78%; overflow-wrap: anywhere; }
-  .pago .monto { margin-top: 4px; font: 800 36px/1 var(--titular); font-stretch: 78%; font-variant-numeric: tabular-nums; }
-  .pago .monto small { margin-right: 6px; font: 600 14px/1 var(--texto); color: var(--tenue); }
-  .reserva .codigo { margin: 6px 0 0; padding-top: 10px; border-top: 2px dashed var(--linea); font-size: 14px; color: var(--tenue); }
-  .reserva .codigo b { font-size: 16px; font-weight: 700; letter-spacing: .06em; font-variant-numeric: tabular-nums; color: var(--tinta); user-select: all; }
+  .pago .que { margin: 0; font: 500 13.5px/1.2 var(--pixel); letter-spacing: .05em; text-transform: uppercase; color: var(--tenue); }
+  .reserva h4 { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.12; letter-spacing: -.03em; overflow-wrap: anywhere; }
+  .pago .monto { margin-top: 4px; font-size: 38px; font-weight: 800; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .pago .monto small { margin-right: 6px; font-size: 14px; font-weight: 650; letter-spacing: 0; color: var(--tenue); }
+  .reserva .codigo { margin: 6px 0 0; padding-top: 12px; border-top: 2px dashed var(--linea); font-size: 14px; color: var(--tenue); }
+  .reserva .codigo b { font: 600 18px/1 var(--pixel); letter-spacing: .08em; color: var(--tinta); user-select: all; }
 
   /* cómo llegar: el lugar y un solo botón que abre el camino en Google Maps */
   .guia { align-self: flex-start; width: min(100%, 380px); display: flex; flex-direction: column; gap: 4px; }
-  .guia h4 { margin: 0; font: 650 19px/1.2 var(--titular); overflow-wrap: anywhere; }
-  .guia .boton { margin-top: 8px; text-decoration: none; }
-  .ficha.guia { width: min(100%, 320px); padding: 13px 14px 14px; }
+  .guia h4 { margin: 0; font-size: 18px; font-weight: 750; line-height: 1.2; letter-spacing: -.02em; overflow-wrap: anywhere; }
+  .guia .boton { margin-top: 8px; text-decoration: none; display: grid; place-items: center; }
+  .ficha.guia { width: min(100%, 320px); padding: 14px 15px 15px; }
 
   /* voz encendida mientras se mira el chat */
   .voz { flex: none; display: flex; align-items: center; gap: 14px; padding-block: 10px; border-top: 1px solid var(--linea); background: var(--papel); }
-  .barras { display: flex; align-items: flex-end; gap: 0; height: 32px; flex: none; }
-  .barras i { width: 6px; height: 100%; transform-origin: bottom; transform: scaleY(.18); transition: transform .09s linear; }
+  .barras { display: flex; align-items: flex-end; gap: 0; height: 30px; flex: none; }
+  .barras i { width: 6px; height: 100%; transform-origin: bottom; transform: scaleY(.18); transition: transform .09s steps(3); }
   .barras i:nth-child(1) { background: var(--f1); } .barras i:nth-child(2) { background: var(--f3); } .barras i:nth-child(3) { background: var(--f4); }
   .barras i:nth-child(4) { background: var(--f5); } .barras i:nth-child(5) { background: var(--f6); } .barras i:nth-child(6) { background: var(--f7); }
   .barras i:nth-child(7) { background: var(--f2); }
-  .voz p { margin: 0; flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; color: var(--tenue); }
-  .voz p b { display: block; color: var(--tinta); font-size: 15px; font-weight: 650; }
+  .voz p { margin: 0; flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.35; color: var(--tenue); }
+  .voz p b { display: block; color: var(--tinta); font-size: 15px; font-weight: 700; }
+  .voz .boton { min-height: 38px; padding: 6px 14px; border-radius: 999px; font-size: 14px; }
 
   .redactar { flex: none; display: flex; gap: 8px; align-items: flex-end; padding-top: 10px; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--linea); background: var(--papel); }
-  .redactar textarea { flex: 1; min-width: 0; resize: none; min-height: 46px; max-height: 130px; padding: 11px 14px; background: var(--suelo); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .redactar textarea { flex: 1; min-width: 0; resize: none; min-height: 46px; max-height: 130px; padding: 11px 16px; background: var(--hueco); border: 1px solid transparent; border-radius: 23px; transition: border-color .15s, background-color .15s; }
+  .redactar textarea:focus { outline: none; border-color: var(--tenue); background: var(--papel); }
   .redactar textarea::placeholder { color: var(--tenue); }
-  .icono { flex: none; width: 46px; height: 46px; display: grid; place-items: center; cursor: pointer; background: none; border: 1px solid var(--linea); border-radius: var(--radio); }
+  .icono { flex: none; width: 46px; height: 46px; display: grid; place-items: center; cursor: pointer; background: var(--hueco); border: 0; border-radius: 50%; transition: background-color .15s, transform .1s; }
   .icono svg { width: 20px; height: 20px; }
-  .icono:hover { border-color: var(--tenue); }
-  .icono.activo { background: var(--tinta); color: var(--suelo); border-color: var(--tinta); }
-  .icono.enviar { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
+  .icono:hover { background: var(--linea); }
+  .icono:active { transform: scale(.94); }
+  .icono.activo { background: var(--tinta); color: var(--suelo); }
+  .icono.enviar { background: var(--acento); color: var(--sobre-acento); }
   .icono:disabled, .redactar textarea:disabled { opacity: .45; cursor: default; }
 
   /* --- ventanas: cómo funciona y reserva --- */
-  dialog { width: min(92vw, 560px); max-height: 86vh; border: 1px solid var(--linea); border-radius: 16px; padding: 0; background: var(--suelo); color: var(--tinta); }
-  dialog::backdrop { background: rgb(15 17 32 / .55); }
-  dialog .dentro { padding: 20px 22px 24px; display: flex; flex-direction: column; gap: 18px; }
-  dialog h2 { margin: 0; font: 800 30px/1 var(--titular); font-stretch: 78%; letter-spacing: -.01em; text-wrap: balance; }
+  dialog { width: min(92vw, 560px); max-height: 86vh; border: 1px solid var(--linea); border-radius: 24px; padding: 0; background: var(--suelo); color: var(--tinta); box-shadow: var(--sombra); }
+  dialog::backdrop { background: rgb(12 14 26 / .5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  dialog .dentro { padding: 22px 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+  dialog h2 { margin: 0; font-size: 26px; font-weight: 800; line-height: 1.08; letter-spacing: -.035em; text-wrap: balance; }
   dialog .cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  .cerrar { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border-radius: var(--radio); border: 1px solid var(--linea); background: none; cursor: pointer; }
-  .cerrar:hover { border-color: var(--tenue); }
+  .cerrar { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; border: 0; background: var(--hueco); cursor: pointer; transition: background-color .15s; }
+  .cerrar:hover { background: var(--linea); }
   .cerrar svg { width: 16px; height: 16px; stroke-width: 2; }
   .funciones { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 16px; }
   .funciones li { display: grid; grid-template-columns: 24px 1fr; gap: 1px 14px; align-items: start; }
   .funciones .marca { grid-row: span 2; padding-top: 1px; }
   .funciones svg { display: block; width: 22px; height: 22px; }
-  .funciones b { font-weight: 650; line-height: 1.3; }
+  .funciones b { font-weight: 700; line-height: 1.3; }
   .funciones li > span:last-child { font-size: 14.5px; line-height: 1.45; color: var(--tenue); }
-  .nota-modo { margin: 0; padding: 10px 12px; font-size: 14px; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 8px; }
+  .nota-modo { margin: 0; padding: 10px 12px; font-size: 14px; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: var(--radio-s); }
 
   /* reserva: hoja que sube desde abajo; el total va después de la línea de corte, como el talón de un boleto */
-  dialog.hoja { width: min(100%, 520px); max-width: 100%; max-height: 92%; margin: auto auto 0; border-bottom: 0; border-radius: 16px 16px 0 0; background: var(--papel); }
-  @media (min-width: 720px) { dialog.hoja { margin: auto; border-bottom: 1px solid var(--linea); border-radius: 16px; } }
+  dialog.hoja { width: min(100%, 520px); max-width: 100%; max-height: 92%; margin: auto auto 0; border-bottom: 0; border-radius: 26px 26px 0 0; background: var(--papel); }
+  @media (min-width: 720px) { dialog.hoja { margin: auto; border-bottom: 1px solid var(--linea); border-radius: 24px; } }
   .hoja .dentro { gap: 12px; padding-bottom: max(22px, env(safe-area-inset-bottom, 0px)); }
   .hoja .sobre { flex: 1; }
   .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
-  .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--tenue); }
-  .campo input, .campo .paso { height: 46px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--suelo); color: var(--tinta); font-size: 16px; font-weight: 500; }
-  .campo input { width: 100%; min-width: 0; padding: 0 10px; }
+  .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; font-weight: 650; color: var(--tenue); }
+  .campo input, .campo .paso { height: 48px; border: 1px solid transparent; border-radius: 14px; background: var(--hueco); color: var(--tinta); font-size: 16px; font-weight: 550; }
+  .campo input { width: 100%; min-width: 0; padding: 0 12px; }
   .campo .paso { display: flex; align-items: center; justify-content: space-between; }
-  .campo .paso button { width: 46px; height: 100%; border: 0; background: none; cursor: pointer; font-size: 22px; line-height: 1; }
+  .campo .paso button { width: 48px; height: 100%; border: 0; background: none; cursor: pointer; font-size: 22px; line-height: 1; }
   .campo .paso button:disabled { opacity: .3; cursor: default; }
-  .campo .paso output { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
-  .total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 4px; padding-top: 14px; border-top: 2px dashed var(--linea); font-size: 14px; font-weight: 600; color: var(--tenue); }
-  .total b { color: var(--tinta); font: 800 40px/1 var(--titular); font-stretch: 78%; font-variant-numeric: tabular-nums; }
+  .campo .paso output { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 4px; padding-top: 14px; border-top: 2px dashed var(--linea); font-size: 14px; font-weight: 650; color: var(--tenue); }
+  .total b { color: var(--tinta); font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
   .hoja .fila { display: flex; flex-direction: column; gap: 8px; }
-  .hoja .fila a.boton { text-decoration: none; }
+  .hoja .fila a.boton { text-decoration: none; display: grid; place-items: center; }
   .nota { margin: 0; font-size: 14px; color: var(--tenue); overflow-wrap: anywhere; }
-  .nota.ok { color: var(--si); font-weight: 650; font-size: 15px; } .nota.mal { color: var(--no); font-weight: 600; }
-  .qr { align-self: center; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid var(--linea); }
-  .prueba { align-self: flex-start; font-size: 12.5px; font-weight: 650; line-height: 1; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 6px; padding: 6px 8px; }
+  .nota.ok { color: var(--si); font-weight: 700; font-size: 15px; } .nota.mal { color: var(--no); font-weight: 650; }
+  .qr { align-self: center; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: var(--radio-s); border: 1px solid var(--linea); image-rendering: pixelated; }
+  .prueba { align-self: flex-start; font: 500 13px/1 var(--pixel); letter-spacing: .04em; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 6px; padding: 6px 8px; }
 
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
@@ -260,8 +285,8 @@
     <span class="nombre">juju</span>
     <span class="reloj" id="reloj" title="Hora local de Jujuy (UTC−3)">--:-- en Jujuy</span>
     <span class="estado"><span class="punto" id="punto"></span><span id="estado">listo</span></span>
-    <button class="ayuda lengua" id="idioma" type="button" aria-label="Idioma de la voz">ES</button>
-    <button class="ayuda" id="ayuda" type="button">Cómo funciona</button>
+    <button class="lengua" id="idioma" type="button" aria-label="Idioma de la voz">ES</button>
+    <button class="ayuda" id="ayuda" type="button" aria-label="Cómo funciona"><span class="largo">Cómo funciona</span><span class="corto" aria-hidden="true">?</span></button>
   </header>
   <div class="franjas" id="franjas" aria-hidden="true"></div>
 
@@ -391,14 +416,22 @@ let idioma = 'es';
 try { idioma = localStorage.getItem('juju-idioma') || (/^en\b/i.test(navigator.language || '') ? 'en' : 'es'); } catch {}
 if (idioma !== 'en') idioma = 'es';
 const TEXTOS = {
-  es: { saludo: undefined, retoma: 'Dale, te escucho.', sigo: 'Dale, sigo en español. ¿Qué necesitás?', titular: 'Contame dónde estás y qué tenés ganas de hacer.', boton: 'ES', nombre: 'Idioma de la voz: español. Tocá para pasar a inglés.' },
-  en: { saludo: "Hi! I'm juju, your guide to Jujuy. Tell me which town you're in and what you feel like doing.", retoma: "Go ahead, I'm listening.", sigo: "Sure, let's continue in English. What do you need?", titular: 'Tell me where you are and what you feel like doing.', boton: 'EN', nombre: 'Voice language: English. Tap to switch to Spanish.' },
+  es: { escribir: 'Escribir', experiencias: 'Experiencias', terminar: 'Terminar', probar: 'Probá con', frases: ['Estoy en Tilcara, ¿dónde como ahora?', '¿Qué hago esta tarde en Purmamarca?', 'Quiero reservar una excursión'], saludo: undefined, retoma: 'Dale, te escucho.', sigo: 'Dale, sigo en español. ¿Qué necesitás?', titular: 'Contame dónde estás y qué tenés ganas de hacer.', boton: 'ES', nombre: 'Idioma de la voz: español. Tocá para pasar a inglés.' },
+  en: { escribir: 'Type', experiencias: 'Experiences', terminar: 'End', probar: 'Try', frases: ["I'm in Tilcara, where can I eat now?", 'What can I do this afternoon in Purmamarca?', 'I want to book a tour'], saludo: "Hi! I'm juju, your guide to Jujuy. Tell me which town you're in and what you feel like doing.", retoma: "Go ahead, I'm listening.", sigo: "Sure, let's continue in English. What do you need?", titular: 'Tell me where you are and what you feel like doing.', boton: 'EN', nombre: 'Voice language: English. Tap to switch to Spanish.' },
 };
 function idiomaDe(texto) { // 'en', 'es' o null si no alcanza para saberlo
   const u = String(texto || '').toLowerCase(), en = (u.match(EN) || []).length, es = (u.match(ES) || []).length;
+  // un saludo alcanza: es lo primero que se dice y, con la sesión en el otro idioma, lo único que llega bien transcripto
+  const fuerteEn = /\b(hello|hi|hey|english|thanks|thank you|good (morning|afternoon|evening))\b/.test(u), fuerteEs = /\b(hola|gracias|buenas|buen d[ií]a|espa[nñ]ol)\b/.test(u);
+  if (fuerteEn !== fuerteEs) return fuerteEn ? 'en' : 'es';
   return en >= 2 && en > es ? 'en' : es >= 2 && es > en ? 'es' : null;
 }
+// El modelo de voz a veces manda marcas de expresión ("[cheerful]") o solo puntos suspensivos: no son texto para mostrar.
+const limpio = (m) => String(m || '').replace(/\[[a-z][a-z ]{1,24}\]/gi, ' ').replace(/\s+/g, ' ').replace(/^[\s.…]+$/, '').trim();
 function pintarIdioma() {
+  const T = TEXTOS[idioma];
+  $('aChat').lastElementChild.textContent = T.escribir; $('verExp').lastElementChild.textContent = T.experiencias; $('fin').textContent = T.terminar;
+  $('probar').querySelector('.rotulo').textContent = T.probar; [...$('frases').querySelectorAll('button')].forEach((b, i) => { b.textContent = T.frases[i] || b.textContent; });
   $('idioma').textContent = TEXTOS[idioma].boton; $('idioma').setAttribute('aria-label', TEXTOS[idioma].nombre); $('idioma').title = TEXTOS[idioma].nombre;
   if (!historial.length && Object.values(TEXTOS).some((t) => t.titular === $('dijo').textContent)) subtitulo(TEXTOS[idioma].titular);
 }
@@ -410,6 +443,7 @@ async function cambiarIdioma(nuevo, pendiente) {
   pintarIdioma(); ponerFase();
   if (modo !== 'voz' && !conectandoVoz) return;
   await terminarVoz();
+  if (pendiente && pendiente.trim().split(/\s+/).length < 4) pendiente = '';
   await iniciarVoz(pendiente ? '' : TEXTOS[idioma].sigo);
   if (pendiente && modo === 'voz' && conv) { ultimoEnviado = pendiente; try { conv.sendUserMessage(pendiente); pensar(); } catch {} }
 }
@@ -928,38 +962,104 @@ function alternarSilencio() {
   verVoz();
 }
 
-// La faja: un tejido de aguayo a todo el ancho. En reposo es una cinta plana; con la voz, cada hilo se levanta
-// con el sonido de quien habla (los graves al centro) y entre todos dibujan un cerro.
+// Los cerritos: un paisaje en pixel art (cielo, cordón del fondo, cerros de siete colores y lomas con cardones).
+// En reposo es una postal quieta. Cuando alguien habla, cada cerro sube y baja con una banda del sonido y se
+// hamaca: con la voz de juju se mueven mucho, el sol late y los cardones saltan; con la del usuario, apenas.
 const lienzo = $('lienzo'); const tela = lienzo.getContext('2d');
 const quieto = matchMedia('(prefers-reduced-motion: reduce)');
-// Media faja, del centro hacia afuera: [hilo, ancho]. Hilo 0 = tinta; 1 a 7 = --f1 a --f7. La otra mitad es el espejo.
+// El tejido de la cinta del chat. Media faja, del centro hacia afuera: [hilo, ancho]. Hilo 0 = tinta; 1 a 7 = --f1 a --f7.
 const MEDIA = [[1, 2], [0, 1], [4, 1], [0, 1], [3, 3], [5, 1], [6, 2], [0, 1], [7, 4], [4, 1], [1, 1], [5, 3], [0, 1], [3, 1], [6, 4], [0, 1], [2, 3], [4, 1], [7, 2], [0, 1]];
-const HILO = 4, CINTA = 12; // ancho de un hilo y alto de la cinta en reposo, en px
+const HILO = 4;
 const tintaDe = (c) => (c ? '--f' + c : '--tinta');
-let tintas = [], hilos = [], alturas = [], escala = 1, sucio = true;
+const ESTRATOS = [2, 3, 4, 5, 6, 7, 1]; // de la cumbre hacia abajo: rojo, naranja, maíz, verde, turquesa, violeta, fucsia
+const CARDON = ['..#..', '#.#..', '#.#.#', '###.#', '..###', '..#..', '..#..'];
+const NUBE = ['..####....', '.#######..', '##########'];
+let tintas = [], pal = {}, sucio = true;
+let px = 5, cols = 0, filas = 0, cerros = [], lejos = [], cardones = [], estrellas = [], nivelMedio = 0, nivelPuesto = -1, ultimoCuadro = 0;
+// siempre da lo mismo para el mismo número: el paisaje no cambia entre una visita y otra
+const azar = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 function leerTintas() {
-  const cs = getComputedStyle(document.documentElement);
-  tintas = [0, 1, 2, 3, 4, 5, 6, 7].map((c) => cs.getPropertyValue(tintaDe(c)).trim() || '#888'); sucio = true;
+  const cs = getComputedStyle(document.documentElement), v = (n) => cs.getPropertyValue(n).trim() || '#888';
+  tintas = [0, 1, 2, 3, 4, 5, 6, 7].map((c) => v(tintaDe(c)));
+  pal = { frente: v('--cerro-frente'), fondo: v('--cerro-fondo'), astro: v('--astro'), nube: v('--nube'), borde: v('--linea'), estrella: v('--tenue'), noche: v('--de-noche') === '1' };
+  sucio = true;
 }
-function tejer() { // reparte los hilos en el ancho que hay
+function tejer() { // arma el paisaje para el ancho que hay
   const w = lienzo.clientWidth, h = lienzo.clientHeight;
   if (!w) return; // la vista de voz está oculta
-  escala = Math.min(2, window.devicePixelRatio || 1);
-  lienzo.width = Math.round(w * escala); lienzo.height = Math.round(h * escala);
-  hilos = [];
-  for (let i = 0, x = 0; x < w / 2; i++) { const [c, n] = MEDIA[i % MEDIA.length]; hilos.push({ c, x, w: n * HILO }); x += n * HILO; }
-  alturas = hilos.map((_, i) => alturas[i] || 0);
-  pintar(); // cambiar el tamaño borra el lienzo
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  px = Math.round((w < 520 ? 5 : 6) * dpr); // lado de un "pixel" del dibujo, en px del lienzo
+  lienzo.width = Math.round(w * dpr); lienzo.height = Math.round(h * dpr);
+  cols = Math.ceil(lienzo.width / px); filas = Math.ceil(lienzo.height / px);
+  const n = Math.max(4, Math.round(cols / 16)), viejos = cerros;
+  cerros = Array.from({ length: n }, (_, i) => ({
+    c: (i + 0.5 + (azar(i) - 0.5) * 0.5) * cols / n, w: (cols / n) * (1.15 + azar(i + 9) * 0.55),
+    r: 0.3 + azar(i + 20) * 0.16, // alto en reposo, como parte del alto del lienzo
+    banda: (i * 3 + 1) % n, lado: azar(i + 30) < 0.5 ? -1 : 1, nivel: viejos[i]?.nivel || 0,
+  }));
+  const m = Math.max(3, Math.round(cols / 30));
+  lejos = Array.from({ length: m }, (_, i) => ({ c: (i + 0.5 + (azar(i + 50) - 0.5) * 0.6) * cols / m, w: (cols / m) * (1.1 + azar(i + 60) * 0.5), r: 0.5 + azar(i + 70) * 0.2 }));
+  cardones = [];
+  for (let x = 5 + Math.floor(azar(3) * 8), k = 0; x < cols - 6; x += 15 + Math.floor(azar(k + 80) * 16), k++) cardones.push({ x, alto: azar(k + 90) < 0.5 ? 7 : 6 });
+  estrellas = Array.from({ length: Math.round(cols / 5) }, (_, i) => ({ x: Math.floor(azar(i + 100) * cols), y: Math.floor(azar(i + 130) * filas * 0.5), f: azar(i + 160) }));
+  pintar(performance.now()); // cambiar el tamaño borra el lienzo
 }
-function pintar() {
-  const W = lienzo.width, H = lienzo.height, centro = W / 2, base = CINTA * escala, libre = H - base;
-  tela.clearRect(0, 0, W, H);
-  for (let i = 0; i < hilos.length; i++) {
-    const alto = Math.round(base + libre * alturas[i]), x = hilos[i].x * escala, w = hilos[i].w * escala;
-    tela.fillStyle = tintas[hilos[i].c];
-    tela.fillRect(Math.floor(centro + x), H - alto, Math.ceil(w), alto);
-    tela.fillRect(Math.floor(centro - x - w), H - alto, Math.ceil(w), alto);
+const loma = (x) => Math.round(filas * (0.13 + 0.045 * Math.sin(x / 7.5 + 1) + 0.025 * Math.sin(x / 3.1 + 4))) + 1;
+function pintar(t) {
+  tela.clearRect(0, 0, lienzo.width, lienzo.height);
+  if (!cols) return;
+  const cuadro = (x, y, w, h, color) => { tela.fillStyle = color; tela.fillRect(x * px, y * px, w * px, h * px); };
+  const mueve = !quieto.matches, voz = nivelMedio, habla = modo === 'voz' && hablando;
+
+  // cielo: de noche estrellas que titilan y luna; de día nubes que pasan y sol
+  if (pal.noche) {
+    for (const e of estrellas) if (!mueve || Math.sin(t / (760 - 420 * voz) + e.f * 40) > -0.35) cuadro(e.x, e.y, 1, 1, pal.estrella);
+  } else {
+    for (let k = 0; k < 3; k++) {
+      const x0 = Math.round(((azar(k + 200) * cols + (mueve ? t / 1900 : 0) * (1 + k * 0.3)) % (cols + 20)) - 10), y0 = Math.round(filas * (0.05 + k * 0.1));
+      NUBE.forEach((fila, j) => { for (let i = 0; i < fila.length; i++) if (fila[i] === '#') cuadro(x0 + i, y0 + j, 1, 1, j === NUBE.length - 1 ? pal.borde : pal.nube); });
+    }
   }
+  const ax = Math.round(cols * 0.8), ay = Math.round(filas * 0.2), ar = Math.max(3, Math.round(filas * 0.075)) + (habla && voz > 0.45 ? 1 : 0);
+  if (pal.noche) { // medialuna: el disco menos otro disco corrido
+    for (let dy = -ar; dy <= ar; dy++) for (let dx = -ar; dx <= ar; dx++) if (dx * dx + dy * dy <= ar * ar + 1 && (dx - ar * 0.6) ** 2 + (dy + ar * 0.35) ** 2 > ar * ar * 0.8) cuadro(ax + dx, ay + dy, 1, 1, pal.astro);
+  } else for (let dy = -ar; dy <= ar; dy++) { const medio = Math.round(Math.sqrt(ar * ar - dy * dy)); cuadro(ax - medio, ay + dy, medio * 2 + 1, 1, pal.astro); }
+  if (!pal.noche && habla && voz > 0.06) { // los rayos: salen más lejos cuanto más fuerte habla juju
+    const d = ar + 2 + Math.round(voz * 3), g = Math.round(d * 0.72);
+    for (const [dx, dy] of [[d, 0], [-d, 0], [0, d], [0, -d], [g, g], [-g, g], [g, -g], [-g, -g]]) cuadro(ax + dx, ay + dy, 1, 1, pal.astro);
+  }
+
+  // cordón del fondo: casi quieto, apenas respira con la voz
+  for (let x = 0; x < cols; x++) {
+    let S = filas * 0.3;
+    for (const p of lejos) { const d = Math.abs(x - p.c) / p.w; if (d < 1) S = Math.max(S, filas * p.r * Math.cos(d * Math.PI / 2) ** 1.1); }
+    S = Math.round(S + voz * 2) + (azar(x * 2.3 + 5) < 0.2 ? 1 : 0);
+    cuadro(x, filas - S, 1, S, pal.fondo);
+  }
+
+  // cerros de colores: cada uno sigue una banda del sonido; los estratos van inclinados, como en la Quebrada
+  const grosor = Math.max(2, Math.round(filas / 17));
+  for (let x = 0; x < cols; x++) {
+    let S = filas * 0.2, dom = -1;
+    for (let k = 0; k < cerros.length; k++) {
+      const p = cerros[k], cx = p.c + (mueve ? Math.sin(t / 520 + k * 1.7) * p.nivel * 1.8 : 0), d = Math.abs(x - cx) / p.w;
+      if (d < 1) { const alto = filas * (p.r + (0.76 - p.r) * p.nivel) * Math.cos(d * Math.PI / 2) ** 0.9; if (alto > S) { S = alto; dom = k; } }
+    }
+    S = Math.round(S) + (azar(x * 3.1) < 0.28 ? 1 : 0);
+    const inclina = 700 + (dom < 0 ? Math.round(x * 0.3) : Math.round((x - cerros[dom].c) * 0.32 * cerros[dom].lado) + dom * 3);
+    for (let prof = 0; prof < S;) {
+      const b = Math.floor((prof + inclina) / grosor), fin = Math.min(S, (b + 1) * grosor - inclina);
+      cuadro(x, filas - S + prof, 1, fin - prof, tintas[ESTRATOS[b % 7]]);
+      prof = fin;
+    }
+  }
+
+  // lomas del frente y cardones (saltan cuando juju habla fuerte)
+  for (let x = 0; x < cols; x++) { const S = loma(x); cuadro(x, filas - S, 1, S, pal.frente); }
+  cardones.forEach((c, k) => {
+    const salto = mueve && habla && voz > 0.22 && Math.floor(t / 150 + k) % 2 ? 1 : 0, y0 = filas - loma(c.x + 2) - c.alto - salto;
+    for (let j = 0; j < c.alto + salto + 1; j++) { const fila = CARDON[Math.min(j, CARDON.length - 1)]; for (let i = 0; i < 5; i++) if (fila[i] === '#') cuadro(c.x + i, y0 + j, 1, 1, pal.frente); }
+  });
 }
 function dibujar(t) {
   if (vista !== 'voz' || document.hidden) return void setTimeout(() => requestAnimationFrame(dibujar), 400);
@@ -970,22 +1070,28 @@ function dibujar(t) {
     try { volumen = (hablando ? conv.getOutputVolume() : conv.getInputVolume()) || 0; } catch {}
   }
   const conEspectro = !!datos?.length && datos.some((d) => d > 0);
-  let vivo = false;
-  for (let i = 0; i < hilos.length; i++) {
-    const u = (i + 0.5) / hilos.length; // 0 en el centro, 1 en el borde
+  const ganancia = hablando ? 1 : 0.5; // la voz de juju mueve los cerros el doble que la del usuario
+  let vivo = false, suma = 0;
+  for (let i = 0; i < cerros.length; i++) {
+    const p = cerros[i];
     let meta = 0;
-    if (conectandoVoz) meta = quieto.matches ? 0.2 : 0.17 + 0.14 * Math.sin(t / 240 - u * 7); // una onda que va hacia los bordes
+    if (conectandoVoz) meta = quieto.matches ? 0.2 : 0.28 + 0.24 * Math.sin(t / 230 - i * 0.9); // una ola que recorre los cerros
     else if (activa) {
-      const cerro = Math.cos(u * Math.PI / 2) ** 1.4;
       // sin espectro (algunos navegadores no lo dan) se arma con el volumen general
-      const v = conEspectro ? (datos[Math.floor(u * datos.length * 0.4)] / 255) * 1.25 : Math.min(1, volumen * 2.2) * (0.6 + 0.4 * Math.sin(i * 2.1 + t / 110));
-      meta = Math.max(Math.min(1, v) * (0.35 + 0.65 * cerro), 0.05 * cerro); // un mínimo: se ve que la sesión está abierta
+      const v = conEspectro ? (datos[Math.floor(((p.banda + 0.5) / cerros.length) * datos.length * 0.4)] / 255) * 1.35 : Math.min(1, volumen * 2.2) * (0.55 + 0.45 * Math.sin(i * 2.1 + t / 120));
+      meta = Math.max(0.04, Math.min(1, v) * ganancia); // un mínimo: se ve que la sesión está abierta
     }
-    alturas[i] += (meta - alturas[i]) * (meta > alturas[i] ? 0.45 : 0.14); // sube rápido, baja despacio
-    if (alturas[i] > 0.004) vivo = true; else alturas[i] = 0;
+    p.nivel += (meta - p.nivel) * (meta > p.nivel ? 0.5 : 0.12); // sube rápido, baja despacio
+    if (p.nivel > 0.004) vivo = true; else p.nivel = 0;
+    suma += p.nivel;
   }
-  if (vivo || sucio) { pintar(); sucio = false; }
-  if (vivo || activa || conectandoVoz) requestAnimationFrame(dibujar); else setTimeout(() => requestAnimationFrame(dibujar), 200);
+  nivelMedio = cerros.length ? suma / cerros.length : 0;
+  const nv = Math.round(nivelMedio * 20) / 20; // el halo del micrófono
+  if (nv !== nivelPuesto) { $('escena').style.setProperty('--nivel', nv); nivelPuesto = nv; }
+  const anima = vivo || activa || conectandoVoz;
+  // con voz, unos 30 cuadros por segundo; en reposo, 4 (alcanza para las nubes y las estrellas)
+  if (anima ? t - ultimoCuadro > 30 : sucio || (!quieto.matches && t - ultimoCuadro > 240)) { pintar(t); sucio = false; ultimoCuadro = t; }
+  if (anima) requestAnimationFrame(dibujar); else setTimeout(() => requestAnimationFrame(dibujar), 200);
 }
 leerTintas(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', leerTintas);
 new ResizeObserver(tejer).observe(lienzo);
@@ -1027,6 +1133,7 @@ function conectar(nuevoModo, saludo) {
       dynamicVariables: { ...s.variables, ubicacion_usuario: ubicacion?.texto || 'desconocida' },
       clientTools: herramientas, overrides, textOnly: nuevoModo === 'texto',
       onMessage: ({ message, role }) => {
+        message = limpio(message);
         if (!message || mia !== serie) return;
         if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); $('dijiste').textContent = message; if (modo === 'voz') { const otro = idiomaDe(message); if (otro && otro !== idioma && s.idiomas?.includes(otro)) return void cambiarIdioma(otro, message); voiceTurn(message); } }
         else { burbuja('agent', message); subtitulo(message); }
