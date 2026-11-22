@@ -4,7 +4,7 @@ Guía de la provincia de Jujuy que se usa hablando. Le contás dónde estás y c
 
 ## Qué hace
 
-- **Voz en vivo.** La pantalla principal es un círculo de siete franjas: lo tocás y conversás. Usa ElevenLabs Agents con la voz Turbo.
+- **Voz en vivo.** La pantalla principal es un círculo con un resplandor de siete colores: lo tocás y conversás. Usa ElevenLabs Agents con la voz Turbo.
 - **Chat escrito.** La misma charla, por texto, con las listas de lugares completas.
 - **Directorio.** 2.755 lugares de Jujuy (comida, alojamiento, atractivos, servicios), con distancia, precio aproximado, teléfono, mapa y, cuando está cargado, horario.
 - **Respuesta rápida.** Antes de que el mensaje llegue al modelo, el servidor ya buscó los lugares para esa localidad y esa hora (tarda milisegundos).
@@ -37,6 +37,34 @@ Sin ninguna clave ya funcionan el directorio, la búsqueda y las reservas en mod
 1. En `chatbot/.env`: `PAGOS_PROVEEDOR=cosmospay` y `COSMOSPAY_API_KEY`.
 2. En `chatbot/cosmospay.config.json`: tu cuenta Stellar pública (empieza con `G`) en `destino`. Nunca la clave secreta.
 3. En `chatbot/productos.json`: las experiencias reales con su precio por persona. Las que vienen cargadas son ejemplos.
+
+## Deploy en Railway
+
+El repo ya trae `Dockerfile` y `railway.json`. No hay que configurar comandos ni carpeta raíz.
+
+1. En tu máquina, con la clave de ElevenLabs en `chatbot/.env`, corré `node crear-agente.mjs`. Anotá el `ELEVENLABS_AGENT_ID` que escribe en `.env`.
+2. En Railway: New Project, Deploy from GitHub repo, elegí este repo y la rama `main`.
+3. En Variables, cargá las de la tabla.
+4. En Settings, Networking, generá el dominio público. Railway lo sirve con HTTPS, que es lo que el micrófono necesita.
+
+| Variable | Obligatoria | Valor |
+|---|---|---|
+| `ELEVENLABS_API_KEY` | Sí | Tu clave de ElevenLabs |
+| `ELEVENLABS_AGENT_ID` | Sí | El id que dejó `crear-agente.mjs` |
+| `PAGOS_PROVEEDOR` | Sí | `simulado` para probar o `cosmospay` para cobrar |
+| `COSMOSPAY_API_KEY` | Solo con `cosmospay` | `dv_…` red de prueba, `prod_…` red real |
+| `COSMOSPAY_WEBHOOK_SECRET` | No | Lo entrega `node registrar-webhook.mjs` |
+| `PAGOS_ARCHIVO` | No | Ruta dentro de un volumen, por ejemplo `/data/pagos.json` |
+| `LIMITE_SESIONES`, `LIMITE_PAGOS` | No | Tope por visitante cada 10 minutos. Por defecto 30 y 20 |
+
+`PORT` y el dominio público los pone Railway; no hay que cargarlos.
+
+Para tener en cuenta:
+
+- La cuenta Stellar de cobro no es una variable: va en `chatbot/cosmospay.config.json`, dentro del repo. Es la cuenta pública (empieza con `G`).
+- El disco de Railway se borra en cada deploy. Sin un volumen y `PAGOS_ARCHIVO`, el registro de reservas se pierde al redesplegar; los pagos de Cosmos Pay igual quedan en su panel.
+- El sitio queda abierto a cualquiera con el link, y cada charla gasta crédito de ElevenLabs. Los topes por visitante frenan el abuso más simple, no reemplazan un login.
+- `GET /api/estado` es la ruta de salud que usa Railway.
 
 ## Qué falta
 

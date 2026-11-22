@@ -16,7 +16,8 @@ import { fileURLToPath } from 'node:url';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const leer = (f, def) => { try { return JSON.parse(readFileSync(path.join(AQUI, f), 'utf8').replace(/^﻿/, '')); } catch { return def; } };
-const ARCHIVO = path.join(AQUI, 'pagos.json');
+// En un hosting el disco se borra en cada deploy: PAGOS_ARCHIVO permite guardar el registro en un volumen.
+const ARCHIVO = process.env.PAGOS_ARCHIVO || path.join(AQUI, 'pagos.json');
 const API = () => (process.env.COSMOSPAY_API_BASE || 'https://api.cosmospay.lat/cosmos-api').replace(/\/$/, '');
 const CHECKOUT = 'https://payments.cosmospay.lat';
 
@@ -55,7 +56,8 @@ export const estadoPagos = () => {
 };
 
 // --- registro local de pagos (archivo chico; si el disco está lleno sigue en memoria) ---
-const pagos = new Map((leer('pagos.json', [])).map((p) => [p.id, p]));
+const previos = (() => { try { return JSON.parse(readFileSync(ARCHIVO, 'utf8')); } catch { return []; } })();
+const pagos = new Map(previos.map((p) => [p.id, p]));
 function guardar() { try { writeFileSync(ARCHIVO, JSON.stringify([...pagos.values()].slice(-500), null, 1)); } catch { /* sin espacio */ } }
 
 // --- Cosmos Pay ---

@@ -1,4 +1,5 @@
-// Servidor local de "juju", el chatbot guía de Jujuy. Sin dependencias: node server.mjs
+// Servidor de "juju", la guía de Jujuy. Sin dependencias: node server.mjs
+// Corre igual en la máquina local y en un hosting (Railway u otro): ahí usa PORT y escucha en 0.0.0.0.
 // - Sirve la página (public/) y guarda la API key de ElevenLabs del lado del servidor.
 // - /api/sesion entrega una URL firmada (chat de texto) o un token WebRTC (voz en vivo).
 // - /api/buscar y /api/plan consultan el directorio (las llama la herramienta del agente).
@@ -19,8 +20,10 @@ const pagos = await import('./pagos.mjs');
 const { contexto, comoTexto } = await import('./contexto.mjs');
 const conTexto = (d) => ({ ...d, texto_modelo: comoTexto(d) }); // versión compacta para el modelo
 
-const PUERTO = Number(process.env.PUERTO) || 3000;
-const HOST = process.env.HOST || '127.0.0.1';
+// En un hosting el puerto llega en PORT y hay que escuchar en todas las interfaces; en la máquina local, solo en 127.0.0.1.
+const PUERTO = Number(process.env.PORT || process.env.PUERTO) || 3000;
+const HOST = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
+const URL_PUBLICA = (process.env.URL_PUBLICA || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
 const API = (process.env.ELEVENLABS_API_BASE || 'https://api.elevenlabs.io').replace(/\/$/, '');
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon' };
 
@@ -37,6 +40,20 @@ async function cuerpo(req, max = 100_000) {
   return s;
 }
 const comoJson = (s) => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
+
+// Tope por visitante para las rutas que gastan crédito de ElevenLabs o crean pagos: en un deploy público cualquiera puede llamarlas.
+const cupos = new Map();
+const TOPES = { sesion: Number(process.env.LIMITE_SESIONES) || 30, pago: Number(process.env.LIMITE_PAGOS) || 20 }; // por visitante cada 10 minutos
+function excedido(req, clase) {
+  const ip = String(req.headers['x-real-ip'] || String(req.headers['x-forwarded-for'] || '').split(',').pop() || req.socket.remoteAddress || '').trim();
+  const k = `${clase}|${ip}`, ahora = Date.now(), c = cupos.get(k);
+  if (!c || ahora > c.hasta) {
+    if (cupos.size > 5000) for (const [kk, v] of cupos) if (ahora > v.hasta) cupos.delete(kk);
+    cupos.set(k, { n: 1, hasta: ahora + 10 * 60_000 }); return false;
+  }
+  return ++c.n > TOPES[clase];
+}
+const DEMASIADO = { error: 'Demasiados pedidos seguidos. Esperá unos minutos y probá de nuevo.' };
 
 function catalogoTexto() {
   const e = pagos.estadoPagos();
@@ -87,12 +104,13 @@ button{font:600 16px Figtree,system-ui,sans-serif;padding:12px;border-radius:10p
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const ruta = url.pathname;
-  const base = `http://${req.headers.host || `localhost:${PUERTO}`}`;
+  const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim() === 'https' ? 'https' : 'http'; // detrás de un proxy llega https
+  const base = URL_PUBLICA || `${proto}://${req.headers.host || `localhost:${PUERTO}`}`;
   try {
     if (ruta === '/api/estado') {
       return json(res, 200, { agente_configurado: Boolean(clave() && agente()), datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos() });
     }
-    if (ruta === '/api/sesion') { const [c, o] = await sesion(url.searchParams.get('modo')); return json(res, c, o); }
+    if (ruta === '/api/sesion') { if (excedido(req, 'sesion')) return json(res, 429, DEMASIADO); const [c, o] = await sesion(url.searchParams.get('modo')); return json(res, c, o); }
     if (ruta === '/api/buscar' && req.method === 'POST') return json(res, 200, conTexto(buscar(comoJson(await cuerpo(req)))));
     if (ruta === '/api/contexto' && req.method === 'POST') return json(res, 200, contexto(comoJson(await cuerpo(req))));
     if (ruta === '/api/plan' && req.method === 'POST') return json(res, 200, conTexto(planRapido(comoJson(await cuerpo(req)))));
@@ -102,6 +120,7 @@ const servidor = http.createServer(async (req, res) => {
     }
     if (ruta === '/api/productos') return json(res, 200, { ...pagos.estadoPagos(), hoy: pagos.hoyJujuy(), lista: pagos.productos() });
     if (ruta === '/api/pagos' && req.method === 'POST') {
+      if (excedido(req, 'pago')) return json(res, 429, DEMASIADO);
       try { return json(res, 200, await pagos.crearPago(comoJson(await cuerpo(req)), base)); } catch (e) { return json(res, 400, { error: e.message }); }
     }
     if (ruta === '/api/pagos/webhook' && req.method === 'POST') {
@@ -137,8 +156,8 @@ const servidor = http.createServer(async (req, res) => {
 
 servidor.listen(PUERTO, HOST, () => {
   const r = resumen();
-  console.log(`juju en http://localhost:${PUERTO}`);
+  console.log(`juju escuchando en ${HOST}:${PUERTO}${URL_PUBLICA ? ` · ${URL_PUBLICA}` : HOST === '127.0.0.1' ? ` · http://localhost:${PUERTO}` : ''}`);
   console.log(`Datos: ${r.total} registros desde ${r.origen} (${r.con_horario} con horario cargado)`);
-  console.log(`ElevenLabs: ${clave() ? 'API key OK' : 'FALTA ELEVENLABS_API_KEY en .env'} · ${agente() ? 'agente ' + agente() : 'FALTA crear el agente (node crear-agente.mjs)'}`);
+  console.log(`ElevenLabs: ${clave() ? 'API key OK' : 'FALTA ELEVENLABS_API_KEY'} · ${agente() ? 'agente ' + agente() : 'FALTA crear el agente (node crear-agente.mjs)'}`);
   console.log(`Pagos: ${JSON.stringify(pagos.estadoPagos())}`);
 });

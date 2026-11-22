@@ -141,9 +141,12 @@
   .app[data-vista="chat"] .escena { display: none; }
   .escena { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-block: 20px 22px; }
   .centro { margin-block: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
-  .orbe { flex: none; width: min(60vw, 260px, 36vh); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: var(--papel); cursor: pointer;
-    box-shadow: 0 0 0 1px var(--linea), 0 22px 70px -22px var(--acento); transition: transform .12s linear; }
-  .orbe canvas { display: block; width: 100%; height: 100%; border-radius: 50%; }
+  .orbe { position: relative; flex: none; width: min(52vw, 220px, 32vh); aspect-ratio: 1; margin-block: 26px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+  /* los siete colores quedan de fondo: un resplandor difuso que crece con la voz */
+  .orbe canvas { position: absolute; inset: -20%; width: 140%; height: 140%; border-radius: 50%; filter: blur(34px); opacity: var(--halo, .3); pointer-events: none; }
+  .disco { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: var(--papel); border: 1px solid var(--linea); color: var(--tenue); transform: scale(var(--pulso, 1)); }
+  .disco svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: opacity .2s; }
+  .orbe[data-activa="true"] .disco svg { opacity: 0; }
   .fase { margin: 0; font: 500 12px/1.2 var(--dato); letter-spacing: .1em; text-transform: uppercase; color: var(--tenue); }
   .dicho { width: 100%; max-width: 44ch; display: flex; flex-direction: column; gap: 8px; text-align: center; }
   .dicho p { margin: 0; overflow-wrap: anywhere; }
@@ -214,7 +217,7 @@
 
   <section class="escena borde" id="escena" aria-label="Conversación por voz">
     <div class="centro">
-      <button class="orbe" id="orbe" type="button" aria-label="Empezar a hablar"><canvas id="lienzo" width="520" height="520" aria-hidden="true"></canvas></button>
+      <button class="orbe" id="orbe" type="button" aria-label="Empezar a hablar"><canvas id="lienzo" width="280" height="280" aria-hidden="true"></canvas><span class="disco" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span></button>
       <p class="fase" id="fase">Tocá para hablar</p>
       <div class="dicho" aria-live="polite">
         <p class="vos" id="dijiste"></p>
@@ -566,6 +569,7 @@ function ponerFase() {
 }
 function verVoz() { // pone botones, barra y textos de acuerdo con el estado de la sesión
   const activa = modo === 'voz';
+  $('orbe').dataset.activa = String(activa || conectandoVoz);
   $('silencio').hidden = !activa; $('fin').hidden = !(activa || conectandoVoz); // la cruz también cancela mientras conecta
   $('silencio').setAttribute('aria-pressed', String(silenciado));
   $('voz').hidden = !(activa && vista === 'chat'); $('mic').classList.toggle('activo', activa);
@@ -629,14 +633,15 @@ function dibujar(t) {
   tela.save(); tela.beginPath(); tela.arc(R, R, R - 1, 0, Math.PI * 2); tela.clip();
   for (let i = 0; i < 7; i++) {
     tela.fillStyle = tintas[i]; tela.beginPath(); tela.moveTo(0, W); tela.lineTo(0, i ? i * alto : 0);
-    for (let x = 0; x <= W; x += 10) {
+    for (let x = 0; x <= W; x += 7) {
       const u = x / W;
       tela.lineTo(x, i ? i * alto + amp * Math.sin(u * 6.283 * (1 + i * 0.13) + giro * (1 + i * 0.2) + i * 1.7) + amp * 0.4 * Math.sin(u * 15.7 - giro * 1.3 + i) : 0);
     }
     tela.lineTo(W, W); tela.closePath(); tela.fill();
   }
   tela.restore();
-  $('orbe').style.transform = `scale(${(1 + nivel * 0.05).toFixed(3)})`;
+  $('orbe').style.setProperty('--pulso', (1 + nivel * 0.09).toFixed(3));
+  $('orbe').style.setProperty('--halo', (0.26 + nivel * 0.6).toFixed(3));
   requestAnimationFrame(dibujar);
 }
 requestAnimationFrame(dibujar);
@@ -759,7 +764,7 @@ function pintarFunciones(e) {
   const total = e?.datos?.total ? e.datos.total.toLocaleString('es-AR') : 'miles de';
   const conHorario = e?.datos?.con_horario;
   const funciones = [
-    ['mic', 'Hablá en vivo', 'Tocá el círculo y conversamos con voz. Las franjas se mueven con quien habla. Tocá el círculo o el micrófono para silenciarte, y la cruz para terminar.'],
+    ['mic', 'Hablá en vivo', 'Tocá el círculo y conversamos con voz. El resplandor de colores crece con quien habla. Tocá el círculo o el micrófono para silenciarte, y la cruz para terminar.'],
     ['chat', 'Preguntá por escrito', 'El botón del teclado abre el chat. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora. La charla sigue siendo la misma.'],
     ['pin', 'Buscá cerca tuyo', 'Con el botón del pin uso tu ubicación para no preguntarte la localidad. Solo se usa en esta charla.'],
     ['reloj', 'Mirá qué está abierto', 'Cada lugar dice si está abierto, cerrado o sin horario.' + (conHorario ? ' Hoy ' + conHorario + ' lugares tienen horario cargado.' : '') + ' Cuando no lo tengo te aviso, no lo invento.'],

@@ -1,0 +1,10 @@
+.git
+**/.env
+**/node_modules
+datos_crudos
+por_categoria
+jujuy_turismo.csv
+construir.py
+chatbot/pagos.json
+chatbot/agente.json
+*.md
