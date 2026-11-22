@@ -49,7 +49,7 @@ export function linea(l) {
     : l.abierto === 'no' ? (l.abre ? `cerrado, abre ${l.abre}` : 'cerrado') : 'sin horario cargado';
   return '- ' + [
     l.nombre, String(l.tipo || '').replace(/_/g, ' '), [l.localidad, l.direccion].filter(Boolean).join(', '),
-    l.distancia_km != null ? `${l.distancia_km} km` : null, l.precio?.replace(' (estimado)', ' aprox'), ab,
+    l.distancia_km != null ? `${l.distancia_km} km` : null, l.precio?.startsWith('gratis') ? 'gratis' : l.precio?.replace(' (estimado)', ' aprox'), ab,
     l.cocina && `cocina ${l.cocina}`, l.estrellas && `${l.estrellas} estrellas`, l.altitud_m && `${l.altitud_m} msnm`,
     l.telefono && `tel ${String(l.telefono).split(/[;,]/)[0].trim()}`, l.descripcion,
   ].filter(Boolean).join(' | ');

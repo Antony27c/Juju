@@ -50,7 +50,8 @@
   .borde { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
   /* --- tapa --- */
-  .tapa { display: flex; align-items: baseline; gap: 14px; padding-block: 14px 10px; }
+  .tapa { display: flex; align-items: baseline; gap: 14px; padding-block: 14px 10px; min-width: 0; }
+  @media (max-width: 480px) { .tapa { gap: 10px; } .estado #estado { display: none; } .reloj { font-size: 12px; } }
   .nombre { font: 800 30px/1 var(--titular); letter-spacing: -.04em; }
   .reloj { font: 500 13px/1 var(--dato); color: var(--tenue); font-variant-numeric: tabular-nums; }
   .estado { margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--tenue); white-space: nowrap; }
@@ -63,7 +64,7 @@
   .franjas i:nth-child(7), .barras i:nth-child(7) { background: var(--f7); }
 
   /* --- conversación --- */
-  main { flex: 1; min-height: 0; overflow-y: auto; padding-block: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+  main { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding-block: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
   .inicio { margin-block: auto; display: flex; flex-direction: column; gap: 14px; padding-block: 8px; }
   .sobre { margin: 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
   .inicio h1 { margin: 0; font: 800 clamp(40px, 11vw, 68px)/.95 var(--titular); letter-spacing: -.045em; text-wrap: balance; }
@@ -130,6 +131,23 @@
   .icono.enviar { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
   .icono:disabled, .redactar textarea:disabled { opacity: .45; cursor: default; }
 
+  /* --- qué puede hacer juju: cada función junto al control que la activa --- */
+  .funciones { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px 24px; }
+  .funciones li { display: grid; grid-template-columns: 34px 1fr; gap: 2px 12px; align-items: start; }
+  .funciones .marca { grid-row: span 2; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--linea); border-radius: 10px; background: var(--papel); }
+  .funciones svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .funciones b { font: 600 16px/1.3 var(--titular); }
+  .funciones li > span:last-child { font-size: 14px; color: var(--tenue); }
+  .seccion { margin: 18px 0 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
+  .ayuda { align-self: center; background: none; border: 1px solid var(--linea); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--tenue); white-space: nowrap; }
+  dialog { width: min(92vw, 640px); max-height: 86vh; border: 1px solid var(--linea); border-radius: 18px; padding: 0; background: var(--suelo); color: var(--tinta); }
+  dialog::backdrop { background: rgb(15 17 32 / .55); }
+  dialog .dentro { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 16px; }
+  dialog h2 { margin: 0; font: 800 26px/1.1 var(--titular); letter-spacing: -.03em; }
+  dialog .cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  dialog .funciones { grid-template-columns: 1fr; }
+  .nota-modo { margin: 0; font-size: 14px; color: var(--tenue); border-left: 3px solid var(--duda); padding-left: 10px; }
+
   .falta { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 16px 18px; font-size: 15px; }
   .falta h2 { margin: 0 0 6px; font: 600 18px var(--titular); }
   .falta ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
@@ -144,6 +162,7 @@
     <span class="nombre">juju</span>
     <span class="reloj" id="reloj" title="Hora local de Jujuy (UTC−3)">--:-- · Jujuy</span>
     <span class="estado"><span class="punto" id="punto"></span><span id="estado">listo</span></span>
+    <button class="ayuda" id="ayuda" type="button">Cómo funciona</button>
   </header>
   <div class="franjas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
@@ -158,8 +177,18 @@
         <li><button type="button">Un hostel económico en Purmamarca</button></li>
         <li><button type="button">Museos y sitios arqueológicos de la Quebrada</button></li>
       </ul>
+      <p class="seccion">Qué podés hacer con juju</p>
+      <ul class="funciones" id="funciones"></ul>
     </section>
   </main>
+
+  <dialog id="dlg" aria-labelledby="dlgTitulo">
+    <div class="dentro">
+      <div class="cab"><h2 id="dlgTitulo">Cómo funciona juju</h2><button class="boton" id="cerrarDlg" type="button">Cerrar</button></div>
+      <ul class="funciones" id="funcionesDlg"></ul>
+      <p class="nota-modo" id="notaModo" hidden></p>
+    </div>
+  </dialog>
 
   <div class="voz borde" id="voz" hidden>
     <div class="barras" id="barras" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -191,18 +220,29 @@ const historial = []; // { rol, texto }: sirve para retomar el hilo al reconecta
 
 // ---------- piezas de interfaz ----------
 function nodo(tag, clase, texto) { const n = document.createElement(tag); if (clase) n.className = clase; if (texto != null) n.textContent = texto; return n; }
-function abajo() { chat.scrollTop = chat.scrollHeight; }
-function agregar(n) { $('inicio').hidden = true; if (pensando) chat.insertBefore(n, pensando); else chat.append(n); abajo(); }
+// Un turno = la pregunta, la respuesta de juju y, debajo, las listas de lugares.
+// Las listas llegan antes que la respuesta, así que la respuesta se inserta arriba de ellas.
+let turno = { ancla: null, grupo: null };
+function abajo() { // deja a la vista el comienzo del turno; si todo entra, va al final
+  const a = turno.ancla;
+  if (a?.isConnected && chat.scrollHeight - a.offsetTop > chat.clientHeight) chat.scrollTop = a.offsetTop - 10;
+  else chat.scrollTop = chat.scrollHeight;
+}
+function agregar(n, arriba) {
+  $('inicio').hidden = true;
+  if (arriba && turno.grupo?.isConnected) chat.insertBefore(n, turno.grupo); else chat.append(n);
+  abajo();
+}
 function burbuja(rol, texto) {
-  if (rol !== 'user') dejarDePensar();
-  agregar(nodo('div', 'msg ' + (rol === 'user' ? 'yo' : 'bot'), texto));
+  const n = nodo('div', 'msg ' + (rol === 'user' ? 'yo' : 'bot'), texto);
+  if (rol === 'user') { turno = { ancla: n, grupo: null }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
   historial.push({ rol, texto }); if (historial.length > 30) historial.shift();
 }
-function aviso(texto, error) { agregar(nodo('div', 'aviso' + (error ? ' error' : ''), texto)); }
+function aviso(texto, error, arriba) { agregar(nodo('div', 'aviso' + (error ? ' error' : ''), texto), arriba); }
 function pensar(texto = 'juju está pensando') {
   dejarDePensar();
   pensando = nodo('div', 'pensando'); const m = nodo('span', 'mini'); m.append(nodo('i'), nodo('i'), nodo('i'));
-  pensando.append(m, nodo('span', '', texto)); $('inicio').hidden = true; chat.append(pensando); abajo();
+  pensando.append(m, nodo('span', '', texto)); agregar(pensando, true);
 }
 function dejarDePensar() { pensando?.remove(); pensando = null; }
 function estado(txt, clase) { $('estado').textContent = txt; $('punto').className = 'punto ' + (clase || ''); }
@@ -211,7 +251,8 @@ function enlace(texto, href) {
   const a = nodo('a', '', texto); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a;
 }
 const legible = (t) => String(t || '').replace(/_/g, ' ');
-const km = (n) => (n < 1 ? `${Math.round(n * 1000 / 50) * 50} m` : `${String(n).replace('.', ',')} km`);
+const km = (n) => (n < 0.1 ? 'en el centro' : n < 1 ? `a ${Math.round(n * 10) * 100} m` : `a ${String(n).replace('.', ',')} km`);
+const precio = (p) => (!p ? null : p.startsWith('gratis') ? 'gratis' : p.replace(' (estimado)', ' aprox.'));
 
 function lista(titulo, lugares) {
   if (!lugares?.length) return;
@@ -225,7 +266,7 @@ function lista(titulo, lugares) {
     cab.append(nodo('span', 'pill ' + l.abierto, txt)); fila.append(cab);
     const meta = nodo('p', 'meta');
     meta.append([legible(l.tipo), l.localidad].filter(Boolean).join(' · '));
-    for (const d of [l.distancia_km != null ? km(l.distancia_km) : null, l.precio?.replace(' (estimado)', ' aprox.'), l.altitud_m ? `${l.altitud_m.toLocaleString('es-AR')} msnm` : null].filter(Boolean)) { meta.append(' · '); meta.append(nodo('span', 'num', d)); }
+    for (const d of [l.distancia_km != null ? km(l.distancia_km) : null, precio(l.precio), l.altitud_m ? `${l.altitud_m.toLocaleString('es-AR')} msnm` : null].filter(Boolean)) { meta.append(' · '); meta.append(nodo('span', 'num', d)); }
     fila.append(meta);
     const extra = [l.cocina && `cocina ${l.cocina}`, l.direccion].filter(Boolean).join(' · ');
     if (extra) fila.append(nodo('p', 'meta', extra));
@@ -241,6 +282,7 @@ function lista(titulo, lugares) {
     cont.append(fila);
   }
   g.append(cont); agregar(g);
+  if (!turno.grupo?.isConnected) turno.grupo = g;
 }
 
 const post = (ruta, body) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
@@ -384,10 +426,24 @@ function conectar(nuevoModo, saludo) {
   return conectando;
 }
 
+let sinAgente = false;
+async function soloDirectorio(texto) { // sin asistente conectado: resultados del directorio, sin conversación
+  pensar('Buscando en el directorio');
+  try {
+    const c = await post('/api/contexto', { texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon });
+    if (c.localidad) ultimaLocalidad = c.localidad;
+    dejarDePensar();
+    if (c.grupos?.length) { for (const g of c.grupos) lista(g.titulo, g.lugares); aviso('Estos son los lugares del directorio para tu consulta. Para que juju converse y arme el plan falta conectar ElevenLabs.', false, true); }
+    else aviso(c.localidad ? 'No encontré lugares para eso. Probá con "dónde comer", "qué hacer" o "un hostel".' : 'Decime en qué localidad estás, por ejemplo "qué hacer en Tilcara".');
+  } catch (e) { dejarDePensar(); aviso(e.message, true); }
+}
+
 async function enviar(texto) {
   texto = texto.trim(); if (!texto) return;
   $('texto').value = ''; $('texto').style.height = '';
-  burbuja('user', texto); pensar();
+  burbuja('user', texto);
+  if (sinAgente) return soloDirectorio(texto);
+  pensar();
   try {
     if (!conv) await conectar('texto', ''); // sin saludo: responde directo al mensaje
     await adjuntarDatos(texto);
@@ -423,6 +479,41 @@ $('ubic').onclick = () => {
   }, () => aviso('No pude obtener tu ubicación. Decime en qué localidad estás.', true), { timeout: 10000 });
 };
 
+// ---------- explicación de funciones (pantalla de inicio y botón "Cómo funciona") ----------
+const ICONOS = {
+  chat: '<path d="M4 5h16v11H9l-5 4z"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  reloj: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  lista: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
+  pago: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18M7 15h4"/>',
+};
+function pintarFunciones(e) {
+  const total = e?.datos?.total ? e.datos.total.toLocaleString('es-AR') : 'miles de';
+  const conHorario = e?.datos?.con_horario;
+  const funciones = [
+    ['chat', 'Preguntá por escrito', 'Decime dónde estás y qué buscás. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora.'],
+    ['mic', 'Hablá en vivo', 'Tocá el micrófono y conversamos con voz. Las siete franjas se mueven mientras escucho o hablo. Con "Terminar" volvés al texto sin perder la charla.'],
+    ['pin', 'Buscá cerca tuyo', 'Con el botón del pin uso tu ubicación para no preguntarte la localidad. Solo se usa en esta charla.'],
+    ['reloj', 'Mirá qué está abierto', 'Cada lugar dice si está abierto, cerrado o sin horario.' + (conHorario ? ' Hoy ' + conHorario + ' lugares tienen horario cargado.' : '') + ' Cuando no lo tengo te aviso, no lo invento.'],
+    ['lista', 'Llevate los datos', 'Distancia, precio aproximado, mapa, teléfono y sitio web de ' + total + ' lugares de toda la provincia.'],
+  ];
+  const p = e?.pagos;
+  if (p?.proveedor === 'cosmospay') funciones.push(['pago', 'Pagá desde el chat', 'Con ' + p.monedas.map((m) => m.etiqueta).join(' o ') + '. Elegís la moneda, se abre la página de pago con un código QR y acá te aviso cuando se acredita.' + (p.red === 'testnet' ? ' Ahora está en red de prueba: no es dinero real.' : '')]);
+  else if (p?.proveedor === 'simulado') funciones.push(['pago', 'Probá un pago', 'El pago está en modo de prueba: podés recorrer todos los pasos y no se cobra nada.']);
+  for (const id of ['funciones', 'funcionesDlg']) {
+    $(id).replaceChildren(...funciones.map(([icono, titulo, texto]) => {
+      const li = nodo('li'); const m = nodo('span', 'marca'); m.setAttribute('aria-hidden', 'true');
+      m.innerHTML = '<svg viewBox="0 0 24 24">' + ICONOS[icono] + '</svg>';
+      li.append(m, nodo('b', '', titulo), nodo('span', '', texto)); return li;
+    }));
+  }
+}
+$('ayuda').onclick = () => $('dlg').showModal();
+if (location.hash === '#como-funciona') $('dlg').showModal();
+$('cerrarDlg').onclick = () => $('dlg').close();
+$('dlg').addEventListener('click', (e) => { if (e.target === $('dlg')) $('dlg').close(); });
+
 // ---------- arranque ----------
 function reloj() {
   const h = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Jujuy', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
@@ -434,13 +525,16 @@ reloj(); setInterval(reloj, 20000);
   const e = await fetch('/api/estado').then((r) => r.json()).catch(() => null);
   if (!e) { $('inicio').hidden = true; return aviso('No hay conexión con el servidor local. Iniciá el servidor con "node server.mjs".', true); }
   $('sobre').textContent = `Provincia de Jujuy · ${e.datos.total.toLocaleString('es-AR')} lugares`;
-  if (e.agente_configurado) return;
-  for (const id of ['enviar', 'mic', 'texto', 'ubic']) $(id).disabled = true;
-  $('ideas').hidden = true; estado('sin configurar');
-  const c = nodo('section', 'falta');
-  c.innerHTML = '<h2>Falta conectar ElevenLabs</h2><ol><li>En la carpeta <code>chatbot</code>, copiá <code>.env.example</code> con el nombre <code>.env</code> y pegá tu clave en <code>ELEVENLABS_API_KEY</code>.</li><li>Ejecutá <code>node crear-agente.mjs</code>. Crea el agente y sus herramientas.</li><li>Iniciá de nuevo con <code>node server.mjs</code> y recargá esta página.</li></ol>';
-  chat.append(c);
+  pintarFunciones(e);
+  if (!e.agente_configurado) {
+    sinAgente = true; $('mic').disabled = true; estado('solo directorio');
+    $('notaModo').hidden = false;
+    $('notaModo').textContent = 'Ahora juju muestra solo los lugares del directorio. Para conversar por texto y por voz falta conectar ElevenLabs: copiá .env.example como .env, pegá tu clave y ejecutá "node crear-agente.mjs".';
+  }
+  const q = new URLSearchParams(location.search).get('q'); // link directo a una consulta: /?q=que hacer en tilcara
+  if (q) enviar(q.slice(0, 300));
 })();
+pintarFunciones(null);
 </script>
 </body>
 </html>

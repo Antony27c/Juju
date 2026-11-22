@@ -219,12 +219,21 @@ function centroDe({ localidad, lat, lon }) {
   return null;
 }
 
+const COCINAS = {
+  argentinian: 'argentina', regional: 'regional', local: 'local', italian: 'italiana', 'ice cream': 'helados', 'coffee shop': 'cafetería', burger: 'hamburguesas',
+  chicken: 'pollo', sandwich: 'sándwiches', 'steak house': 'parrilla', american: 'americana', spanish: 'española', arab: 'árabe', breakfast: 'desayunos',
+  noodles: 'fideos', diner: 'minutas', chinese: 'china', mexican: 'mexicana', peruvian: 'peruana', bolivian: 'boliviana', fish: 'pescados', seafood: 'mariscos',
+  vegetarian: 'vegetariana', vegan: 'vegana', barbecue: 'parrilla', grill: 'parrilla', tea: 'té', cake: 'tortas', empanada: 'empanadas', international: 'internacional',
+  japanese: 'japonesa', sushi: 'sushi', pancake: 'panqueques', donut: 'donas', deli: 'fiambres', friture: 'frituras', dessert: 'postres', juice: 'jugos', salad: 'ensaladas',
+};
+const cocinaLegible = (c) => (c ? [...new Set(String(c).split(/[;,]/).map((x) => x.trim().replace(/_/g, ' ')).filter(Boolean).map((x) => COCINAS[x.toLowerCase()] || x))].join(', ') : undefined);
+
 function compacto(r, mom, centro) {
   const est = estadoHorario(r.horario, mom);
   const o = {
     nombre: r.nombre, tipo: r.subcategoria, categoria: r.categoria, localidad: r.localidad, direccion: r.direccion,
     precio: r.rango_precio === 'sin_dato' ? undefined : r.rango_precio + (r.precio_origen === 'estimado' ? ' (estimado)' : ''),
-    cocina: r.cocina?.replace(/;/g, ', ').replace(/_/g, ' '), estrellas: r.estrellas, altitud_m: r.altitud_m, telefono: r.telefono, web: r.web || r.redes,
+    cocina: cocinaLegible(r.cocina), estrellas: r.estrellas, altitud_m: r.altitud_m, telefono: r.telefono, web: r.web || r.redes,
     horario: r.horario, abierto: est.abierto, cierra: est.cierra, abre: est.abre, descripcion: r.descripcion?.slice(0, 200),
     distancia_km: centro ? Math.round(km(centro.lat, centro.lon, r.lat, r.lon) * 10) / 10 : undefined,
     mapa: `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lon}`,
