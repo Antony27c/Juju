@@ -48,6 +48,14 @@ const LOCALIDADES = [
   ['Pampichuela', 'Valle Grande', -23.53, -64.97], ['Caspalá', 'Valle Grande', -23.37, -65.09],
 ].map(([nombre, departamento, lat, lon, ...alias]) => ({ nombre, departamento, lat, lon, claves: [nombre, ...alias].map(sinAcentos) }));
 
+// Lugares sin coordenadas (sobre todo los que vienen de redes): se los ubica en su localidad.
+const tieneCoords = (r) => Number.isFinite(r?.lat) && Number.isFinite(r?.lon) && !(r.lat === 0 && r.lon === 0);
+const SIN_COORDS_KM = 2; // distancia supuesta para un lugar sin coordenadas dentro de la localidad buscada
+function distancia(centro, r) {
+  if (tieneCoords(r)) return km(centro.lat, centro.lon, r.lat, r.lon);
+  return centro.nombre && r.localidad && sinAcentos(r.localidad) === sinAcentos(centro.nombre) ? SIN_COORDS_KM : Infinity;
+}
+
 export function km(aLat, aLon, bLat, bLon) {
   const r = Math.PI / 180;
   const x = (bLon - aLon) * r * Math.cos(((aLat + bLat) / 2) * r);
@@ -175,7 +183,7 @@ function cargar() {
 const { registros, origen } = cargar();
 for (const r of registros) {
   r._txt = sinAcentos([r.nombre, r.subcategoria, r.categoria, r.cocina, r.descripcion, r.localidad, r.direccion].filter(Boolean).join(' ')).replace(/_/g, ' ');
-  if (r.localidad) {
+  if (r.localidad && tieneCoords(r)) {
     const k = sinAcentos(r.localidad);
     const c = DE_REGISTROS.get(k) || { nombre: r.localidad, lat: 0, lon: 0, n: 0 };
     c.lat = (c.lat * c.n + r.lat) / (c.n + 1); c.lon = (c.lon * c.n + r.lon) / (c.n + 1); c.n += 1;
@@ -235,8 +243,10 @@ function compacto(r, mom, centro) {
     precio: r.rango_precio === 'sin_dato' ? undefined : r.rango_precio + (r.precio_origen === 'estimado' ? ' (estimado)' : ''),
     cocina: cocinaLegible(r.cocina), estrellas: r.estrellas, altitud_m: r.altitud_m, telefono: r.telefono, web: r.web || r.redes,
     horario: r.horario, abierto: est.abierto, cierra: est.cierra, abre: est.abre, descripcion: r.descripcion?.slice(0, 200),
-    distancia_km: centro ? Math.round(km(centro.lat, centro.lon, r.lat, r.lon) * 10) / 10 : undefined,
-    mapa: `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lon}`,
+    distancia_km: centro && tieneCoords(r) ? Math.round(km(centro.lat, centro.lon, r.lat, r.lon) * 10) / 10 : undefined,
+    mapa: `https://www.google.com/maps/search/?api=1&query=${tieneCoords(r) ? `${r.lat},${r.lon}` : encodeURIComponent([r.nombre, r.localidad, 'Jujuy'].filter(Boolean).join(', '))}`,
+    // para dibujar el mapa en la página (no van al texto del modelo)
+    lat: tieneCoords(r) ? Math.round(r.lat * 1e5) / 1e5 : undefined, lon: tieneCoords(r) ? Math.round(r.lon * 1e5) / 1e5 : undefined,
   };
   for (const k of Object.keys(o)) if (o[k] == null) delete o[k];
   return o;
@@ -261,8 +271,19 @@ export function puntosEstilo(r, estilo) {
 }
 const estiloDe = (p) => (ESTILOS[p?.estilo] ? p.estilo : undefined);
 
+/** Palabras con significado de un texto (sin acentos, sin palabras vacías). */
+export const palabrasDe = (t) => sinAcentos(t).split(/[^a-z0-9ñ]+/).filter((w) => w.length > 2 && !VACIAS.has(w));
+
+/** Qué parte de las palabras de la consulta aparece en el nombre (0 a 1). */
+export function coincidenciaNombre(consulta, nombre) {
+  const q = palabrasDe(consulta);
+  if (!q.length) return 0;
+  const n = palabrasDe(nombre);
+  return q.filter((w) => n.some((x) => x === w || (w.length >= 5 && x.startsWith(w)) || (x.length >= 5 && w.startsWith(x)))).length / q.length;
+}
+
 function filtrar(p, mom, centro, radio) {
-  const tokens = sinAcentos(p.texto).split(/[^a-z0-9ñ]+/).filter((w) => w.length > 2 && !VACIAS.has(w));
+  const tokens = palabrasDe(p.texto);
   const cat = sinAcentos(p.categoria).replace(/ /g, '_');
   const sub = sinAcentos(p.subcategoria).replace(/ /g, '_');
   const reg = sinAcentos(p.region);
@@ -276,11 +297,12 @@ function filtrar(p, mom, centro, radio) {
     if (locTxt && !sinAcentos(`${r.localidad} ${r.departamento}`).includes(locTxt)) continue;
     if (tope >= 0 && (ORDEN_PRECIO.indexOf(r.rango_precio) < 0 || ORDEN_PRECIO.indexOf(r.rango_precio) > tope)) continue;
     if (tokens.length && !tokens.every((w) => r._txt.includes(w) || (SINONIMOS[w] || []).some((s) => r._txt.includes(s)))) continue;
-    const d = centro ? km(centro.lat, centro.lon, r.lat, r.lon) : 0;
+    const d = centro ? distancia(centro, r) : 0;
     if (centro && d > radio) continue;
     const ab = estadoHorario(r.horario, mom).abierto;
     if (p.solo_abiertos && ab !== 'si') continue;
-    res.push({ r, d, ab, pts: PUNTOS_ABIERTO[ab] + r._info - d * 0.15 + puntosEstilo(r, p.estilo) });
+    const nombre = tokens.length ? 4 * coincidenciaNombre(p.texto, r.nombre) : 0; // el nombre pesa más que la descripción
+    res.push({ r, d, ab, pts: PUNTOS_ABIERTO[ab] + r._info + nombre - d * 0.15 + puntosEstilo(r, p.estilo) });
   }
   return res.sort((a, b) => b.pts - a.pts);
 }
@@ -303,6 +325,23 @@ export function buscar(p = {}) {
   };
 }
 
+/**
+ * El lugar del directorio que el usuario nombró, o null si ninguno coincide de verdad.
+ * Exige que casi todas las palabras del nombre pedido estén en el nombre del lugar: nunca devuelve
+ * "el primero que aparece" (así una reserva de "Pucará de Tilcara" no termina en "Camping El Pucará").
+ */
+export function lugarPorNombre({ lugar, localidad } = {}) {
+  if (!palabrasDe(lugar).length) return null;
+  const cerca = localidad ? buscar({ texto: lugar, localidad, limite: 15, radio_km: 60 }).resultados : [];
+  const todos = buscar({ texto: lugar, limite: 15 }).resultados;
+  let mejor = null, puntos = 0;
+  for (const c of [...cerca, ...todos]) {
+    const s = coincidenciaNombre(lugar, c.nombre);
+    if (s > puntos) { mejor = c; puntos = s; }
+  }
+  return puntos >= 0.75 ? mejor : null;
+}
+
 // ---------- plan rápido: "qué hago ahora y dónde como" ----------
 const INTERES = {
   museo: 3, sitio_arqueologico: 3, atractivo_general: 3, mirador: 2.5, termas: 3, cascada: 2.5, salar_laguna: 3, area_protegida: 2, ruinas: 2,
@@ -323,7 +362,7 @@ export function planRapido(p = {}) {
     const res = [];
     for (const r of registros) {
       if (!acepta(r)) continue;
-      const d = km(centro.lat, centro.lon, r.lat, r.lon);
+      const d = distancia(centro, r);
       if (d > radio) continue;
       const ab = estadoHorario(r.horario, mom).abierto;
       if (ab === 'no') continue;

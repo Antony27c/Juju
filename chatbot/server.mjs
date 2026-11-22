@@ -17,7 +17,7 @@ import { obtenerPerfil, clasificar, AVISO_CONSENTIMIENTO } from './estilo-viaje.
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 if (existsSync(path.join(AQUI, '.env'))) process.loadEnvFile(path.join(AQUI, '.env'));
 
-const { buscar, planRapido, resumen, localidadMasCercana } = await import('./datos.mjs');
+const { buscar, planRapido, resumen, localidadMasCercana, lugarPorNombre, coincidenciaNombre } = await import('./datos.mjs');
 const { momento } = await import('./horarios.mjs');
 const pagos = await import('./pagos.mjs');
 const { contexto, comoTexto } = await import('./contexto.mjs');
@@ -86,18 +86,14 @@ function prepararAgente() {
   preparacion = tarea;
 }
 
-// Resolves the place the assistant names to a directory entry, preferring matches near the locality.
-// El lugar a reservar tiene que existir en el directorio con ese nombre: no alcanza con que la búsqueda devuelva algo
-// parecido ("Pucará de Tilcara" no es "Camping El Pucará") y un nombre inventado no tiene disponibilidad.
-const sinTildes = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/s+/g, ' ').trim();
-function findPlace({ lugar, localidad } = {}) {
-  const n = sinTildes(lugar);
-  if (!n) return null;
-  const palabras = n.split(' ').filter((p) => p.length > 3), de = (x) => sinTildes(x.nombre);
-  const candidatos = [...buscar({ texto: lugar, localidad, limite: 8, radio_km: 60 }).resultados, ...buscar({ texto: lugar, limite: 8 }).resultados];
-  return candidatos.find((x) => de(x) === n)
-    || candidatos.find((x) => de(x).includes(n) || (de(x).length > 3 && n.includes(de(x))))
-    || (palabras.length ? candidatos.find((x) => palabras.every((p) => de(x).includes(p))) : null) || null;
+// El lugar a reservar tiene que existir en el directorio con ese nombre. Only a real name match counts
+// (lugarPorNombre): never "the first search result", so a booking can't land on the wrong place.
+const findPlace = (p = {}) => lugarPorNombre(p);
+
+// A catalog experience the user named without producto_id ("reservame Hornocal"): only a full name match.
+function findProduct(lugar) {
+  if (!lugar) return null;
+  return pagos.productos().find((x) => coincidenciaNombre(lugar, `${x.nombre} ${x.id.replace(/-/g, ' ')}`) === 1) || null;
 }
 
 function json(res, codigo, obj) {
@@ -115,7 +111,9 @@ const comoJson = (s) => { try { return JSON.parse(s || '{}'); } catch { return {
 const cupos = new Map();
 const TOPES = { sesion: Number(process.env.LIMITE_SESIONES) || 30, pago: Number(process.env.LIMITE_PAGOS) || 20, estilo: 15 }; // por visitante cada 10 minutos
 function excedido(req, clase) {
-  const ip = String(req.headers['x-real-ip'] || String(req.headers['x-forwarded-for'] || '').split(',').pop() || req.socket.remoteAddress || '').trim();
+  // The last x-forwarded-for entry is the one the hosting proxy appended (the visitor can't fake it);
+  // x-real-ip can come from the visitor, so it is only a fallback.
+  const ip = String(String(req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.headers['x-real-ip'] || req.socket.remoteAddress || '').trim();
   const k = `${clase}|${ip}`, ahora = Date.now(), c = cupos.get(k);
   if (!c || ahora > c.hasta) {
     if (cupos.size > 5000) for (const [kk, v] of cupos) if (ahora > v.hasta) cupos.delete(kk);
@@ -217,7 +215,7 @@ const servidor = http.createServer(async (req, res) => {
     if (ruta === '/api/reservas' && req.method === 'POST') {
       if (excedido(req, 'pago')) return json(res, 429, DEMASIADO);
       const p = comoJson(await cuerpo(req));
-      const product = p.producto_id ? pagos.productos().find((x) => x.id === p.producto_id) || null : null;
+      const product = p.producto_id ? pagos.productos().find((x) => x.id === p.producto_id) || null : findProduct(p.lugar);
       if (p.producto_id && !product) return json(res, 404, { error: `no existe la experiencia "${String(p.producto_id).slice(0, 60)}" en el catálogo` });
       const place = product ? null : findPlace(p);
       if (!product && !place) return json(res, 404, { error: p.lugar ? `"${String(p.lugar).slice(0, 80)}" no figura en el directorio` : 'falta el nombre del lugar o el producto_id' });
@@ -255,7 +253,9 @@ const servidor = http.createServer(async (req, res) => {
 
     // archivos estáticos (solo dentro de public/)
     const pub = path.join(AQUI, 'public');
-    const archivo = path.normalize(path.join(pub, ruta === '/' ? 'index.html' : decodeURIComponent(ruta)));
+    let pedido;
+    try { pedido = ruta === '/' ? 'index.html' : decodeURIComponent(ruta); } catch { res.writeHead(400); return res.end('Dirección inválida'); }
+    const archivo = path.normalize(path.join(pub, pedido));
     if (!archivo.startsWith(pub + path.sep)) { res.writeHead(403); return res.end(); }
     const info = await stat(archivo).catch(() => null);
     if (!info?.isFile()) { res.writeHead(404); return res.end('No encontrado'); }
@@ -269,7 +269,7 @@ const servidor = http.createServer(async (req, res) => {
     res.end(await comprimido(archivo, info, forma));
   } catch (e) {
     console.error(ruta, e);
-    if (!res.headersSent) json(res, 500, { error: e.message });
+    if (!res.headersSent) json(res, 500, { error: 'Error interno del servidor.' });
   }
 });
 

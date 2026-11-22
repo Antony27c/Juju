@@ -7,6 +7,7 @@ Guía de la provincia de Jujuy que se usa hablando. Le contás dónde estás y c
 - **Voz en vivo.** En la pantalla principal tocás el micrófono y conversás: lo que dice juju se lee en grande y un paisaje de cerritos en pixel art se mueve con la voz de quien habla. Usa ElevenLabs Agents: un agente de voz en tiempo real (Eleven Realtime) y, si la cuenta no lo tiene, el agente de texto con la voz Turbo.
 - **Chat escrito.** La misma charla, por texto, con las listas de lugares completas.
 - **Directorio.** 2.755 lugares de Jujuy (comida, alojamiento, atractivos, servicios), con distancia, precio aproximado, teléfono, mapa y, cuando está cargado, horario.
+- **Mapa.** Cuando juju sugiere lugares, aparecen en un mapa (mosaicos de OpenStreetMap, sin librerías) con pines numerados igual que la lista; tocar un pin abre el lugar en Google Maps. Está en el chat y en la vista de voz.
 - **Cómo llegar.** Cuando elegís un lugar, juju pregunta si querés que te guíe. Si decís que sí, abre Google Maps con el camino desde donde estás y deja el botón en pantalla. Cada lugar de las listas tiene además su link "Cómo llegar".
 - **Respuesta rápida.** Antes de que el mensaje llegue al modelo, el servidor ya buscó los lugares para esa localidad y esa hora (tarda milisegundos).
 - **Español e inglés.** Por chat, juju responde en el idioma en que le escribís. Por voz, la sesión escucha y habla en un idioma por vez: se elige con el botón ES/EN (la primera vez toma el idioma del navegador) y se reconecta sola si saludás o hablás en el otro idioma.
@@ -93,6 +94,8 @@ Para tener en cuenta:
 
 - La cuenta Stellar de cobro no es una variable: va en `chatbot/cosmospay.config.json`, dentro del repo. Es la cuenta pública (empieza con `G`).
 - El disco de Railway se borra en cada deploy. Sin un volumen y `PAGOS_ARCHIVO`, el registro de reservas se pierde al redesplegar; los pagos de Cosmos Pay igual quedan en su panel.
+- El contenedor corre sin permisos de administrador (usuario `node`). Si montás un volumen para `PAGOS_ARCHIVO` y Railway lo deja solo con permisos de root, agregá la variable `RAILWAY_RUN_UID=0`; si no, el registro no se puede escribir.
+- Para no depender de jsDelivr ni unpkg en la voz: `cd chatbot && npm run vendor-sdk` guarda el SDK de ElevenLabs en `public/vendor/`. Subí ese archivo al repo.
 - El sitio queda abierto a cualquiera con el link, y cada charla gasta crédito de ElevenLabs. Los topes por visitante frenan el abuso más simple, no reemplazan un login.
 - `GET /api/estado` es la ruta de salud que usa Railway.
 

@@ -27,6 +27,7 @@
     --titular: var(--texto); --habla: var(--texto);
     --pixel: "Pixelify Sans", ui-monospace, "Cascadia Mono", Consolas, monospace;
     --radio: 16px; --radio-s: 12px;
+    --filtro-mapa: none;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -37,6 +38,7 @@
       --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
       --cerro-frente: #2b3060; --cerro-fondo: #1a1e3a; --astro: #f3f4ff; --nube: #232846; --de-noche: 1;
       --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .38);
+      --filtro-mapa: invert(1) hue-rotate(180deg) brightness(.9) contrast(.85);
       color-scheme: dark;
     }
   }
@@ -47,6 +49,7 @@
     --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
     --cerro-frente: #2b3060; --cerro-fondo: #1a1e3a; --astro: #f3f4ff; --nube: #232846; --de-noche: 1;
     --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .38);
+    --filtro-mapa: invert(1) hue-rotate(180deg) brightness(.9) contrast(.85);
     color-scheme: dark;
   }
 
@@ -135,6 +138,18 @@
   .dicho:has(.gusto[data-paso="pedir"]) .ideas li:nth-child(n+3) { display: none; }
   .dicho .gusto[data-paso="pedir"]:has(+ .probar[hidden]) > :not(.gusto-fila) { display: none; }
 
+  /* mapa de los lugares sugeridos: mosaicos de OpenStreetMap y pines numerados como la lista */
+  .mapa { position: relative; overflow: hidden; height: 200px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--suelo); box-shadow: var(--sombra); }
+  .mapa .teselas { position: absolute; inset: 0; filter: var(--filtro-mapa); }
+  .mapa .teselas img { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; pointer-events: none; }
+  .mapa .pin { position: absolute; z-index: 1; transform: translate(-50%, -50%); width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--tinta); color: var(--papel); border: 2px solid var(--papel); box-shadow: 0 1px 4px rgb(0 0 0 / .35); font: 700 13px/1 var(--texto); text-decoration: none; }
+  .mapa .pin:hover, .mapa .pin:focus-visible { z-index: 2; background: var(--acento); color: var(--sobre-acento); }
+  .mapa .vos-pin { position: absolute; z-index: 1; width: 14px; height: 14px; transform: translate(-50%, -50%); border-radius: 50%; background: #1a73e8; border: 3px solid #fff; box-shadow: 0 0 0 5px rgb(26 115 232 / .22); }
+  .mapa .credito { position: absolute; z-index: 3; right: 0; bottom: 0; padding: 1px 6px; font-size: 10px; color: var(--tenue); background: color-mix(in srgb, var(--papel) 85%, transparent); border-top-left-radius: 6px; text-decoration: none; }
+  .grupo .mapa { margin-bottom: 10px; }
+  .ficha.ficha-mapa { width: 260px; padding: 0; overflow: hidden; }
+  .ficha.ficha-mapa .mapa { flex: 1; height: auto; min-height: 108px; border: 0; border-radius: 0; box-shadow: none; }
+  .num-mapa { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 7px; border-radius: 50%; background: var(--tinta); color: var(--papel); font: 700 11px/1 var(--texto); vertical-align: 2px; }
   .tira { flex: none; display: flex; gap: 10px; overflow-x: auto; padding-block: 2px 12px; scroll-snap-type: x proximity; scroll-padding-inline: 18px; scrollbar-width: none; }
   .ficha { flex: none; width: 216px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 13px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); color: inherit; text-decoration: none; transition: border-color .15s; }
   button.ficha { cursor: pointer; text-align: left; }
@@ -500,7 +515,7 @@ async function cambiarIdioma(nuevo, pendiente) {
 function nodo(tag, clase, texto) { const n = document.createElement(tag); if (clase) n.className = clase; if (texto != null) n.textContent = texto; return n; }
 // Un turno = la pregunta, la respuesta de juju y, debajo, las listas de lugares.
 // Las listas llegan antes que la respuesta, así que la respuesta se inserta arriba de ellas.
-let turno = { ancla: null, grupo: null, vistos: new Set() };
+let turno = { ancla: null, grupo: null, vistos: new Set(), n: 0, puntos: [] };
 function abajo() { // deja a la vista el comienzo del turno; si todo entra, va al final
   if (!$('inicio').hidden) return void (chat.scrollTop = 0); // la pantalla de inicio se lee desde arriba
   const a = turno.ancla;
@@ -514,7 +529,7 @@ function agregar(n, arriba) {
 }
 function burbuja(rol, texto) {
   const n = nodo('div', 'msg ' + (rol === 'user' ? 'yo' : 'bot'), texto);
-  if (rol === 'user') { turno = { ancla: n, grupo: null, vistos: new Set() }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
+  if (rol === 'user') { turno = { ancla: n, grupo: null, vistos: new Set(), n: 0, puntos: [] }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
   $('probar').hidden = true; // las frases de ejemplo solo acompañan el arranque
   historial.push({ rol, texto }); if (historial.length > 30) historial.shift();
   if (rol === 'user') { dichos.push({ n: ++nDicho, texto }); if (dichos.length > 30) dichos.shift(); }
@@ -575,11 +590,14 @@ function lista(titulo, lugares) {
     turno.vistos.add(key); return true;
   });
   if (!lugares.length) return;
+  for (const l of lugares) if (conCoords(l)) { l._n = ++turno.n; turno.puntos.push(l); } // mismo número en la lista, la tira y el mapa
   const g = nodo('section', 'grupo'); g.append(nodo('h3', '', titulo));
+  const mapa = lugares.some((l) => l._n) && nodo('div', 'mapa');
+  if (mapa) { mapa.setAttribute('role', 'img'); mapa.setAttribute('aria-label', 'Mapa de ' + titulo); g.append(mapa); }
   const cont = nodo('div', 'lista');
   for (const l of lugares) {
     const fila = nodo('article', 'lugar');
-    const cab = nodo('div', 'cab'); cab.append(nodo('h4', '', l.nombre));
+    const cab = nodo('div', 'cab'); const h = nodo('h4', '', l.nombre); if (l._n) h.prepend(nodo('span', 'num-mapa', l._n)); cab.append(h);
     const txt = l.abierto === 'si' ? (l.cierra && l.cierra !== 'no cierra' ? `Abierto hasta ${l.cierra}` : 'Abierto')
       : l.abierto === 'no' ? (l.abre ? `Cerrado · abre ${l.abre}` : 'Cerrado') : 'Sin horario';
     cab.append(nodo('span', 'pill ' + l.abierto, txt)); fila.append(cab);
@@ -602,6 +620,7 @@ function lista(titulo, lugares) {
     cont.append(fila);
   }
   g.append(cont); agregar(g);
+  if (mapa) pintarMapa(mapa, lugares.filter((l) => l._n));
   if (!turno.grupo?.isConnected) turno.grupo = g;
   enTira(lugares);
 }
@@ -609,7 +628,7 @@ function lista(titulo, lugares) {
 const post = (ruta, body) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
   .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'No se pudo completar el pedido'); return d; });
 // al modelo le va la versión en texto compacto (menos tokens = respuesta más rápida)
-const paraModelo = (d) => d.texto_modelo || JSON.stringify(d, (k, v) => (k === 'mapa' || k === 'categoria' ? undefined : v));
+const paraModelo = (d) => d.texto_modelo || JSON.stringify(d, (k, v) => (k === 'mapa' || k === 'categoria' || k === 'lat' || k === 'lon' ? undefined : v));
 const contextFor = (texto, extra) => post('/api/contexto', conEstilo({ texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon, ...extra }));
 // Búsqueda previa: adjunta al mensaje los lugares ya filtrados, así el modelo responde en una sola pasada.
 // Shows the places as soon as the search returns and resolves to the block for the model (or nothing).
@@ -1166,14 +1185,64 @@ function verVoz() { // pone botones, barra y textos de acuerdo con el estado de 
 }
 function enTira(lugares) { // lugares del turno actual, como fichas para deslizar
   if (tiraDe !== turno) { $('tira').replaceChildren(); tiraDe = turno; }
+  if (turno.puntos.length) { // en la vista de voz el mapa es la primera ficha de la tira: no le quita alto al texto
+    let fm = $('tira').querySelector('.ficha-mapa');
+    if (!fm) { fm = nodo('div', 'ficha ficha-mapa'); fm.append(nodo('div', 'mapa')); fm.firstChild.setAttribute('role', 'img'); fm.firstChild.setAttribute('aria-label', 'Mapa de los lugares sugeridos'); $('tira').prepend(fm); }
+    requestAnimationFrame(() => pintarMapa(fm.firstChild, turno.puntos));
+  }
   for (const l of lugares) {
     const f = (l.mapa && enlace('', l.mapa)) || nodo('div'); f.className = 'ficha';
     const txt = l.abierto === 'si' ? (l.cierra && l.cierra !== 'no cierra' ? 'Abierto hasta ' + l.cierra : 'Abierto') : l.abierto === 'no' ? 'Cerrado' : 'Sin horario';
-    f.append(nodo('b', '', l.nombre), nodo('span', 'meta', [legible(l.tipo), l.distancia_km != null ? km(l.distancia_km) : null].filter(Boolean).join(' · ')), nodo('span', 'pill ' + l.abierto, txt));
+    const nom = nodo('b', '', l.nombre); if (l._n) nom.prepend(nodo('span', 'num-mapa', l._n));
+    f.append(nom, nodo('span', 'meta', [legible(l.tipo), l.distancia_km != null ? km(l.distancia_km) : null].filter(Boolean).join(' · ')), nodo('span', 'pill ' + l.abierto, txt));
     $('tira').append(f);
   }
   $('tira').hidden = !$('tira').childElementCount;
 }
+// ---------- mapa: mosaicos de OpenStreetMap ajustados para que entren todos los lugares ----------
+// Sin librerías: se calcula el zoom y qué mosaicos van, y se ponen los pines encima (proyección Web Mercator).
+const TESELA = (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+const conCoords = (l) => Number.isFinite(l?.lat) && Number.isFinite(l?.lon);
+const mx = (lon, z) => ((lon + 180) / 360) * 256 * 2 ** z;
+const my = (lat, z) => { const s = Math.sin((lat * Math.PI) / 180); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * 256 * 2 ** z; };
+const mapasVivos = new ResizeObserver((es) => { for (const e of es) if (e.target._puntos && Math.round(e.contentRect.width) !== e.target._ancho) pintarMapa(e.target, e.target._puntos); });
+function pintarMapa(el, puntos) {
+  el._puntos = puntos; mapasVivos.observe(el);
+  const W = el.clientWidth, H = el.clientHeight;
+  el._ancho = Math.round(W);
+  if (!W || !H || !puntos.length) return; // oculto: se dibuja cuando aparezca (ResizeObserver)
+  const borde = 30;
+  let z = 17; // OpenStreetMap llega a 19; 17 alcanza para separar lugares de una misma cuadra
+  for (; z > 3; z--) {
+    const xs = puntos.map((p) => mx(p.lon, z)), ys = puntos.map((p) => my(p.lat, z));
+    if (Math.max(...xs) - Math.min(...xs) <= W - 2 * borde && Math.max(...ys) - Math.min(...ys) <= H - 2 * borde) break;
+  }
+  const xs = puntos.map((p) => mx(p.lon, z)), ys = puntos.map((p) => my(p.lat, z));
+  const izq = (Math.min(...xs) + Math.max(...xs)) / 2 - W / 2, arr = (Math.min(...ys) + Math.max(...ys)) / 2 - H / 2;
+  const capa = nodo('div', 'teselas'), n = 2 ** z;
+  for (let tx = Math.floor(izq / 256); tx <= Math.floor((izq + W) / 256); tx++) {
+    for (let ty = Math.max(0, Math.floor(arr / 256)); ty <= Math.min(n - 1, Math.floor((arr + H) / 256)); ty++) {
+      const img = nodo('img'); img.alt = ''; img.decoding = 'async'; img.referrerPolicy = 'strict-origin-when-cross-origin';
+      img.src = TESELA(z, ((tx % n) + n) % n, ty);
+      img.style.left = `${tx * 256 - izq}px`; img.style.top = `${ty * 256 - arr}px`;
+      capa.append(img);
+    }
+  }
+  const hijos = [capa];
+  if (conCoords(ubicacion)) { // el punto azul de "estás acá", solo si cae dentro del mapa
+    const x = mx(ubicacion.lon, z) - izq, y = my(ubicacion.lat, z) - arr;
+    if (x > 0 && x < W && y > 0 && y < H) { const v = nodo('span', 'vos-pin'); v.style.left = `${x}px`; v.style.top = `${y}px`; v.title = 'Estás acá'; hijos.push(v); }
+  }
+  for (const p of puntos) {
+    const pin = (p.mapa && enlace(String(p._n), p.mapa)) || nodo('span', '', String(p._n));
+    pin.className = 'pin'; pin.title = p.nombre; pin.setAttribute('aria-label', `${p._n}. ${p.nombre}`);
+    pin.style.left = `${mx(p.lon, z) - izq}px`; pin.style.top = `${my(p.lat, z) - arr}px`;
+    hijos.push(pin);
+  }
+  const credito = enlace('© OpenStreetMap', 'https://www.openstreetmap.org/copyright'); credito.className = 'credito'; hijos.push(credito);
+  el.replaceChildren(...hijos);
+}
+
 async function iniciarVoz(saludo) {
   if (sinAgente) { subtitulo('Para hablar falta conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.'); return; }
   if (modo === 'voz' || conectandoVoz) return;

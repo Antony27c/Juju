@@ -9,6 +9,7 @@
     "crear-agente": "node crear-agente.mjs",
     "verificar": "node verificar.mjs",
     "estilo-viaje": "node estilo-viaje.mjs",
+    "vendor-sdk": "node vendor-sdk.mjs",
     "test": "node --test"
   },
   "engines": {
