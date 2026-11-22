@@ -87,25 +87,39 @@ async function emisorDe(codigo) {
   return hallados[0].issuer;
 }
 
-/** Crea un pago para un producto del catálogo. moneda: un id de estadoPagos().monedas. */
-export async function crearPago({ producto_id, moneda }, baseUrl) {
+/** Fecha de hoy en Jujuy, AAAA-MM-DD. */
+export const hoyJujuy = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Jujuy' }).format(new Date());
+const fechaValida = (f) => { try { return /^\d{4}-\d{2}-\d{2}$/.test(f) && new Date(`${f}T00:00:00Z`).toISOString().slice(0, 10) === f; } catch { return false; } };
+
+/**
+ * Crea la reserva de una experiencia del catálogo y su pago. El total se calcula acá:
+ * precio por persona × personas. moneda: un id de estadoPagos().monedas.
+ */
+export async function crearPago({ producto_id, moneda, personas, fecha }, baseUrl) {
   const prod = productos().find((p) => p.id === producto_id);
-  if (!prod) throw new Error('Ese producto no está en el catálogo.');
+  if (!prod) throw new Error('Esa experiencia no está en el catálogo.');
   const prov = proveedor();
   if (prov === 'ninguno' || prov === 'sin_configurar') throw new Error('Los pagos todavía no están configurados.');
   const mon = monedas().find((m) => m.id === String(moneda || '').toUpperCase());
   if (!mon) throw new Error(`Moneda no habilitada. Opciones: ${monedas().map((m) => m.id).join(', ')}`);
+  const n = personas == null ? 1 : Number(personas);
+  if (!Number.isInteger(n) || n < 1 || n > 20) throw new Error('La cantidad de personas tiene que ser un número entre 1 y 20.');
+  if (!fechaValida(fecha) || fecha < hoyJujuy()) throw new Error('Falta una fecha válida, de hoy en adelante (AAAA-MM-DD).');
   const id = randomUUID();
-  const pago = { id, proveedor: prov, producto_id: prod.id, concepto: prod.nombre, monto: prod.precio_usd, moneda: mon.id, estado: 'pendiente', creado: new Date().toISOString() };
+  const pago = {
+    id, codigo: `JU-${id.slice(0, 6).toUpperCase()}`, proveedor: prov, producto_id: prod.id,
+    concepto: `${prod.nombre} · ${n} ${n === 1 ? 'persona' : 'personas'} · ${fecha}`, personas: n, fecha,
+    monto: Math.round(prod.precio_usd * n * 100) / 100, moneda: mon.id, estado: 'pendiente', creado: new Date().toISOString(),
+  };
   if (prov === 'simulado') {
     pago.url_pago = `${baseUrl}/pago-simulado?id=${id}`;
   } else {
     const c = cfg();
     const intento = await cosmos('POST', '/v1/payment-intents/pay', {
       chain: 'stellar', destination: c.destino,
-      amount: prod.precio_usd.toFixed(2), // en unidades de la moneda (estable 1:1 con USD)
+      amount: pago.monto.toFixed(2), // en unidades de la moneda (estable 1:1 con USD)
       assetCode: mon.id, assetIssuer: await emisorDe(mon.id),
-      msg: `juju: ${prod.nombre}`.slice(0, 300),
+      msg: `juju ${pago.codigo}: ${pago.concepto}`.slice(0, 300),
       ...(c.checkoutTheme ? { checkoutTheme: c.checkoutTheme } : {}),
     });
     Object.assign(pago, {

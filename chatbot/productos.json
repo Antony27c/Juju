@@ -1,7 +1,11 @@
 {
-  "_leer": "Lo único que el chatbot puede cobrar. Son EJEMPLOS: reemplazalos por lo que realmente vendas (nombre y precio en USD). Si la lista queda vacía, el bot no ofrece pagos.",
+  "_leer": "Experiencias que juju puede reservar y cobrar. Son EJEMPLOS (\"ejemplo\": true): los lugares existen, pero los precios, las duraciones y quién las presta no están acordados con ningún operador. Reemplazalos por lo que realmente vendas y borrá \"ejemplo\". precio_usd es por persona. Si la lista queda vacía, juju no ofrece reservas.",
   "productos": [
-    { "id": "itinerario-1-dia", "nombre": "Itinerario personalizado de 1 día (ejemplo)", "precio_usd": 5 },
-    { "id": "itinerario-3-dias", "nombre": "Itinerario personalizado de 3 días (ejemplo)", "precio_usd": 12 }
+    { "id": "salinas-grandes", "nombre": "Salinas Grandes por la Cuesta de Lipán", "localidad": "Purmamarca", "duracion": "medio día", "precio_usd": 35, "descripcion": "Subida por la Cuesta de Lipán hasta los 4.170 msnm y caminata por el salar.", "ejemplo": true },
+    { "id": "hornocal", "nombre": "Serranía de Hornocal, el cerro de 14 colores", "localidad": "Humahuaca", "duracion": "3 horas", "precio_usd": 20, "descripcion": "Traslado en camioneta hasta el mirador, a 4.350 msnm, y regreso a Humahuaca.", "ejemplo": true },
+    { "id": "pucara-tilcara", "nombre": "Visita guiada al Pucará de Tilcara", "localidad": "Tilcara", "duracion": "2 horas", "precio_usd": 12, "descripcion": "Recorrido con guía por la fortaleza prehispánica y el jardín botánico de altura.", "ejemplo": true },
+    { "id": "paseo-colorados", "nombre": "Caminata por el Paseo de los Colorados", "localidad": "Purmamarca", "duracion": "1 hora y media", "precio_usd": 10, "descripcion": "Vuelta a pie con guía por detrás del Cerro de los Siete Colores.", "ejemplo": true },
+    { "id": "cocina-andina", "nombre": "Clase de cocina andina: empanadas y humitas", "localidad": "Tilcara", "duracion": "3 horas", "precio_usd": 28, "descripcion": "Cocinás con productos de la Quebrada y después se come lo preparado.", "ejemplo": true },
+    { "id": "centro-san-salvador", "nombre": "Recorrido a pie por el centro histórico", "localidad": "San Salvador de Jujuy", "duracion": "2 horas", "precio_usd": 9, "descripcion": "Plaza Belgrano, Catedral, Casa de Gobierno y Salón de la Bandera, con guía.", "ejemplo": true }
   ]
 }

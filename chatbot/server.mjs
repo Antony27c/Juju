@@ -41,9 +41,13 @@ const comoJson = (s) => { try { return JSON.parse(s || '{}'); } catch { return {
 function catalogoTexto() {
   const e = pagos.estadoPagos();
   const ps = pagos.productos();
-  if (e.proveedor === 'ninguno' || e.proveedor === 'sin_configurar' || !ps.length) return 'Pagos no disponibles por ahora.';
+  if (!ps.length) return 'No hay experiencias cargadas para reservar.';
   const modo = e.proveedor === 'simulado' ? ' (modo de prueba, no se cobra de verdad)' : e.red === 'testnet' ? ' (red de prueba, no es dinero real)' : '';
-  return `Se paga con ${e.monedas.map((m) => m.etiqueta).join(' o ')}${modo}. Productos: ` + ps.map((p) => `${p.id} = ${p.nombre}, USD ${p.precio_usd}`).join('; ') + '.';
+  const cobro = e.proveedor === 'ninguno' || e.proveedor === 'sin_configurar'
+    ? 'El cobro en línea todavía no está conectado: las experiencias se pueden mostrar, pero no cobrar ni confirmar.'
+    : `Se paga con ${e.monedas.map((m) => m.etiqueta).join(' o ')}${modo}.`;
+  return `Hoy es ${pagos.hoyJujuy()}. ${cobro} Experiencias (id = nombre, salida, duración, precio por persona): `
+    + ps.map((p) => `${p.id} = ${[p.nombre, p.localidad && `sale de ${p.localidad}`, p.duracion, `USD ${p.precio_usd}`].filter(Boolean).join(', ')}`).join('; ') + '.';
 }
 
 async function sesion(modo) {
@@ -81,7 +85,7 @@ const servidor = http.createServer(async (req, res) => {
       const l = localidadMasCercana(Number(url.searchParams.get('lat')), Number(url.searchParams.get('lon')));
       return json(res, 200, l && l.km < 150 ? { localidad: l.nombre, km: Math.round(l.km) } : { localidad: null });
     }
-    if (ruta === '/api/productos') return json(res, 200, { ...pagos.estadoPagos(), lista: pagos.productos() });
+    if (ruta === '/api/productos') return json(res, 200, { ...pagos.estadoPagos(), hoy: pagos.hoyJujuy(), lista: pagos.productos() });
     if (ruta === '/api/pagos' && req.method === 'POST') {
       try { return json(res, 200, await pagos.crearPago(comoJson(await cuerpo(req)), base)); } catch (e) { return json(res, 400, { error: e.message }); }
     }

@@ -101,14 +101,29 @@
   .acc { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; font-weight: 500; align-items: baseline; }
   .acc .tel { font: 400 13px var(--dato); color: var(--tenue); user-select: all; }
 
-  /* --- pago: el único bloque con borde fuerte --- */
-  .pago { align-self: flex-start; width: min(100%, 380px); background: var(--papel); border: 2px solid var(--tinta); border-radius: var(--radio); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-  .pago .que { margin: 0; font-weight: 500; }
-  .pago .monto { font: 800 34px/1 var(--titular); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-  .pago .monto small { font: 500 13px var(--dato); color: var(--tenue); letter-spacing: 0; margin-right: 6px; }
-  .pago .fila { display: flex; flex-direction: column; gap: 8px; }
-  .pago .nota { font-size: 13px; color: var(--tenue); overflow-wrap: anywhere; }
-  .pago .qr { align-self: center; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--linea); }
+  /* --- reserva: hoja que sube desde abajo, encima de la voz o del chat --- */
+  dialog.hoja { width: min(100%, 520px); max-width: 100%; max-height: 92%; margin: auto auto 0; border-bottom: 0; border-radius: 22px 22px 0 0; background: var(--papel); }
+  @media (min-width: 720px) { dialog.hoja { margin: auto; border-bottom: 1px solid var(--linea); border-radius: 22px; } }
+  .hoja .dentro { gap: 12px; padding-bottom: max(22px, env(safe-area-inset-bottom, 0px)); }
+  .hoja h2 { font-size: 24px; text-wrap: balance; }
+  .hoja .sobre { flex: 1; }
+  .cerrar { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--linea); background: none; cursor: pointer; }
+  .cerrar svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
+  .campo input, .paso { height: 46px; border: 1px solid var(--linea); border-radius: 12px; background: var(--suelo); color: var(--tinta); font: 500 16px/1 var(--texto); letter-spacing: 0; text-transform: none; }
+  .campo input { width: 100%; min-width: 0; padding: 0 10px; }
+  .paso { display: flex; align-items: center; justify-content: space-between; }
+  .paso button { width: 46px; height: 100%; border: 0; background: none; cursor: pointer; font-size: 22px; line-height: 1; }
+  .paso button:disabled { opacity: .3; cursor: default; }
+  .paso output { font: 500 17px/1 var(--dato); font-variant-numeric: tabular-nums; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-top: 1px solid var(--linea); padding-top: 12px; color: var(--tenue); }
+  .total b { color: var(--tinta); font: 800 34px/1 var(--titular); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .hoja .fila { display: flex; flex-direction: column; gap: 8px; }
+  .hoja .fila a.boton { text-decoration: none; }
+  .nota { margin: 0; font-size: 13px; color: var(--tenue); overflow-wrap: anywhere; }
+  .nota.ok { color: var(--si); font-weight: 600; font-size: 15px; } .nota.mal { color: var(--no); font-weight: 600; }
+  .qr { align-self: center; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--linea); }
   .prueba { align-self: flex-start; font: 500 11px/1 var(--dato); letter-spacing: .06em; text-transform: uppercase; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 6px; padding: 5px 8px; }
   .boton { cursor: pointer; border-radius: 10px; border: 1px solid var(--tinta); background: transparent; padding: 10px 14px; font-weight: 600; text-align: center; }
   .boton.lleno { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
@@ -120,6 +135,37 @@
   .barras i { width: 7px; height: 100%; border-radius: 4px; transform: scaleY(.18); transition: transform .09s linear; }
   .voz p { margin: 0; flex: 1; min-width: 0; font-size: 14px; color: var(--tenue); }
   .voz p b { display: block; color: var(--tinta); font: 600 16px/1.2 var(--titular); }
+
+  /* --- vista de voz: el círculo de siete franjas es la interfaz; se mueve con quien habla --- */
+  .app[data-vista="voz"] main, .app[data-vista="voz"] .redactar, .app[data-vista="voz"] .voz { display: none; }
+  .app[data-vista="chat"] .escena { display: none; }
+  .escena { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-block: 20px 22px; }
+  .centro { margin-block: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+  .orbe { flex: none; width: min(60vw, 260px, 36vh); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: var(--papel); cursor: pointer;
+    box-shadow: 0 0 0 1px var(--linea), 0 22px 70px -22px var(--acento); transition: transform .12s linear; }
+  .orbe canvas { display: block; width: 100%; height: 100%; border-radius: 50%; }
+  .fase { margin: 0; font: 500 12px/1.2 var(--dato); letter-spacing: .1em; text-transform: uppercase; color: var(--tenue); }
+  .dicho { width: 100%; max-width: 44ch; display: flex; flex-direction: column; gap: 8px; text-align: center; }
+  .dicho p { margin: 0; overflow-wrap: anywhere; }
+  .dicho .vos { font-size: 14px; color: var(--tenue); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .dicho .dice { font: 600 clamp(18px, 4.8vw, 23px)/1.3 var(--titular); letter-spacing: -.01em; text-wrap: balance; max-height: 6.6em; overflow-y: auto; }
+  .tira { align-self: stretch; flex: none; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
+  .ficha { flex: none; width: 216px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 5px; padding: 11px 13px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); color: inherit; text-decoration: none; }
+  .ficha b { font: 600 15px/1.25 var(--titular); overflow-wrap: anywhere; }
+  .ficha .pill { align-self: flex-start; }
+  .mandos { flex: none; display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .redondo { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--linea); background: var(--papel); cursor: pointer; }
+  .redondo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .redondo[aria-pressed="true"] { background: var(--tinta); color: var(--suelo); border-color: var(--tinta); }
+  .redondo.fin { color: var(--no); border-color: var(--no); }
+  .redondo:focus-visible, .orbe:focus-visible { border-radius: 50%; }
+
+  /* en la vista de voz la tapa queda en lo mínimo: nombre, hora y ayuda */
+  .app[data-vista="voz"] .franjas, .app[data-vista="voz"] .estado { display: none; }
+  .app[data-vista="voz"] .ayuda { margin-left: auto; }
+  button.ficha { cursor: pointer; text-align: left; font: inherit; }
+  .ficha .precio { font: 500 13px/1.3 var(--dato); font-variant-numeric: tabular-nums; }
+  .boton.chico { align-self: flex-start; padding: 7px 14px; font-size: 14px; }
 
   /* --- redactar --- */
   .redactar { display: flex; gap: 8px; align-items: flex-end; padding-block: 10px 14px; border-top: 1px solid var(--linea); }
@@ -157,7 +203,7 @@
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="app" data-vista="voz">
   <header class="tapa borde">
     <span class="nombre">juju</span>
     <span class="reloj" id="reloj" title="Hora local de Jujuy (UTC−3)">--:-- · Jujuy</span>
@@ -165,6 +211,32 @@
     <button class="ayuda" id="ayuda" type="button">Cómo funciona</button>
   </header>
   <div class="franjas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <section class="escena borde" id="escena" aria-label="Conversación por voz">
+    <div class="centro">
+      <button class="orbe" id="orbe" type="button" aria-label="Empezar a hablar"><canvas id="lienzo" width="520" height="520" aria-hidden="true"></canvas></button>
+      <p class="fase" id="fase">Tocá para hablar</p>
+      <div class="dicho" aria-live="polite">
+        <p class="vos" id="dijiste"></p>
+        <p class="dice" id="dijo">Contame dónde estás y qué tenés ganas de hacer.</p>
+      </div>
+    </div>
+    <div class="tira" id="tira" hidden></div>
+    <div class="mandos">
+      <button class="redondo" id="aChat" type="button" title="Escribir" aria-label="Pasar a escribir">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg>
+      </button>
+      <button class="redondo" id="verExp" type="button" title="Experiencias para reservar" aria-label="Ver experiencias para reservar" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6.5v11" stroke-dasharray="1.5 3"/></svg>
+      </button>
+      <button class="redondo" id="silencio" type="button" title="Silenciar micrófono" aria-label="Silenciar micrófono" aria-pressed="false" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+      </button>
+      <button class="redondo fin" id="fin" type="button" title="Terminar" aria-label="Terminar la conversación" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </section>
 
   <main id="chat" class="borde" aria-live="polite">
     <section class="inicio" id="inicio">
@@ -187,6 +259,29 @@
       <div class="cab"><h2 id="dlgTitulo">Cómo funciona juju</h2><button class="boton" id="cerrarDlg" type="button">Cerrar</button></div>
       <ul class="funciones" id="funcionesDlg"></ul>
       <p class="nota-modo" id="notaModo" hidden></p>
+    </div>
+  </dialog>
+
+  <dialog id="hoja" class="hoja" aria-labelledby="hojaTitulo">
+    <div class="dentro">
+      <div class="cab">
+        <p class="sobre">Reserva</p>
+        <button class="cerrar" id="cerrarHoja" type="button" aria-label="Cerrar la reserva"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <h2 id="hojaTitulo" tabindex="-1" autofocus style="outline: none"></h2>
+      <p class="meta" id="hojaDetalle"></p>
+      <p class="meta" id="hojaDesc"></p>
+      <div class="campos" id="hojaCampos">
+        <div class="campo" role="group" aria-label="Personas">
+          <span aria-hidden="true">Personas</span>
+          <span class="paso"><button type="button" id="menos" aria-label="Una persona menos">−</button><output id="personas" aria-live="polite">1</output><button type="button" id="mas" aria-label="Una persona más">+</button></span>
+        </div>
+        <label class="campo"><span>Fecha</span><input type="date" id="fecha"></label>
+      </div>
+      <div class="total"><span>Total</span><b id="total"></b></div>
+      <span class="prueba" id="hojaPrueba" hidden></span>
+      <div class="fila" id="hojaPagar"></div>
+      <p class="nota" id="hojaNota" aria-live="polite"></p>
     </div>
   </dialog>
 
@@ -283,6 +378,7 @@ function lista(titulo, lugares) {
   }
   g.append(cont); agregar(g);
   if (!turno.grupo?.isConnected) turno.grupo = g;
+  enTira(lugares);
 }
 
 const post = (ruta, body) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
@@ -317,54 +413,139 @@ const herramientas = {
     pensar();
     return paraModelo(d);
   },
-  async solicitar_pago({ producto_id } = {}) {
-    const cat = await fetch('/api/productos').then((r) => r.json());
-    const prod = cat.lista.find((x) => x.id === producto_id);
-    if (!prod) return `Producto inexistente. Ids válidos: ${cat.lista.map((x) => x.id).join(', ') || 'ninguno'}`;
-    if (cat.proveedor === 'ninguno' || cat.proveedor === 'sin_configurar') return 'Los pagos todavía no están configurados. Avisale al usuario que por ahora no se puede pagar desde el chat.';
-    tarjetaPago(prod, cat);
-    return `Se mostró la tarjeta de pago de "${prod.nombre}" por USD ${prod.precio_usd}. El usuario tiene que elegir la moneda y confirmar en pantalla. Decíselo en una frase y no des el pago por hecho.`;
+  async ver_experiencias({ localidad } = {}) {
+    const cat = await cargarCatalogo();
+    let l = cat.lista;
+    if (localidad) { const n = llano(localidad); const f = l.filter((x) => llano(x.localidad).includes(n) || n.includes(llano(x.localidad))); if (f.length) l = f; }
+    if (!l.length) return 'No hay experiencias cargadas para reservar.';
+    mostrarExperiencias(l, true);
+    return 'En pantalla quedaron estas experiencias; el usuario puede tocar una para reservarla:\n' + l.map((x) => `- ${x.id}: ${x.nombre} | ${detalleExp(x)} | USD ${x.precio_usd} por persona`).join('\n');
+  },
+  async reservar_experiencia({ experiencia_id, personas, fecha } = {}) {
+    const cat = await cargarCatalogo();
+    const prod = cat.lista.find((x) => x.id === experiencia_id);
+    if (!prod) return `Experiencia inexistente. Ids válidos: ${cat.lista.map((x) => x.id).join(', ') || 'ninguno'}`;
+    const r = abrirReserva(prod, { personas, fecha });
+    const resumen = `"${prod.nombre}" para ${cuantas(r.personas)} el ${r.fecha}, total ${usd(totalDe(r))}`;
+    if (sinCobro(cat)) return `Se mostró en pantalla la reserva de ${resumen}, pero el cobro en línea todavía no está conectado. Avisale que por ahora no se puede pagar ni confirmar desde acá.`;
+    return `Se abrió en pantalla la reserva de ${resumen}. El usuario tiene que revisar personas y fecha y tocar el botón de pago. Decíselo en una frase. La reserva queda confirmada solo cuando el sistema te avise que el pago se acreditó.`;
   },
 };
 
-function tarjetaPago(prod, cat) {
-  const c = nodo('section', 'pago');
-  if (cat.proveedor === 'simulado') c.append(nodo('span', 'prueba', 'Modo de prueba · no se cobra'));
-  else if (cat.red === 'testnet') c.append(nodo('span', 'prueba', 'Red de prueba · no es dinero real'));
-  c.append(nodo('p', 'que', prod.nombre));
-  const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), String(prod.precio_usd).replace('.', ',')); c.append(monto);
-  const fila = nodo('div', 'fila'); const nota = nodo('span', 'nota');
-  for (const m of cat.monedas) {
-    const b = nodo('button', 'boton' + (m === cat.monedas[0] ? ' lleno' : ''), `Pagar con ${m.etiqueta}`); b.type = 'button';
-    b.onclick = async () => {
-      fila.querySelectorAll('button').forEach((x) => { x.disabled = true; });
-      nota.textContent = 'Generando el pago';
-      try {
-        const p = await post('/api/pagos', { producto_id: prod.id, moneda: m.id });
-        fila.replaceChildren();
-        const a = p.url_pago && enlace('Abrir la página de pago', p.url_pago); if (a) { a.className = 'boton lleno'; a.style.textDecoration = 'none'; fila.append(a); }
-        if (p.qr && String(p.qr).startsWith('data:image/png;base64,')) { const q = nodo('img', 'qr'); q.src = p.qr; q.alt = 'Código QR para pagar desde tu billetera'; q.width = 180; q.height = 180; fila.append(q); fila.append(nodo('span', 'nota', 'O escaneá el código con tu billetera de Stellar.')); }
-        if (p.vence) fila.append(nodo('span', 'nota', `El pedido vence a las ${new Date(p.vence).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.`));
-        nota.textContent = 'Esperando la confirmación del pago';
-        seguirPago(p.id, nota, prod);
-      } catch (e) { nota.textContent = `No se pudo generar el pago. ${e.message}`; fila.querySelectorAll('button').forEach((x) => { x.disabled = false; }); }
-    };
-    fila.append(b);
-  }
-  c.append(fila, nota); dejarDePensar(); agregar(c);
+// ---------- experiencias y reservas ----------
+let catalogo = null, reserva = null; // reserva = { prod, personas, fecha, pago }
+const cargarCatalogo = async () => (catalogo = await fetch('/api/productos').then((r) => r.json()));
+const sinCobro = (cat) => cat.proveedor === 'ninguno' || cat.proveedor === 'sin_configurar';
+const llano = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+const usd = (n) => 'USD ' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+const cuantas = (n) => `${n} ${n === 1 ? 'persona' : 'personas'}`;
+const totalDe = (r) => Math.round(r.prod.precio_usd * r.personas * 100) / 100;
+const detalleExp = (x) => [x.localidad && 'Sale de ' + x.localidad, x.duracion].filter(Boolean).join(' · ');
+const fechaLarga = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+function fechaDe(txt, hoy) { // acepta AAAA-MM-DD, "hoy", "mañana"; si no se entiende propone mañana y el usuario la corrige
+  const t = llano(txt);
+  const mas = (n) => { const d = new Date(hoy + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t) && t >= hoy) return t;
+  return t === 'hoy' ? hoy : t === 'pasado manana' ? mas(2) : mas(1);
 }
-async function seguirPago(id, nota, prod) {
+
+function mostrarExperiencias(exps, enChat) { // fichas en la vista de voz y, si viene de la charla, lista en el chat
+  $('tira').replaceChildren(); tiraDe = 'experiencias';
+  for (const x of exps) {
+    const f = nodo('button', 'ficha'); f.type = 'button';
+    f.append(nodo('b', '', x.nombre), nodo('span', 'meta', detalleExp(x)), nodo('span', 'precio', usd(x.precio_usd) + ' por persona'));
+    f.onclick = () => abrirReserva(x); $('tira').append(f);
+  }
+  $('tira').hidden = !exps.length;
+  $('verExp').setAttribute('aria-pressed', String(exps.length > 0));
+  if (!enChat || !exps.length) return;
+  const g = nodo('section', 'grupo'); g.append(nodo('h3', '', 'Experiencias para reservar' + (exps.some((x) => x.ejemplo) ? ' · precios de ejemplo' : '')));
+  const cont = nodo('div', 'lista');
+  for (const x of exps) {
+    const fila = nodo('article', 'lugar'); const cab = nodo('div', 'cab');
+    cab.append(nodo('h4', '', x.nombre), nodo('span', 'pill', usd(x.precio_usd))); fila.append(cab, nodo('p', 'meta', detalleExp(x)));
+    if (x.descripcion) fila.append(nodo('p', 'meta', x.descripcion));
+    const b = nodo('button', 'boton chico', 'Reservar'); b.type = 'button'; b.onclick = () => abrirReserva(x); fila.append(b);
+    cont.append(fila);
+  }
+  g.append(cont); agregar(g); if (!turno.grupo?.isConnected) turno.grupo = g;
+}
+async function alternarExperiencias() {
+  if (tiraDe === 'experiencias' && !$('tira').hidden) { $('tira').hidden = true; $('verExp').setAttribute('aria-pressed', 'false'); return; }
+  try { mostrarExperiencias((await cargarCatalogo()).lista); } catch { $('dijo').textContent = 'No pude cargar las experiencias. Revisá que el servidor esté andando.'; }
+}
+
+function pintarReserva() {
+  $('personas').textContent = reserva.personas; $('total').textContent = usd(totalDe(reserva));
+  $('menos').disabled = reserva.personas <= 1; $('mas').disabled = reserva.personas >= 20;
+}
+function abrirReserva(prod, { personas, fecha } = {}) {
+  const cat = catalogo;
+  const r = reserva = { prod, personas: Math.min(20, Math.max(1, Math.round(Number(personas)) || 1)), fecha: fechaDe(fecha, cat.hoy), pago: null };
+  $('hojaTitulo').textContent = prod.nombre;
+  $('hojaDetalle').textContent = [detalleExp(prod), usd(prod.precio_usd) + ' por persona' + (prod.ejemplo ? ' (precio de ejemplo)' : '')].filter(Boolean).join(' · ');
+  $('hojaDesc').textContent = prod.descripcion || ''; $('hojaDesc').hidden = !prod.descripcion;
+  $('fecha').min = cat.hoy; $('fecha').value = r.fecha; $('hojaCampos').hidden = false;
+  const modo = cat.proveedor === 'simulado' ? 'Modo de prueba · no se cobra' : cat.red === 'testnet' ? 'Red de prueba · no es dinero real' : '';
+  $('hojaPrueba').textContent = modo; $('hojaPrueba').hidden = !modo;
+  $('hojaNota').textContent = ''; $('hojaNota').className = 'nota';
+  const fila = $('hojaPagar'); fila.replaceChildren();
+  if (sinCobro(cat)) fila.append(nodo('p', 'nota', 'El cobro en línea todavía no está conectado: por ahora la reserva no se puede pagar ni confirmar desde acá.'));
+  else for (const m of cat.monedas) {
+    const b = nodo('button', 'boton' + (m === cat.monedas[0] ? ' lleno' : ''), `Pagar con ${m.etiqueta}`); b.type = 'button';
+    b.onclick = () => pagarReserva(r, m); fila.append(b);
+  }
+  pintarReserva();
+  if (!$('hoja').open) $('hoja').showModal();
+  return r;
+}
+async function pagarReserva(r, m) {
+  const fila = $('hojaPagar'), nota = $('hojaNota');
+  const f = $('fecha').value;
+  if (!f || f < catalogo.hoy) { nota.textContent = 'Elegí una fecha de hoy en adelante.'; nota.className = 'nota mal'; return; }
+  r.fecha = f;
+  fila.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+  nota.className = 'nota'; nota.textContent = 'Generando el pago';
+  try {
+    const p = await post('/api/pagos', { producto_id: r.prod.id, moneda: m.id, personas: r.personas, fecha: r.fecha });
+    r.pago = p;
+    if (reserva !== r) return; // mientras tanto se abrió otra reserva
+    $('hojaCampos').hidden = true;
+    $('hojaDetalle').textContent = `${cuantas(r.personas)} · ${fechaLarga(r.fecha)} · código ${p.codigo}`;
+    $('total').textContent = `${String(p.monto).replace('.', ',')} ${p.moneda}`;
+    fila.replaceChildren();
+    const a = p.url_pago && enlace('Abrir la página de pago', p.url_pago); if (a) { a.className = 'boton lleno'; fila.append(a); }
+    if (p.qr && String(p.qr).startsWith('data:image/png;base64,')) { const q = nodo('img', 'qr'); q.src = p.qr; q.alt = 'Código QR para pagar desde tu billetera'; q.width = 180; q.height = 180; fila.append(q, nodo('span', 'nota', 'O escaneá el código con tu billetera de Stellar.')); }
+    if (p.vence) fila.append(nodo('span', 'nota', `El pedido vence a las ${new Date(p.vence).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.`));
+    nota.textContent = 'Esperando la confirmación del pago';
+    seguirPago(p, r);
+  } catch (e) { nota.textContent = `No se pudo generar el pago. ${e.message}`; nota.className = 'nota mal'; fila.querySelectorAll('button').forEach((x) => { x.disabled = false; }); }
+}
+async function seguirPago(p, r) {
+  const mostrar = (txt, clase) => { if (reserva === r) { $('hojaNota').textContent = txt; $('hojaNota').className = 'nota ' + (clase || ''); } };
+  const que = `${r.prod.nombre}, ${cuantas(r.personas)}, ${fechaLarga(r.fecha)}`;
   for (let i = 0; i < 225; i++) { // unos 15 minutos
-    await new Promise((r) => setTimeout(r, 4000));
-    const p = await fetch('/api/pagos/' + id).then((r) => r.json()).catch(() => null);
-    if (!p || p.estado === 'pendiente') continue;
-    const ok = p.estado === 'pagado';
-    nota.textContent = ok ? 'Pago acreditado' : `El pago quedó ${p.estado}`; nota.style.color = ok ? 'var(--si)' : 'var(--no)'; nota.style.fontWeight = '600';
-    conv?.sendContextualUpdate(ok ? `El sistema confirma que el pago de "${prod.nombre}" (${p.monto} ${p.moneda}) fue acreditado.` : `El pago de "${prod.nombre}" quedó en estado ${p.estado}.`);
+    await new Promise((ok) => setTimeout(ok, 4000));
+    const e = await fetch('/api/pagos/' + p.id).then((x) => x.json()).catch(() => null);
+    if (!e || e.estado === 'pendiente') continue;
+    if (e.estado === 'pagado') {
+      mostrar(`Reserva confirmada · código ${p.codigo}`, 'ok'); if (reserva === r) $('hojaPagar').replaceChildren();
+      aviso(`Reserva confirmada: ${que}. Código ${p.codigo}.`);
+      conv?.sendContextualUpdate(`El sistema confirma que el pago se acreditó y la reserva quedó confirmada: ${que}. Código de reserva ${p.codigo}.`);
+    } else {
+      mostrar(`El pago quedó ${e.estado}. La reserva no se confirmó.`, 'mal');
+      aviso(`El pago de ${que} quedó ${e.estado}. La reserva no se confirmó.`, true);
+      conv?.sendContextualUpdate(`El pago de la reserva (${que}) quedó en estado ${e.estado}; la reserva no está confirmada.`);
+    }
     return;
   }
-  nota.textContent = 'Todavía no llegó la confirmación. Si ya pagaste, puede tardar unos minutos.';
+  mostrar('Todavía no llegó la confirmación. Si ya pagaste, puede tardar unos minutos.');
 }
+$('menos').onclick = () => { if (reserva && !reserva.pago && reserva.personas > 1) { reserva.personas--; pintarReserva(); } };
+$('mas').onclick = () => { if (reserva && !reserva.pago && reserva.personas < 20) { reserva.personas++; pintarReserva(); } };
+$('cerrarHoja').onclick = () => $('hoja').close();
+$('hoja').addEventListener('click', (e) => { if (e.target === $('hoja')) $('hoja').close(); });
+$('verExp').onclick = alternarExperiencias;
 
 // ---------- conexión con ElevenLabs ----------
 function cargarSDK(i = 0) {
@@ -373,11 +554,92 @@ function cargarSDK(i = 0) {
   return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = SDK[i]; s.onload = ok; s.onerror = () => { s.remove(); cargarSDK(i + 1).then(ok, mal); }; document.head.append(s); });
 }
 
-function verVoz(activa) {
-  $('voz').hidden = !activa; $('mic').classList.toggle('activo', activa);
-  $('texto').placeholder = activa ? 'O escribí acá' : 'Escribí tu consulta';
-  if (activa) requestAnimationFrame(medir);
+// ---------- vista de voz ----------
+let vista = 'voz', conectandoVoz = false, silenciado = false, tiraDe = null;
+function verVista(v) {
+  vista = v; $('app').dataset.vista = v; verVoz();
+  if (v === 'chat') { abajo(); if (matchMedia('(pointer: fine)').matches) $('texto').focus(); }
 }
+function ponerFase() {
+  $('fase').textContent = sinAgente ? 'Voz todavía no disponible' : conectandoVoz ? 'Conectando' : modo !== 'voz' ? 'Tocá para hablar'
+    : silenciado ? 'Micrófono en silencio' : hablando ? 'juju está hablando' : 'Te escucho';
+  $('orbe').setAttribute('aria-label', modo === 'voz' ? (silenciado ? 'Activar el micrófono' : 'Silenciar el micrófono') : 'Empezar a hablar');
+}
+function verVoz() { // pone botones, barra y textos de acuerdo con el estado de la sesión
+  const activa = modo === 'voz';
+  $('silencio').hidden = !activa; $('fin').hidden = !activa;
+  $('silencio').setAttribute('aria-pressed', String(silenciado));
+  $('voz').hidden = !(activa && vista === 'chat'); $('mic').classList.toggle('activo', activa);
+  $('texto').placeholder = activa ? 'O escribí acá' : 'Escribí tu consulta';
+  ponerFase();
+  if (activa && vista === 'chat') requestAnimationFrame(medir);
+}
+function enTira(lugares) { // lugares del turno actual, como fichas para deslizar
+  if (tiraDe !== turno) { $('tira').replaceChildren(); tiraDe = turno; }
+  for (const l of lugares) {
+    const f = (l.mapa && enlace('', l.mapa)) || nodo('div'); f.className = 'ficha';
+    const txt = l.abierto === 'si' ? (l.cierra && l.cierra !== 'no cierra' ? 'Abierto hasta ' + l.cierra : 'Abierto') : l.abierto === 'no' ? 'Cerrado' : 'Sin horario';
+    f.append(nodo('b', '', l.nombre), nodo('span', 'meta', [legible(l.tipo), l.distancia_km != null ? km(l.distancia_km) : null].filter(Boolean).join(' · ')), nodo('span', 'pill ' + l.abierto, txt));
+    $('tira').append(f);
+  }
+  $('tira').hidden = !$('tira').childElementCount;
+}
+async function iniciarVoz() {
+  if (sinAgente) { $('dijo').textContent = 'Para hablar falta conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.'; return; }
+  if (modo === 'voz' || conectandoVoz) return;
+  conectandoVoz = true; silenciado = false; ponerFase();
+  try { await conectar('voz', historial.length ? 'Dale, te escucho.' : undefined); }
+  catch (e) {
+    const m = (e.name === 'NotAllowedError' ? 'Para hablar necesito permiso de micrófono. Habilitalo en el navegador y tocá de nuevo. ' : 'No pude conectar. ') + (e.message || '');
+    $('dijo').textContent = m; aviso(m, true); estado('listo');
+  } finally { conectandoVoz = false; verVoz(); }
+}
+async function terminarVoz() {
+  const v = conv; if (!v) return;
+  conv = null; modo = null; silenciado = false; hablando = false;
+  try { await v.endSession(); } catch {}
+  estado('listo'); verVoz();
+}
+function alternarSilencio() {
+  if (modo !== 'voz' || !conv) return;
+  silenciado = !silenciado;
+  try { conv.setMicMuted(silenciado); } catch {}
+  verVoz();
+}
+
+// El círculo: siete franjas onduladas dentro de un disco. La ondulación sigue el volumen de quien habla.
+const lienzo = $('lienzo'); const tela = lienzo.getContext('2d');
+const quieto = matchMedia('(prefers-reduced-motion: reduce)');
+let tintas = [], nivel = 0.06, giro = 0;
+function leerTintas() { const cs = getComputedStyle(document.documentElement); tintas = [1, 2, 3, 4, 5, 6, 7].map((i) => cs.getPropertyValue('--f' + i).trim() || '#888'); }
+leerTintas(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', leerTintas);
+function dibujar(t) {
+  if (vista !== 'voz' || document.hidden) return void setTimeout(() => requestAnimationFrame(dibujar), 400);
+  let meta = 0.07; // reposo
+  if (conectandoVoz) meta = 0.3 + 0.15 * Math.sin(t / 260);
+  else if (modo === 'voz' && conv) {
+    let v = 0;
+    try { v = hablando ? conv.getOutputVolume() : silenciado ? 0 : conv.getInputVolume(); } catch {}
+    meta = 0.1 + Math.min(1, (v || 0) * 1.8) * 0.9;
+  }
+  nivel += (meta - nivel) * 0.16;
+  if (!quieto.matches) giro += 0.008 + nivel * 0.06;
+  const W = lienzo.width, R = W / 2, alto = W / 7, amp = alto * (0.12 + nivel * 0.95);
+  tela.clearRect(0, 0, W, W);
+  tela.save(); tela.beginPath(); tela.arc(R, R, R - 1, 0, Math.PI * 2); tela.clip();
+  for (let i = 0; i < 7; i++) {
+    tela.fillStyle = tintas[i]; tela.beginPath(); tela.moveTo(0, W); tela.lineTo(0, i ? i * alto : 0);
+    for (let x = 0; x <= W; x += 10) {
+      const u = x / W;
+      tela.lineTo(x, i ? i * alto + amp * Math.sin(u * 6.283 * (1 + i * 0.13) + giro * (1 + i * 0.2) + i * 1.7) + amp * 0.4 * Math.sin(u * 15.7 - giro * 1.3 + i) : 0);
+    }
+    tela.lineTo(W, W); tela.closePath(); tela.fill();
+  }
+  tela.restore();
+  $('orbe').style.transform = `scale(${(1 + nivel * 0.05).toFixed(3)})`;
+  requestAnimationFrame(dibujar);
+}
+requestAnimationFrame(dibujar);
 function medir() { // las siete franjas siguen el volumen de quien habla
   if (modo !== 'voz' || !conv) { for (const b of $('barras').children) b.style.transform = ''; return; }
   let datos = null;
@@ -408,19 +670,19 @@ function conectar(nuevoModo, saludo) {
       clientTools: herramientas, overrides, textOnly: nuevoModo === 'texto',
       onMessage: ({ message, role }) => {
         if (!message) return;
-        if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); }
-        else burbuja('agent', message);
+        if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); $('dijiste').textContent = message; }
+        else { burbuja('agent', message); $('dijo').textContent = message; }
       },
-      onModeChange: ({ mode }) => { hablando = mode === 'speaking'; if (modo === 'voz') { $('vozTitulo').textContent = hablando ? 'juju está hablando' : 'Te escucho'; estado(hablando ? 'hablando' : 'escuchando', 'voz'); } },
-      onError: (m) => { dejarDePensar(); console.error(m); aviso(`Algo falló: ${m}`, true); },
-      onDisconnect: (d) => { conv = null; modo = null; dejarDePensar(); verVoz(false); estado('listo'); if (d?.reason === 'error') aviso(`Se cortó la conexión. ${d.message || ''} Mandá un mensaje para retomar.`, true); },
+      onModeChange: ({ mode }) => { hablando = mode === 'speaking'; if (modo === 'voz') { $('vozTitulo').textContent = hablando ? 'juju está hablando' : 'Te escucho'; estado(hablando ? 'hablando' : 'escuchando', 'voz'); ponerFase(); } },
+      onError: (m) => { dejarDePensar(); console.error(m); aviso(`Algo falló: ${m}`, true); if (vista === 'voz') $('dijo').textContent = `Algo falló: ${m}`; },
+      onDisconnect: (d) => { conv = null; modo = null; silenciado = false; hablando = false; dejarDePensar(); verVoz(); estado('listo'); if (d?.reason === 'error') aviso(`Se cortó la conexión. ${d.message || ''} Mandá un mensaje para retomar.`, true); },
     };
     if (nuevoModo === 'voz') Object.assign(opciones, { conversationToken: s.conversationToken, connectionType: 'webrtc' });
     else Object.assign(opciones, { signedUrl: s.signedUrl, connectionType: 'websocket' });
     conv = await window.ElevenLabsClient.Conversation.startSession(opciones);
     modo = nuevoModo;
     estado(nuevoModo === 'voz' ? 'escuchando' : 'en línea', nuevoModo === 'voz' ? 'voz' : 'on');
-    verVoz(nuevoModo === 'voz');
+    verVoz();
     if (retoma) conv.sendContextualUpdate('Esta sesión continúa una charla anterior con el mismo usuario. Últimos mensajes:\n' + historial.slice(-12).map((h) => `${h.rol === 'user' ? 'Usuario' : 'juju'}: ${h.texto}`).join('\n'));
   })().finally(() => { conectando = null; });
   return conectando;
@@ -428,6 +690,10 @@ function conectar(nuevoModo, saludo) {
 
 let sinAgente = false;
 async function soloDirectorio(texto) { // sin asistente conectado: resultados del directorio, sin conversación
+  if (/reserv|experiencia|excursi|\btour|contratar/i.test(texto)) {
+    try { mostrarExperiencias((await cargarCatalogo()).lista, true); aviso('Estas son las experiencias que se pueden reservar. Tocá "Reservar" para elegir personas y fecha.', false, true); } catch (e) { aviso(e.message, true); }
+    return;
+  }
   pensar('Buscando en el directorio');
   try {
     const c = await post('/api/contexto', { texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon });
@@ -441,7 +707,7 @@ async function soloDirectorio(texto) { // sin asistente conectado: resultados de
 async function enviar(texto) {
   texto = texto.trim(); if (!texto) return;
   $('texto').value = ''; $('texto').style.height = '';
-  burbuja('user', texto);
+  burbuja('user', texto); $('dijiste').textContent = texto;
   if (sinAgente) return soloDirectorio(texto);
   pensar();
   try {
@@ -457,14 +723,11 @@ $('texto').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shif
 $('texto').addEventListener('input', (e) => { e.target.style.height = ''; e.target.style.height = Math.min(e.target.scrollHeight, 130) + 'px'; });
 $('ideas').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) enviar(b.textContent); });
 
-async function alternarVoz() {
-  try {
-    if (modo === 'voz') return await conectar('texto', 'Listo, seguimos por escrito.');
-    $('inicio').hidden = true;
-    await conectar('voz', historial.length ? 'Dale, te escucho.' : undefined);
-  } catch (e) { aviso((e.name === 'NotAllowedError' ? 'Para hablar necesito permiso de micrófono. Habilitalo en el navegador y probá de nuevo. ' : '') + (e.message || ''), true); verVoz(false); estado('listo'); }
-}
-$('mic').onclick = alternarVoz; $('cortar').onclick = alternarVoz;
+$('orbe').onclick = () => (modo === 'voz' ? alternarSilencio() : iniciarVoz());
+$('silencio').onclick = alternarSilencio;
+$('fin').onclick = terminarVoz; $('cortar').onclick = terminarVoz;
+$('aChat').onclick = () => verVista('chat');
+$('mic').onclick = () => { verVista('voz'); iniciarVoz(); }; // desde el chat: volver a la voz
 
 $('ubic').onclick = () => {
   if (!navigator.geolocation) return aviso('Este navegador no permite compartir la ubicación.', true);
@@ -486,21 +749,22 @@ const ICONOS = {
   pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
   reloj: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   lista: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
-  pago: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18M7 15h4"/>',
+  boleto: '<path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6.5v11" stroke-dasharray="1.5 3"/>',
 };
 function pintarFunciones(e) {
   const total = e?.datos?.total ? e.datos.total.toLocaleString('es-AR') : 'miles de';
   const conHorario = e?.datos?.con_horario;
   const funciones = [
-    ['chat', 'Preguntá por escrito', 'Decime dónde estás y qué buscás. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora.'],
-    ['mic', 'Hablá en vivo', 'Tocá el micrófono y conversamos con voz. Las siete franjas se mueven mientras escucho o hablo. Con "Terminar" volvés al texto sin perder la charla.'],
+    ['chat', 'Preguntá por escrito', 'El botón del teclado abre el chat. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora. La charla sigue siendo la misma.'],
+    ['mic', 'Hablá en vivo', 'Tocá el círculo y conversamos con voz. Las franjas se mueven con quien habla. Tocá el círculo o el micrófono para silenciarte, y la cruz para terminar.'],
     ['pin', 'Buscá cerca tuyo', 'Con el botón del pin uso tu ubicación para no preguntarte la localidad. Solo se usa en esta charla.'],
     ['reloj', 'Mirá qué está abierto', 'Cada lugar dice si está abierto, cerrado o sin horario.' + (conHorario ? ' Hoy ' + conHorario + ' lugares tienen horario cargado.' : '') + ' Cuando no lo tengo te aviso, no lo invento.'],
     ['lista', 'Llevate los datos', 'Distancia, precio aproximado, mapa, teléfono y sitio web de ' + total + ' lugares de toda la provincia.'],
   ];
   const p = e?.pagos;
-  if (p?.proveedor === 'cosmospay') funciones.push(['pago', 'Pagá desde el chat', 'Con ' + p.monedas.map((m) => m.etiqueta).join(' o ') + '. Elegís la moneda, se abre la página de pago con un código QR y acá te aviso cuando se acredita.' + (p.red === 'testnet' ? ' Ahora está en red de prueba: no es dinero real.' : '')]);
-  else if (p?.proveedor === 'simulado') funciones.push(['pago', 'Probá un pago', 'El pago está en modo de prueba: podés recorrer todos los pasos y no se cobra nada.']);
+  const cobro = p?.proveedor === 'cosmospay' ? 'Pagás con ' + p.monedas.map((m) => m.etiqueta).join(' o ') + ' y acá te aviso cuando se acredita.' + (p.red === 'testnet' ? ' Ahora está en red de prueba: no es dinero real.' : '')
+    : p?.proveedor === 'simulado' ? 'El pago está en modo de prueba: recorrés todos los pasos y no se cobra nada.' : 'El cobro en línea todavía no está conectado.';
+  if (!e || p?.productos) funciones.push(['boleto', 'Reservá una experiencia', 'Pedila por voz o tocá el botón del boleto. Elegís personas y fecha y ves el total antes de pagar. ' + (e ? cobro : '')]);
   for (const id of ['funciones', 'funcionesDlg']) {
     $(id).replaceChildren(...funciones.map(([icono, titulo, texto]) => {
       const li = nodo('li'); const m = nodo('span', 'marca'); m.setAttribute('aria-hidden', 'true');
@@ -511,6 +775,7 @@ function pintarFunciones(e) {
 }
 $('ayuda').onclick = () => $('dlg').showModal();
 if (location.hash === '#como-funciona') $('dlg').showModal();
+if (location.hash === '#chat') verVista('chat');
 $('cerrarDlg').onclick = () => $('dlg').close();
 $('dlg').addEventListener('click', (e) => { if (e.target === $('dlg')) $('dlg').close(); });
 
@@ -527,12 +792,17 @@ reloj(); setInterval(reloj, 20000);
   $('sobre').textContent = `Provincia de Jujuy · ${e.datos.total.toLocaleString('es-AR')} lugares`;
   pintarFunciones(e);
   if (!e.agente_configurado) {
-    sinAgente = true; $('mic').disabled = true; estado('solo directorio');
+    sinAgente = true; estado('solo directorio'); ponerFase();
+    $('dijo').textContent = 'La voz se activa al conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.';
     $('notaModo').hidden = false;
     $('notaModo').textContent = 'Ahora juju muestra solo los lugares del directorio. Para conversar por texto y por voz falta conectar ElevenLabs: copiá .env.example como .env, pegá tu clave y ejecutá "node crear-agente.mjs".';
   }
   const q = new URLSearchParams(location.search).get('q'); // link directo a una consulta: /?q=que hacer en tilcara
-  if (q) enviar(q.slice(0, 300));
+  if (q) { verVista('chat'); enviar(q.slice(0, 300)); }
+  const cat = await cargarCatalogo().catch(() => null);
+  const pedida = new URLSearchParams(location.search).get('reservar'); // link directo a una reserva: /?reservar=hornocal
+  const exp = pedida && cat?.lista.find((x) => x.id === pedida);
+  if (exp) abrirReserva(exp); else if (cat && (pedida || location.hash === '#experiencias')) mostrarExperiencias(cat.lista);
 })();
 pintarFunciones(null);
 </script>

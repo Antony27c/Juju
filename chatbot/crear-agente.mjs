@@ -57,9 +57,13 @@ Muchas veces, justo antes del mensaje del usuario, el sistema te pasa un bloque 
 - Nombrá como mucho 3 o 4 lugares por respuesta y preguntá si quiere más opciones o más detalle de alguno.
 - Si preguntan algo general de Jujuy (clima, altura, cómo llegar entre pueblos) respondé breve con lo que sepas y aclaralo como orientativo.
 
-# Pagos
-Catálogo de lo que se puede pagar desde el chat: {{catalogo_pagos}}
-Solo si el usuario pide contratar o pagar algo de ese catálogo, llamá a solicitar_pago con el id del producto. Aparece una tarjeta en pantalla donde elige pagar en dólares o en cripto y confirma; vos no cobrás ni confirmás nada. Nunca pidas ni aceptes por chat datos de tarjeta, claves, frases semilla ni claves privadas. No ofrezcas pagos por tu cuenta ni inventes productos o precios. Un pago está acreditado solo cuando el sistema te lo informa.`;
+# Experiencias y reservas
+Catálogo de experiencias que se pueden reservar y pagar desde acá: {{catalogo_pagos}}
+- Si pregunta qué excursiones o experiencias puede reservar o comprar, llamá a ver_experiencias (con la localidad si la dijo): quedan en pantalla. Nombrá dos o tres con su precio por persona y preguntá cuál le interesa.
+- Para reservar necesitás tres datos: cuál experiencia, cuántas personas y para qué fecha. Si falta alguno, preguntalo en una frase. Con los tres, llamá a reservar_experiencia con el id exacto, la cantidad de personas y la fecha en formato AAAA-MM-DD (calculala a partir de la fecha de hoy que figura en el catálogo). Se abre la reserva en pantalla con el total; el usuario la revisa y toca el botón de pago. Vos no cobrás ni confirmás nada.
+- La reserva está confirmada solo cuando el sistema te informa que el pago se acreditó. Recién ahí decile que quedó confirmada y el código de reserva.
+- Solo existen las experiencias de ese catálogo, con esos precios. No inventes otras, ni precios, descuentos, cupos u horarios de salida. Los lugares del directorio (restaurantes, hoteles, museos) no se reservan desde acá: para esos ofrecé el teléfono.
+- Nunca pidas ni aceptes por voz o por chat datos de tarjeta, claves, frases semilla ni claves privadas.`;
 
 const HERRAMIENTAS = [
   {
@@ -95,12 +99,24 @@ const HERRAMIENTAS = [
     },
   },
   {
-    type: 'client', name: 'solicitar_pago', expects_response: true, response_timeout_secs: 20,
-    description: 'Muestra en pantalla la tarjeta para pagar un producto del catálogo en USD o cripto. El usuario elige la moneda y confirma en la tarjeta. Usar solo cuando el usuario pide pagar o contratar.',
+    type: 'client', name: 'ver_experiencias', expects_response: true, response_timeout_secs: 20,
+    description: 'Muestra en pantalla las experiencias y excursiones del catálogo que se pueden reservar, con precio por persona, y devuelve la lista. Usala cuando el usuario pregunta qué puede reservar, comprar o contratar.',
     parameters: {
       type: 'object',
-      properties: { producto_id: { type: 'string', description: 'Id exacto del producto del catálogo de pagos.' } },
-      required: ['producto_id'],
+      properties: { localidad: { type: 'string', description: 'Localidad de salida para filtrar, p. ej. "Tilcara". Omitir para mostrar todas.' } },
+    },
+  },
+  {
+    type: 'client', name: 'reservar_experiencia', expects_response: true, response_timeout_secs: 20,
+    description: 'Abre en pantalla la reserva de una experiencia del catálogo, con personas, fecha y total, para que el usuario la revise y pague. No cobra ni confirma: eso lo hace el usuario en pantalla. Usala solo cuando el usuario pide reservar o comprar una experiencia y ya dijo cuántas personas y qué fecha.',
+    parameters: {
+      type: 'object',
+      properties: {
+        experiencia_id: { type: 'string', description: 'Id exacto de la experiencia en el catálogo.' },
+        personas: { type: 'integer', description: 'Cantidad de personas, de 1 a 20.' },
+        fecha: { type: 'string', description: 'Fecha de la experiencia en formato AAAA-MM-DD, de hoy en adelante.' },
+      },
+      required: ['experiencia_id', 'personas', 'fecha'],
     },
   },
 ];
@@ -126,9 +142,9 @@ function config(completo) {
     name: 'juju',
     conversation_config: {
       agent: {
-        first_message: '¡Hola! Soy juju, tu guía de Jujuy. Contame en qué localidad estás y cuánto tiempo tenés, y te armo un plan para hacer algo y comer rico.',
+        first_message: '¡Hola! Soy juju, tu guía de Jujuy. Contame en qué localidad estás y cuánto tiempo tenés, y te armo un plan para hacer algo y comer rico. Si querés, también te reservo una excursión.',
         language: 'es',
-        prompt: { prompt: PROMPT, llm: LLM, temperature: 0.3, tool_ids: Object.values(ids.herramientas) },
+        prompt: { prompt: PROMPT, llm: LLM, temperature: 0.3, tool_ids: HERRAMIENTAS.map((h) => ids.herramientas[h.name]) },
       },
       // "Turbo": eleven_turbo_v2_5 es el modelo Turbo multilingüe (el turbo_v2 a secas es solo inglés).
       tts: { model_id: process.env.ELEVENLABS_TTS_MODEL || 'eleven_turbo_v2_5', ...(VOZ ? { voice_id: VOZ } : {}) },
@@ -139,7 +155,7 @@ function config(completo) {
   };
   if (completo) {
     c.conversation_config.agent.prompt.timezone = 'America/Argentina/Jujuy';
-    c.conversation_config.agent.dynamic_variables = { dynamic_variable_placeholders: { fecha_hora_local: 'sin dato', ubicacion_usuario: 'desconocida', catalogo_pagos: 'Pagos no disponibles por ahora.' } };
+    c.conversation_config.agent.dynamic_variables = { dynamic_variable_placeholders: { fecha_hora_local: 'sin dato', ubicacion_usuario: 'desconocida', catalogo_pagos: 'No hay experiencias cargadas para reservar.' } };
     c.conversation_config.conversation.max_duration_seconds = 1800;
     c.conversation_config.conversation.client_events = ['conversation_initiation_metadata', 'ping', 'audio', 'interruption', 'user_transcript', 'agent_response', 'agent_response_correction', 'client_tool_call'];
   }

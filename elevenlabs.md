@@ -15,7 +15,8 @@ Leer esto primero, porque define qué está comprobado y qué no.
 | Cosmos Pay: crear un pago | Probado contra su red de prueba (devolvió link de pago y QR) |
 | Cosmos Pay: consultar estado y webhook | Firma del webhook probada en local. La consulta de estado necesita una clave propia |
 | Sesión con ElevenLabs (texto y voz) | **Sin probar**: falta la clave de API. Los nombres de campos y métodos se verificaron contra la documentación y contra el código del SDK 1.37.1 |
-| Página en el navegador | Revisada con capturas en escritorio y celular, tema claro y oscuro, en modo "solo directorio" (sin ElevenLabs). La barra de voz y la tarjeta de pago no se vieron en pantalla todavía |
+| Página en el navegador | Revisada con capturas en escritorio y celular, tema claro y oscuro, en modo "solo directorio" (sin ElevenLabs). La pantalla principal es la vista de voz (círculo de siete franjas, subtítulos y botones redondos); se vio en reposo, no con una sesión de voz real |
+| Reserva de experiencias | Probada de punta a punta con el pago simulado: validación de personas y fecha, total, código de reserva y confirmación. Las herramientas de voz `ver_experiencias` y `reservar_experiencia` no se probaron con el agente |
 
 El primer `node crear-agente.mjs` con una clave real es la prueba que falta. Si la API rechaza algún campo, el script imprime el error completo y reintenta con una configuración mínima.
 
@@ -121,7 +122,7 @@ Lo que envía `crear-agente.mjs`:
         "dynamic_variable_placeholders": {
           "fecha_hora_local": "sin dato",
           "ubicacion_usuario": "desconocida",
-          "catalogo_pagos": "Pagos no disponibles por ahora."
+          "catalogo_pagos": "No hay experiencias cargadas para reservar."
         }
       }
     },
@@ -172,7 +173,7 @@ const conv = await ElevenLabsClient.Conversation.startSession({
   // conversationToken, connectionType: 'webrtc', textOnly: false,
 
   dynamicVariables: { fecha_hora_local, catalogo_pagos, ubicacion_usuario },
-  clientTools: { plan_rapido, buscar_lugares, solicitar_pago },
+  clientTools: { plan_rapido, buscar_lugares, ver_experiencias, reservar_experiencia },
   onMessage: ({ message, role }) => {},      // role: 'user' | 'agent'
   onModeChange: ({ mode }) => {},            // 'speaking' | 'listening'
   onError: (mensaje) => {},
@@ -194,13 +195,16 @@ Detalles que importan:
 
 ### Herramientas del agente
 
-Las tres son `type: "client"`, con `expects_response: true` y 20 segundos de espera.
+Las cuatro son `type: "client"`, con `expects_response: true` y 20 segundos de espera.
 
-| Herramienta | Parámetros | Ruta local |
+| Herramienta | Parámetros | Qué hace en la página |
 |---|---|---|
-| `plan_rapido` | `localidad`, `hora`, `dia` | `POST /api/plan` |
-| `buscar_lugares` | `texto`, `categoria`, `subcategoria`, `localidad`, `region`, `precio_max`, `solo_abiertos`, `hora`, `dia`, `radio_km`, `limite` | `POST /api/buscar` |
-| `solicitar_pago` | `producto_id` (obligatorio) | Muestra la tarjeta de pago |
+| `plan_rapido` | `localidad`, `hora`, `dia` | `POST /api/plan` y muestra los lugares |
+| `buscar_lugares` | `texto`, `categoria`, `subcategoria`, `localidad`, `region`, `precio_max`, `solo_abiertos`, `hora`, `dia`, `radio_km`, `limite` | `POST /api/buscar` y muestra los lugares |
+| `ver_experiencias` | `localidad` (opcional) | `GET /api/productos` y muestra las experiencias reservables |
+| `reservar_experiencia` | `experiencia_id`, `personas`, `fecha` en `AAAA-MM-DD` (los tres obligatorios) | Abre la hoja de reserva con el total. No cobra: el usuario toca el botón de pago |
+
+El catálogo de experiencias también viaja en la variable `{{catalogo_pagos}}` junto con la fecha de hoy, así el agente puede nombrar experiencias y precios sin llamar a ninguna herramienta.
 
 Los valores válidos de `categoria` y `region` se leen de `estructura.json` al crear el agente.
 
@@ -298,7 +302,11 @@ Qué probar si hace falta más velocidad, con la cuenta ya conectada:
 
 ## Pagos
 
-`pagos.mjs` cobra productos de `productos.json`. El modelo no puede fijar montos: solo pasa el id del producto.
+`pagos.mjs` cobra las experiencias de `productos.json` (hoy son ejemplos, marcados con `"ejemplo": true`: los precios no están acordados con ningún operador). El modelo no puede fijar montos: pasa el id, la cantidad de personas y la fecha, y el servidor calcula el total (precio por persona × personas, de 1 a 20, fecha de hoy en adelante).
+
+Cada reserva es un pago con `personas`, `fecha` y un `codigo` (`JU-XXXXXX`). Queda confirmada cuando el pago pasa a `pagado`; la página le avisa al agente con `sendContextualUpdate`. No hay control de cupos ni aviso al operador: eso depende de quién preste la experiencia.
+
+También se puede abrir una reserva con un link: `/?reservar=<id>`.
 
 - **Cosmos Pay** (`PAGOS_PROVEEDOR=cosmospay`): crea un pago con `POST /v1/payment-intents/pay` en Stellar, en dólares digitales (USDC o USDT0), 1 a 1 con el precio en USD. Necesita `COSMOSPAY_API_KEY` en `.env` y la cuenta Stellar pública de cobro en `cosmospay.config.json`. Una clave `dv_…` usa la red de prueba y una `prod_…` la red real.
 - **Simulado** (`PAGOS_PROVEEDOR=simulado`): para probar el flujo sin mover dinero.
