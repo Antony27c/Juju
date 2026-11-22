@@ -148,6 +148,8 @@ async function estiloDePerfil({ perfil, es_mi_perfil } = {}) {
     const estilo = estiloDeViaje(c.probabilidades);
     return [200, {
       red: p.red, usuario: p.usuario, nombre: p.nombre, resumen: p.resumen || null, parcial: Boolean(p.parcial), estilo,
+      // qué se pudo leer del perfil ('completo', 'embed' = últimas publicaciones, 'pagina' = solo nombre y foto) y cuántas fotos miró Gemini
+      leido: p.origen || 'completo', publicaciones: Math.max(0, (p.textos?.length || 1) - 1), fotos_analizadas: c.fotos || 0,
       porcentajes: { low_cost: Math.round(hippie * 100), fancy: Math.round(luxury * 100) }, fuente: c.fuente, ...(c.modelo ? { modelo: c.modelo } : {}), razones: c.razones.slice(0, 3).map((r) => String(r).slice(0, 160)),
     }];
   } catch (e) {

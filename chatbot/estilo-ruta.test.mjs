@@ -68,6 +68,43 @@ test('la clave de Google AI Studio se toma de GA o de GEMINI_API_KEY, y Gemini r
   }
 });
 
+// El embed público de un perfil: los datos van como un JSON dentro de otro, igual que en la página real.
+const embed = (contexto) => `<html><script>x({"contextJSON":${JSON.stringify(JSON.stringify({ context: contexto }))}})</script></html>`;
+const publicaciones = (n) => Array.from({ length: n }, (_, i) => ({ shortcode_media: {
+  display_url: `https://instagram.fna.fbcdn.net/v/grande${i}.jpg`, display_resources: [{ src: `https://instagram.fna.fbcdn.net/v/chica${i}.jpg`, config_width: 640 }],
+  edge_media_to_caption: { edges: [{ node: { text: i === 0 ? 'Acampando con la mochila en la montaña' : `Publicación ${i}` } }] },
+} }));
+
+test('con el embed público se leen las últimas publicaciones y Gemini mira hasta 5 fotos', async () => {
+  const fotosPedidas = [], modelosPedidos = [];
+  const falso = async (url, opciones = {}) => {
+    url = String(url);
+    if (url.includes('/api/v1/users/')) return { ok: false, status: 429, json: async () => ({}) };
+    if (url.endsWith('/embed/')) return { ok: true, status: 200, text: async () => embed({ username: 'juana.viaja', full_name: 'Juana Pérez', followers_count: 1204, posts_count: 88, graphql_media: publicaciones(6) }) };
+    if (url.includes('fbcdn.net')) { fotosPedidas.push(url); return { ok: true, status: 200, headers: new Map([['content-type', 'image/jpeg']]), arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer }; }
+    if (url.includes('/models?')) return { ok: true, status: 200, json: async () => ({ models: ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.8-flash-tts', 'gemini-3.6-flash'].map((n) => ({ name: 'models/' + n, supportedGenerationMethods: ['generateContent'] })) }) };
+    if (url.includes(':generateContent')) {
+      const modelo = url.match(/models\/([^:]+):/)[1]; modelosPedidos.push(modelo);
+      if (modelo === 'gemini-3.8-flash') return { ok: false, status: 503, json: async () => ({ error: { message: 'high demand' } }) }; // saturado
+      const partes = JSON.parse(opciones.body).contents[0].parts;
+      assert.equal(partes.filter((x) => x.inlineData).length, 5);
+      assert.match(partes[0].text, /Acampando con la mochila/);
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"hippie":0.85,"luxury":0.15,"razones":["carpa y mochila en las fotos"]}' }] } }] }) };
+    }
+    throw new Error('pedido inesperado: ' + url);
+  };
+  const perfil = await obtenerPerfil('@juana.viaja', { fetch: falso });
+  assert.equal(perfil.origen, 'embed');
+  assert.equal(perfil.imagenes.length, 6);
+  assert.match(perfil.imagenes[0], /chica0/); // el tamaño chico, no el original
+  const c = await clasificar(perfil, { apiKey: 'k', fetch: falso });
+  assert.equal(fotosPedidas.length, 5); // no más de 5 fotos
+  assert.deepEqual(modelosPedidos, ['gemini-3.8-flash', 'gemini-3.7-flash']); // 3.8 saturado: sigue con el más parecido
+  assert.equal(c.modelo, 'gemini-3.7-flash');
+  assert.equal(c.fotos, 5);
+  assert.equal(estiloDeViaje(c.probabilidades), 'low_cost');
+});
+
 test('el estilo cambia de verdad el orden de las recomendaciones', () => {
   const sencillos = new Set(['hostel', 'camping', 'refugio']);
   const dormir = (estilo) => buscar({ categoria: 'alojamiento', localidad: 'Tilcara', limite: 5, hora: '15:00', estilo }).resultados;

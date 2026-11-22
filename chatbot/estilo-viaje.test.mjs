@@ -69,12 +69,12 @@ test('Gemini: imágenes inline limitadas, omite fallos, parsea JSON y mezcla nor
       return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'image/jpeg' } });
     }
     const parts = JSON.parse(o.body).contents[0].parts;
-    assert.equal(parts.length, 6);
+    assert.equal(parts.length, 5); // el texto y 4 fotos: se prueban 5 y una falla
     assert.equal(parts[1].inlineData.data, 'AQID');
     assert.equal(o.headers['x-goog-api-key'], 'prueba');
     return respuesta({ candidates: [{ content: { parts: [{ text: '```json\n{"hippie":0.2,"luxury":0.6,"razones":["Resort"]}\n```' }] } }] });
   } });
-  assert.equal(llamadasImagen, 6);
+  assert.equal(llamadasImagen, 5); // no más de 5 fotos
   assert.ok(Math.abs(r.probabilidades.hippie - 0.3) < 1e-10);
   assert.ok(Math.abs(r.probabilidades.luxury - 0.7) < 1e-10);
   assert.equal(r.estilo, 'luxury');

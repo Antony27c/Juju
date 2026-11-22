@@ -5,7 +5,7 @@
 //   clasificar(perfil) -> { estilo, probabilidades: { hippie, luxury }, fuente, razones }
 //
 // Sin GEMINI_API_KEY clasifica por palabras clave y emojis. Con la clave, además le manda a Gemini
-// el texto y hasta 6 imágenes del perfil, y mezcla las dos estimaciones (80% Gemini, 20% palabras clave).
+// el texto y hasta 5 fotos del perfil, y mezcla las dos estimaciones (80% Gemini, 20% palabras clave).
 //
 // Uso desde la consola:  node estilo-viaje.mjs @usuario --es-mi-perfil
 //
@@ -23,10 +23,10 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const IG_APP_ID = '936619743392459'; // el que usa instagram.com en el navegador
-const MAX_IMAGENES = 6;
+const MAX_IMAGENES = 5;
 const MAX_BYTES_IMAGEN = 4 * 1024 * 1024;
 const PESO_GEMINI = 0.8;
-const MODELO_GEMINI = () => process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MODELO_GEMINI = () => process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const ESPERA_MS = 10000;
 
 // Hosts desde los que se aceptan imágenes (siempre por https). Evita que el servidor descargue cualquier URL.
@@ -51,7 +51,7 @@ function error(mensaje, status) {
 // Texto que hay que mostrarle a la persona antes de analizar su perfil. Solo se analiza el perfil
 // propio: quien integre esto (página, agente, consola) tiene que pedir esta confirmación primero.
 export const AVISO_CONSENTIMIENTO = 'juju va a leer tu perfil público (bio, foto y últimas publicaciones) para sugerirte un estilo de viaje. '
-  + 'Si hay clave de Gemini, el texto y hasta 6 imágenes se envían a Google para analizarlos. No se guarda nada. '
+  + 'Si hay clave de Gemini, el texto y hasta 5 fotos se envían a Google para analizarlos. No se guarda nada. '
   + 'Usalo solo con tu propio perfil.';
 
 // ---------------------------------------------------------------- entrada
@@ -125,9 +125,33 @@ async function perfilInstagramPublico(usuario, fetchFn) {
   const pegado = normalizar(usuario + ' ' + nombre).replace(/[^a-z0-9]+/g, '');
   const dentro = Object.values(SENALES).flatMap(s => s.palabras).filter(p => p.length >= 6 && pegado.includes(p));
   return {
-    red: 'instagram', usuario, nombre, bio: '', imagenes: [meta('image')].filter(Boolean), parcial: true,
+    red: 'instagram', usuario, nombre, bio: '', imagenes: [meta('image')].filter(Boolean), parcial: true, origen: 'pagina',
     resumen: meta('description').split(' - ')[0].trim().slice(0, 80) || null,
     textos: [nombre, usuario.replace(/[._]+/g, ' '), [...new Set(dentro)].join(' ')].filter(Boolean),
+  };
+}
+
+// Primer respaldo: el embed público del perfil (la vista que Instagram ofrece para insertar un perfil en otra página).
+// Trae el nombre, los seguidores y las últimas publicaciones con su foto y su texto. No trae la bio.
+async function perfilInstagramEmbed(usuario, fetchFn) {
+  const r = await fetchFn(`https://www.instagram.com/${encodeURIComponent(usuario)}/embed/`, { headers: { accept: 'text/html' }, signal: AbortSignal.timeout(ESPERA_MS) });
+  if (!r.ok) return null;
+  const html = (await r.text()).slice(0, 3_000_000);
+  const m = html.match(/"contextJSON":"((?:[^"\\]|\\.)*)"/);
+  if (!m) return null;
+  let c;
+  try { c = JSON.parse(JSON.parse(`"${m[1]}"`))?.context; } catch { return null; }
+  if (!c || String(c.username || '').toLowerCase() !== usuario.toLowerCase()) return null;
+  const posts = (Array.isArray(c.graphql_media) ? c.graphql_media : []).map(x => x?.shortcode_media).filter(Boolean);
+  if (!posts.length) return null; // privado o sin publicaciones: sigue el otro respaldo
+  const nombre = textoDe(c.full_name) || usuario;
+  const leyendas = posts.map(n => textoDe(n.edge_media_to_caption?.edges?.[0]?.node?.text)).filter(Boolean);
+  return {
+    red: 'instagram', usuario, nombre, bio: '', origen: 'embed',
+    resumen: [Number.isFinite(c.followers_count) ? `${c.followers_count} seguidores` : '', Number.isFinite(c.posts_count) ? `${c.posts_count} publicaciones` : ''].filter(Boolean).join(', ') || null,
+    // las fotos de las publicaciones, en el tamaño más chico que ofrece Instagram (640 px de ancho)
+    imagenes: posts.map(n => urlDe(n.display_resources?.[0]?.src) || urlDe(n.display_url)).filter(Boolean),
+    textos: [nombre, ...leyendas].filter(Boolean),
   };
 }
 
@@ -135,7 +159,9 @@ async function perfilInstagram(usuario, fetchFn) {
   try {
     return await perfilInstagramCompleto(usuario, fetchFn);
   } catch (e) {
-    if (e.status !== 502) throw e;
+    if (e.status !== 502 && e.status !== 404) throw e; // bloqueado, o un 404 que Instagram también da cuando bloquea
+    const embed = await perfilInstagramEmbed(usuario, fetchFn).catch(() => null);
+    if (embed) return embed;
     const publico = await perfilInstagramPublico(usuario, fetchFn).catch(() => null);
     if (publico) return publico;
     throw e;
@@ -253,10 +279,11 @@ async function bajarImagen(url, fetchFn) {
   }
 }
 
-const PROMPT = `Sos un analista de turismo. Mirá el perfil de redes sociales (texto e imágenes) y estimá qué estilo de viaje prefiere la persona:
-- "hippie": mochila, camping, hostels, naturaleza, bajo presupuesto, experiencias sencillas.
-- "luxury": hoteles de lujo, resorts, spa, gastronomía gourmet, comodidad y servicio.
-Respondé SOLO con JSON: {"hippie": número entre 0 y 1, "luxury": número entre 0 y 1, "razones": ["frase corta", ...]}. Las dos probabilidades suman 1.`;
+const PROMPT = `Sos un analista de turismo. Mirá el perfil de redes sociales (los textos de las publicaciones y hasta 5 fotos) y clasificá el estilo de viaje de la persona en uno de tres:
+- low cost ("hippie"): mochila, camping, hostels, naturaleza, bajo presupuesto, experiencias sencillas.
+- fancy ("luxury"): hoteles de lujo, resorts, spa, gastronomía gourmet, comodidad y servicio.
+- neutral: no se ve una preferencia clara, o hay de las dos cosas.
+Respondé SOLO con JSON: {"hippie": número entre 0 y 1, "luxury": número entre 0 y 1, "razones": ["frase corta en español", ...]}. Las dos probabilidades suman 1; para neutral poné las dos cerca de 0.5. En "razones" poné 2 o 3 frases cortas con lo que se ve en las fotos y los textos. Basate solo en eso: no supongas nada por el nombre, el género, la edad ni el aspecto de la persona.`;
 
 function leerJSONGemini(texto) {
   const limpio = String(texto || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
@@ -271,8 +298,10 @@ function leerJSONGemini(texto) {
   return { hippie: d.hippie / suma, luxury: d.luxury / suma, razones: d.razones };
 }
 
-// Los nombres de los modelos cambian y se retiran. Si el configurado da 404, se le pregunta a la API qué modelos tiene la
-// clave y se elige el Flash estable más nuevo (rápido y barato, alcanza para esto). El elegido queda para los pedidos siguientes.
+// El modelo es Gemini 3.8 Flash (o el de GEMINI_MODEL). Los nombres cambian, se retiran, y a veces un modelo está saturado
+// (HTTP 503): en esos casos se le pregunta a la API qué modelos tiene la clave y se prueba con los Flash estables más
+// parecidos, del más nuevo al más viejo. El que respondió queda para los pedidos siguientes.
+const REINTENTAR_CON_OTRO = new Set([404, 429, 500, 503]);
 const API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
 let modeloElegido = null;
 let modelosVistos = null; // lo que devolvió la lista de modelos la última vez que hizo falta consultarla
@@ -288,13 +317,16 @@ async function modelosDisponibles(apiKey, fetchFn) {
     return [];
   }
 }
-export function mejorModelo(nombres) {
-  const utiles = nombres.filter(n => /^gemini-/.test(n) && !/tts|image|imagen|embedding|live|audio|native|computer|robotics|learnlm|gemma|aqa/i.test(n));
+export function ordenModelos(nombres) {
+  const utiles = nombres.filter(n => /^gemini-/.test(n) && !/tts|image|imagen|embedding|live|audio|native|computer|robotics|learnlm|gemma|aqa|omni|transcribe|banana/i.test(n));
   const estables = utiles.filter(n => !/preview|exp|latest/i.test(n));
-  const grupo = [estables.filter(n => /flash/.test(n) && !/lite/.test(n)), estables.filter(n => /flash/.test(n)), estables, utiles].find(g => g.length) || [];
   const version = n => parseFloat((n.match(/^gemini-(\d+(?:\.\d+)?)/) || [])[1] || '0');
-  return [...grupo].sort((a, b) => version(b) - version(a) || a.length - b.length)[0] || null;
+  const porVersion = lista => [...lista].sort((a, b) => version(b) - version(a) || a.length - b.length);
+  const flash = porVersion(estables.filter(n => /flash/.test(n) && !/lite/.test(n)));
+  const lite = porVersion(estables.filter(n => /flash/.test(n) && /lite/.test(n)));
+  return [...new Set([...flash, ...lite, ...porVersion(estables), ...porVersion(utiles)])];
 }
+export const mejorModelo = nombres => ordenModelos(nombres)[0] || null;
 
 async function clasificarConGemini(perfil, apiKey, fetchFn) {
   const urls = (Array.isArray(perfil?.imagenes) ? perfil.imagenes : []).filter(imagenPermitida).slice(0, MAX_IMAGENES);
@@ -319,11 +351,14 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
   };
   let modelo = modeloElegido || MODELO_GEMINI();
   let r = await pedir(modelo);
-  if (r.status === 404) { // ese modelo ya no existe para esta clave: se elige uno de los que sí están
+  if (REINTENTAR_CON_OTRO.has(r.status)) { // no existe o está saturado: se prueba con los más parecidos
     const vistos = await modelosDisponibles(apiKey, fetchFn);
     modelosVistos = vistos.filter(n => /^gemini-/.test(n)).slice(0, 60);
-    const otro = mejorModelo(vistos);
-    if (otro && otro !== modelo) { modelo = otro; r = await pedir(modelo); }
+    const probados = new Set([modelo]);
+    for (const otro of ordenModelos(vistos).filter(n => !probados.has(n)).slice(0, 3)) {
+      probados.add(otro); modelo = otro; r = await pedir(otro);
+      if (!REINTENTAR_CON_OTRO.has(r.status)) break;
+    }
   }
   if (!r.ok) {
     const detalle = await r.json?.().then(d => String(d?.error?.message || '').slice(0, 160), () => '').catch(() => '') || '';
@@ -333,7 +368,7 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
   let d;
   try { d = await r.json(); } catch { throw error('Gemini devolvió una respuesta inválida.', 502); }
   const texto = (d?.candidates?.[0]?.content?.parts || []).map(p => p?.text || '').join('');
-  return { ...leerJSONGemini(texto), modelo };
+  return { ...leerJSONGemini(texto), modelo, fotos: imagenes.length };
 }
 
 // ---------------------------------------------------------------- clasificación
@@ -350,17 +385,17 @@ export async function clasificar(perfil, { apiKey = claveGemini(), fetch: fetchF
   let probabilidades = { hippie: palabras.hippie, luxury: palabras.luxury };
   let razones = palabras.razones;
   let fuente = 'palabras-clave';
-  let modelo;
+  let modelo, fotos = 0;
   if (apiKey) {
     const g = await clasificarConGemini(perfil, apiKey, fetchFn);
     const hippie = PESO_GEMINI * g.hippie + (1 - PESO_GEMINI) * palabras.hippie;
     probabilidades = { hippie, luxury: 1 - hippie };
     razones = [...g.razones, ...palabras.razones];
     fuente = 'gemini+palabras-clave';
-    modelo = g.modelo;
+    modelo = g.modelo; fotos = g.fotos;
   }
   const estilo = probabilidades.hippie === probabilidades.luxury ? 'neutral' : probabilidades.hippie > probabilidades.luxury ? 'hippie' : 'luxury';
-  return { estilo, probabilidades, fuente, razones, ...(modelo ? { modelo } : {}) };
+  return { estilo, probabilidades, fuente, razones, ...(modelo ? { modelo, fotos } : {}) };
 }
 
 // ---------------------------------------------------------------- consola

@@ -675,10 +675,10 @@ let gusto = { paso: 'pedir' }; // 'pedir' | 'leyendo' | 'elegir' | 'listo' | 'gu
 let avisoEstilo = ''; // el aviso del servidor cuando además se analizan imágenes
 let gustoPedido = false; // el cuadro ya se mostró dentro de esta charla
 const GUSTO = {
-  es: { rotulo: 'Tu estilo de viaje', campo: 'tu_instagram', nombreCampo: 'Tu usuario de Instagram', analizar: 'Analizar', o: 'o elegí', low_cost: 'Low cost', fancy: 'Fancy', neutral: 'Neutral', leyendo: 'Leyendo', viajas: 'Estilo', segun: 'según', vos: 'lo elegiste vos', cambiar: 'Cambiar', abrir: 'Estilo de viaje',
+  es: { rotulo: 'Tu estilo de viaje', campo: 'tu_instagram', nombreCampo: 'Tu usuario de Instagram', analizar: 'Analizar', o: 'o elegí', low_cost: 'Low cost', fancy: 'Fancy', neutral: 'Neutral', fotos: 'fotos', leyendo: 'Leyendo', viajas: 'Estilo', segun: 'según', vos: 'lo elegiste vos', cambiar: 'Cambiar', abrir: 'Estilo de viaje',
     nota: 'Leo solo tu perfil público, para recomendarte a tu medida. No se guarda nada.', fallo: 'No pude leer ese perfil ahora. ¿Cómo viajás?',
     pase: (u) => `Mi Instagram es @${u}.`, prefiero: (t) => `Prefiero un estilo de viaje ${t}.` },
-  en: { rotulo: 'Your travel style', campo: 'your_instagram', nombreCampo: 'Your Instagram username', analizar: 'Analyze', o: 'or pick', low_cost: 'Low cost', fancy: 'Fancy', neutral: 'Neutral', leyendo: 'Reading', viajas: 'Style', segun: 'based on', vos: 'your choice', cambiar: 'Change', abrir: 'Travel style',
+  en: { rotulo: 'Your travel style', campo: 'your_instagram', nombreCampo: 'Your Instagram username', analizar: 'Analyze', o: 'or pick', low_cost: 'Low cost', fancy: 'Fancy', neutral: 'Neutral', fotos: 'photos', leyendo: 'Reading', viajas: 'Style', segun: 'based on', vos: 'your choice', cambiar: 'Change', abrir: 'Travel style',
     nota: 'I only read your public profile, to tailor my tips. Nothing is stored.', fallo: "I couldn't read that profile right now. How do you travel?",
     pase: (u) => `My Instagram is @${u}.`, prefiero: (t) => `I prefer a ${t} travel style.` },
 };
@@ -700,10 +700,12 @@ async function analizarInstagram(entrada) {
   try {
     const d = await post('/api/estilo', { perfil: usuario, es_mi_perfil: true });
     try { localStorage.setItem('juju-instagram', d.usuario); } catch {}
-    fijarEstilo({ tipo: d.estilo, de: 'instagram', usuario: d.usuario, nombre: d.nombre, razones: d.razones }, false);
-    return textoEstilo() + (d.estilo === 'neutral'
-      ? ' Decile en una frase corta que por su Instagram le ves un estilo neutral y que le vas a recomendar opciones intermedias, y que si prefiere low cost o fancy te lo diga. Después seguí con lo que estaban.'
-      : ' Contale en una frase corta qué estilo le viste y seguí con lo que estaban.');
+    fijarEstilo({ tipo: d.estilo, de: 'instagram', usuario: d.usuario, nombre: d.nombre, razones: d.razones, fotos: d.fotos_analizadas }, false);
+    const nombre = { fancy: 'fancy', low_cost: 'low cost', neutral: 'neutral' }[d.estilo];
+    const mire = d.fotos_analizadas > 1 ? `Miré tus últimas ${d.fotos_analizadas} fotos de Instagram` : 'Miré tu Instagram';
+    return textoEstilo() + ` Decile la clasificación con esta frase, en su idioma: "${mire} y te clasifico como viajero ${nombre}."`
+      + (d.estilo === 'neutral' ? ' Agregá que le vas a recomendar opciones intermedias y que, si prefiere low cost o fancy, te lo diga.' : ' Agregá en pocas palabras por qué, usando solo las razones de arriba.')
+      + ' Después seguí con lo que estaban.';
   } catch (e) {
     gusto = { paso: 'elegir', usuario: gusto.usuario, fallo: e.message }; pintarGusto();
     return `No se pudo leer ese perfil de Instagram (${e.message}). No inventes su estilo. Decile en una frase que no pudiste verlo y preguntale: "¿Preferís viajar low cost o más fancy?" (en inglés: "Do you prefer to travel low cost or fancy?"). En pantalla tiene los dos botones. Cuando responda, llamá a estilo_viaje con preferencia.`;
@@ -729,7 +731,7 @@ function cajaGusto(caja) {
   if (gusto.paso === 'guardado') return void caja.append(boton(T.abrir, 'gusto-abrir', () => { gusto = { paso: 'pedir' }; pintarGusto(); }));
   if (gusto.paso === 'listo' && estilo) {
     const sello = nodo('div', 'gusto-sello');
-    sello.append(nodo('b', '', `${T.viajas} ${T[estilo.tipo]}`), nodo('span', '', estilo.de === 'instagram' ? `${T.segun} @${estilo.usuario}` : T.vos), boton(T.cambiar, '', () => { gusto = { paso: 'pedir' }; pintarGusto(); }));
+    sello.append(nodo('b', '', `${T.viajas} ${T[estilo.tipo]}`), nodo('span', '', estilo.de === 'instagram' ? `${T.segun} @${estilo.usuario}${estilo.fotos > 1 ? ` · ${estilo.fotos} ${T.fotos}` : ''}` : T.vos), boton(T.cambiar, '', () => { gusto = { paso: 'pedir' }; pintarGusto(); }));
     return void caja.append(sello);
   }
   caja.append(nodo('p', 'rotulo', T.rotulo));
