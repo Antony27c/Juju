@@ -245,6 +245,8 @@ function compacto(r, mom, centro) {
     horario: r.horario, abierto: est.abierto, cierra: est.cierra, abre: est.abre, descripcion: r.descripcion?.slice(0, 200),
     distancia_km: centro && tieneCoords(r) ? Math.round(km(centro.lat, centro.lon, r.lat, r.lon) * 10) / 10 : undefined,
     mapa: `https://www.google.com/maps/search/?api=1&query=${tieneCoords(r) ? `${r.lat},${r.lon}` : encodeURIComponent([r.nombre, r.localidad, 'Jujuy'].filter(Boolean).join(', '))}`,
+    // para dibujar el mapa en la página (no van al texto del modelo)
+    lat: tieneCoords(r) ? Math.round(r.lat * 1e5) / 1e5 : undefined, lon: tieneCoords(r) ? Math.round(r.lon * 1e5) / 1e5 : undefined,
   };
   for (const k of Object.keys(o)) if (o[k] == null) delete o[k];
   return o;
