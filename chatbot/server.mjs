@@ -71,9 +71,17 @@ function prepararAgente() {
 }
 
 // Resolves the place the assistant names to a directory entry, preferring matches near the locality.
+// El lugar a reservar tiene que existir en el directorio con ese nombre: no alcanza con que la búsqueda devuelva algo
+// parecido ("Pucará de Tilcara" no es "Camping El Pucará") y un nombre inventado no tiene disponibilidad.
+const sinTildes = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/s+/g, ' ').trim();
 function findPlace({ lugar, localidad } = {}) {
-  if (!lugar) return null;
-  return buscar({ texto: lugar, localidad, limite: 1, radio_km: 60 }).resultados[0] || buscar({ texto: lugar, limite: 1 }).resultados[0] || null;
+  const n = sinTildes(lugar);
+  if (!n) return null;
+  const palabras = n.split(' ').filter((p) => p.length > 3), de = (x) => sinTildes(x.nombre);
+  const candidatos = [...buscar({ texto: lugar, localidad, limite: 8, radio_km: 60 }).resultados, ...buscar({ texto: lugar, limite: 8 }).resultados];
+  return candidatos.find((x) => de(x) === n)
+    || candidatos.find((x) => de(x).includes(n) || (de(x).length > 3 && n.includes(de(x))))
+    || (palabras.length ? candidatos.find((x) => palabras.every((p) => de(x).includes(p))) : null) || null;
 }
 
 function json(res, codigo, obj) {
@@ -169,7 +177,10 @@ const servidor = http.createServer(async (req, res) => {
       if (excedido(req, 'pago')) return json(res, 429, DEMASIADO);
       const p = comoJson(await cuerpo(req));
       const product = p.producto_id ? pagos.productos().find((x) => x.id === p.producto_id) || null : null;
-      try { return json(res, 200, confirmDemoReservation(p, product ? null : findPlace(p), product, pagos.hoyJujuy())); } catch (e) { return json(res, 400, { error: e.message }); }
+      if (p.producto_id && !product) return json(res, 404, { error: `no existe la experiencia "${String(p.producto_id).slice(0, 60)}" en el catálogo` });
+      const place = product ? null : findPlace(p);
+      if (!product && !place) return json(res, 404, { error: p.lugar ? `"${String(p.lugar).slice(0, 80)}" no figura en el directorio` : 'falta el nombre del lugar o el producto_id' });
+      try { return json(res, 200, confirmDemoReservation(p, place, product, pagos.hoyJujuy())); } catch (e) { return json(res, 400, { error: e.message }); }
     }
     if (ruta === '/api/sesion') { if (excedido(req, 'sesion')) return json(res, 429, DEMASIADO); const [c, o] = await sesion(url.searchParams.get('modo'), url.searchParams.get('voz') === 'clasica'); return json(res, c, o); }
     if (ruta === '/api/buscar' && req.method === 'POST') return json(res, 200, conTexto(buscar(comoJson(await cuerpo(req)))));

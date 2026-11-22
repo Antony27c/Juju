@@ -709,7 +709,7 @@ const herramientas = {
     } catch (e) {
       dejarDePensar();
       if (/metodo_pago/.test(e.message)) return FALTA_METODO;
-      return `No se pudo hacer la reserva (${e.message}). Pedile al usuario el nombre del lugar o de la experiencia y probá de nuevo.`;
+      return `No se pudo consultar la reserva (${e.message}). No le digas que hay disponibilidad. Si el lugar no figura en el directorio, buscalo con buscar_lugares y usá el nombre exacto, o pedile al usuario que repita el nombre del lugar o de la experiencia.`;
     }
   },
 };
@@ -950,7 +950,7 @@ const VOZ_CLASICA = new URLSearchParams(location.search).get('voz') === 'clasica
 function prefetchSession(m) {
   const hit = sessionCache[m];
   if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.promise;
-  const promise = fetch('/api/sesion?modo=' + m + (m === 'voz' && VOZ_CLASICA ? '&voz=clasica' : '')).then(async (r) => {
+  const promise = fetch('/api/sesion?modo=' + m + (m === 'voz' && VOZ_CLASICA ? '&voz=clasica' : ''), { signal: AbortSignal.timeout(35000) }).then(async (r) => {
     const s = await r.json();
     if (!r.ok) throw new Error(s.error || 'No se pudo abrir la sesión');
     return s;
@@ -1215,7 +1215,10 @@ function conectar(nuevoModo, saludo) {
     };
     if (nuevoModo === 'voz') Object.assign(opciones, { conversationToken: s.conversationToken, connectionType: 'webrtc' });
     else Object.assign(opciones, { signedUrl: s.signedUrl, connectionType: 'websocket' });
-    const nueva = await window.ElevenLabsClient.Conversation.startSession(opciones);
+    const inicio = window.ElevenLabsClient.Conversation.startSession(opciones);
+    let vencio = false, reloj;
+    const nueva = await Promise.race([inicio, new Promise((_, mal) => { reloj = setTimeout(() => { vencio = true; mal(new Error(idioma === 'en' ? 'The connection is taking too long. Tap the microphone to try again.' : 'La conexión está tardando demasiado. Tocá el micrófono para probar de nuevo.')); }, 20000); })]).finally(() => clearTimeout(reloj));
+    inicio.then((c) => { if (vencio) c.endSession().catch(() => {}); }, () => {}); // si conecta tarde, se cierra
     if (mia !== serie) { try { await nueva.endSession(); } catch {} return; } // se canceló mientras conectaba
     conv = nueva; modo = nuevoModo;
     if (nuevoModo === 'voz') primeVoice(); // lugares cercanos apenas abre la voz: la primera respuesta no espera una búsqueda
