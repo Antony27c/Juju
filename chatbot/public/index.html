@@ -533,6 +533,8 @@ function burbuja(rol, texto) {
   $('probar').hidden = true; // las frases de ejemplo solo acompañan el arranque
   historial.push({ rol, texto }); if (historial.length > 30) historial.shift();
   if (rol === 'user') { dichos.push({ n: ++nDicho, texto }); if (dichos.length > 30) dichos.shift(); }
+  // la primera respuesta de cada charla trae el cuadro de Instagram, lo pida o no el modelo
+  if (rol !== 'user' && !gustoPedido && !estilo && gusto.paso === 'pedir') { gustoPedido = true; gustoEnChat(); }
   if (rol === 'user' && nDicho >= 4 && gusto.paso === 'pedir' && !document.activeElement?.closest?.('.gusto')) { gusto = { paso: 'guardado' }; pintarGusto(); }
 }
 function aviso(texto, error, arriba) { agregar(nodo('div', 'aviso' + (error ? ' error' : ''), texto), arriba); }
@@ -665,6 +667,7 @@ const conUbicacion = (p) => conEstilo(!p.localidad && ubicacion ? { ...p, lat: u
 let estilo = null; // { tipo: 'low_cost' | 'fancy', de: 'instagram' | 'dicho', usuario, nombre, razones }
 let gusto = { paso: 'pedir' }; // 'pedir' | 'leyendo' | 'elegir' | 'listo' | 'guardado'
 let avisoEstilo = ''; // el aviso del servidor cuando además se analizan imágenes
+let gustoPedido = false; // el cuadro ya se mostró dentro de esta charla
 const GUSTO = {
   es: { rotulo: 'Tu estilo de viaje', campo: 'tu_instagram', nombreCampo: 'Tu usuario de Instagram', analizar: 'Analizar', o: 'o elegí', low_cost: 'Low cost', fancy: 'Fancy', leyendo: 'Leyendo', viajas: 'Viajás', segun: 'según', vos: 'lo elegiste vos', cambiar: 'Cambiar', abrir: 'Estilo de viaje',
     nota: 'Leo solo tu perfil público, para recomendarte a tu medida. No se guarda nada.', falta: (n) => `Vi tu perfil${n ? ` (${n})` : ''}, pero no alcanza para saber tu estilo. ¿Cómo viajás?`, fallo: 'No pude leer ese perfil ahora. ¿Cómo viajás?',
