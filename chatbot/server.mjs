@@ -120,6 +120,8 @@ async function sesion(modo) {
   if (!r.ok) return [502, { error: `ElevenLabs respondió ${r.status}`, detalle: d }];
   return [200, {
     signedUrl: d.signed_url, conversationToken: d.token, realtime: modo === 'voz' && Boolean(voiceAgent()),
+    // idiomas en los que se puede abrir la sesión (la página manda overrides.agent.language)
+    idiomas: (modo === 'voz' && voiceAgent() ? niveles.voz : niveles.texto) >= 3 ? ['es', 'en'] : ['es'],
     variables: { fecha_hora_local: momento().etiqueta, catalogo_pagos: catalogoTexto() },
   }];
 }

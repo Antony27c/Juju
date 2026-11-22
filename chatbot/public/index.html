@@ -71,7 +71,9 @@
   /* --- vista de voz: lo que dice juju es el titular; abajo, la faja y los mandos --- */
   .app[data-vista="voz"] main, .app[data-vista="voz"] .redactar, .app[data-vista="voz"] .voz,
   .app[data-vista="voz"] .franjas, .app[data-vista="voz"] .estado { display: none; }
-  .app[data-vista="voz"] .ayuda { margin-left: auto; }
+  .app[data-vista="voz"] .lengua { margin-left: auto; }
+  .lengua { text-decoration: none; font-weight: 700; padding: 3px 9px; border: 1px solid var(--linea); border-radius: 999px; }
+  .app[data-vista="chat"] .lengua { display: none; }
   .app[data-vista="chat"] .escena { display: none; }
   .escena { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .dicho { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-block: 20px 18px; }
@@ -258,6 +260,7 @@
     <span class="nombre">juju</span>
     <span class="reloj" id="reloj" title="Hora local de Jujuy (UTC−3)">--:-- en Jujuy</span>
     <span class="estado"><span class="punto" id="punto"></span><span id="estado">listo</span></span>
+    <button class="ayuda lengua" id="idioma" type="button" aria-label="Idioma de la voz">ES</button>
     <button class="ayuda" id="ayuda" type="button">Cómo funciona</button>
   </header>
   <div class="franjas" id="franjas" aria-hidden="true"></div>
@@ -373,11 +376,42 @@ let serie = 0; // cada sesión tiene su número: los avisos de una sesión ya re
 let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false, ultimaLocalidad = null;
 const historial = []; // { rol, texto }: sirve para retomar el hilo al reconectar o pasar de texto a voz
 // ¿El último mensaje del usuario está en inglés? Cuenta palabras muy comunes de cada idioma; alcanza para elegir un saludo.
-const EN = /\b(the|is|are|what|where|how|can|you|want|would|like|please|and|for|with|my|me|to|do|i|in|it|book|pay|yes|tonight|tomorrow)\b/g;
+const EN = /\b(the|is|are|what|where|how|can|you|want|would|like|please|and|for|with|my|me|to|do|i|in|it|book|pay|yes|tonight|tomorrow|hello|hi|thanks|english|have|there|this|that|am)\b/g;
 const ES = /\b(el|la|los|las|es|son|que|qu[eé]|d[oó]nde|c[oó]mo|puedo|quiero|por|favor|para|con|mi|me|en|un|una|hay|reservar|pagar|s[ií]|hoy|ma[nñ]ana|y|de)\b/g;
 function hablaIngles() {
   const u = historial.findLast((h) => h.rol === 'user')?.texto.toLowerCase() || '';
   return (u.match(EN) || []).length > (u.match(ES) || []).length;
+}
+
+// ---------- idioma de la voz ----------
+// La sesión de voz escucha y habla en un solo idioma: con la sesión en español, el inglés hablado llega mal
+// transcripto. Por eso la voz se abre en el idioma elegido (botón ES/EN; la primera vez, el del navegador) y se
+// reconecta cuando cambia: por el botón, porque el usuario habló en el otro idioma o porque el agente lo pidió.
+let idioma = 'es';
+try { idioma = localStorage.getItem('juju-idioma') || (/^en\b/i.test(navigator.language || '') ? 'en' : 'es'); } catch {}
+if (idioma !== 'en') idioma = 'es';
+const TEXTOS = {
+  es: { saludo: undefined, retoma: 'Dale, te escucho.', sigo: 'Dale, sigo en español. ¿Qué necesitás?', titular: 'Contame dónde estás y qué tenés ganas de hacer.', boton: 'ES', nombre: 'Idioma de la voz: español. Tocá para pasar a inglés.' },
+  en: { saludo: "Hi! I'm juju, your guide to Jujuy. Tell me which town you're in and what you feel like doing.", retoma: "Go ahead, I'm listening.", sigo: "Sure, let's continue in English. What do you need?", titular: 'Tell me where you are and what you feel like doing.', boton: 'EN', nombre: 'Voice language: English. Tap to switch to Spanish.' },
+};
+function idiomaDe(texto) { // 'en', 'es' o null si no alcanza para saberlo
+  const u = String(texto || '').toLowerCase(), en = (u.match(EN) || []).length, es = (u.match(ES) || []).length;
+  return en >= 2 && en > es ? 'en' : es >= 2 && es > en ? 'es' : null;
+}
+function pintarIdioma() {
+  $('idioma').textContent = TEXTOS[idioma].boton; $('idioma').setAttribute('aria-label', TEXTOS[idioma].nombre); $('idioma').title = TEXTOS[idioma].nombre;
+  if (!historial.length && Object.values(TEXTOS).some((t) => t.titular === $('dijo').textContent)) subtitulo(TEXTOS[idioma].titular);
+}
+// pendiente: lo último que dijo el usuario, para que juju lo responda apenas reconecta en el idioma nuevo
+async function cambiarIdioma(nuevo, pendiente) {
+  nuevo = nuevo === 'en' ? 'en' : 'es';
+  if (nuevo === idioma) return;
+  idioma = nuevo; try { localStorage.setItem('juju-idioma', idioma); } catch {}
+  pintarIdioma(); ponerFase();
+  if (modo !== 'voz' && !conectandoVoz) return;
+  await terminarVoz();
+  await iniciarVoz(pendiente ? '' : TEXTOS[idioma].sigo);
+  if (pendiente && modo === 'voz' && conv) { ultimoEnviado = pendiente; try { conv.sendUserMessage(pendiente); pensar(); } catch {} }
 }
 
 // ---------- piezas de interfaz ----------
@@ -522,6 +556,14 @@ const conUbicacion = (p) => (!p.localidad && ubicacion ? { ...p, lat: ubicacion.
 
 // ---------- herramientas que el agente ejecuta en esta página ----------
 const herramientas = {
+  // El agente pide reconectar la voz en otro idioma (lo que escucha le llega mal transcripto, o el usuario lo pidió).
+  async cambiar_idioma(p = {}) {
+    const nuevo = /^en/i.test(String(p?.idioma || '')) ? 'en' : 'es';
+    if (modo !== 'voz') return 'En el chat escrito no hace falta cambiar nada: respondé en el idioma del último mensaje del usuario.';
+    if (nuevo === idioma) return `La sesión ya está en ${nuevo === 'en' ? 'inglés' : 'español'}. Seguí en ese idioma.`;
+    setTimeout(() => cambiarIdioma(nuevo), 200);
+    return 'Listo: la sesión se reconecta en ese idioma. No digas nada más.';
+  },
   async plan_rapido(p) {
     pensar('Buscando qué hay cerca');
     const d = await post('/api/plan', conUbicacion(p || {}));
@@ -829,10 +871,19 @@ const FASES = {
   habla: ['juju está hablando', 'Silenciar', 'Silenciar el micrófono'],
   silencio: ['Micrófono en silencio', 'Activar', 'Activar el micrófono'],
 };
+const FASES_EN = {
+  sin: ['Voice is not connected yet', 'Talk', 'Start talking'],
+  reposo: ['Tap the mic and tell me', 'Talk', 'Start talking'],
+  conectando: ['Connecting', 'Talk', 'Connecting'],
+  escucha: ["I'm listening", 'Mute', 'Mute the microphone'],
+  habla: ['juju is speaking', 'Mute', 'Mute the microphone'],
+  silencio: ['Microphone muted', 'Unmute', 'Unmute the microphone'],
+};
 function ponerFase() {
+  const F = idioma === 'en' ? FASES_EN : FASES;
   const e = sinAgente ? 'sin' : conectandoVoz ? 'conectando' : modo !== 'voz' ? 'reposo' : silenciado ? 'silencio' : hablando ? 'habla' : 'escucha';
   $('escena').dataset.estado = e; // el color del micrófono y del punto salen de acá
-  $('fase').textContent = FASES[e][0]; $('orbeRotulo').textContent = FASES[e][1]; $('orbe').setAttribute('aria-label', FASES[e][2]);
+  $('fase').textContent = F[e][0]; $('orbeRotulo').textContent = F[e][1]; $('orbe').setAttribute('aria-label', F[e][2]);
 }
 function verVoz() { // pone botones, barra y textos de acuerdo con el estado de la sesión
   const activa = modo === 'voz';
@@ -853,11 +904,11 @@ function enTira(lugares) { // lugares del turno actual, como fichas para desliza
   }
   $('tira').hidden = !$('tira').childElementCount;
 }
-async function iniciarVoz() {
+async function iniciarVoz(saludo) {
   if (sinAgente) { subtitulo('Para hablar falta conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.'); return; }
   if (modo === 'voz' || conectandoVoz) return;
   conectandoVoz = true; silenciado = false; verVoz();
-  try { await conectar('voz', historial.length ? (hablaIngles() ? "Go ahead, I'm listening." : 'Dale, te escucho.') : undefined); }
+  try { await conectar('voz', saludo ?? (historial.length ? TEXTOS[idioma].retoma : TEXTOS[idioma].saludo)); }
   catch (e) {
     const m = (e.name === 'NotAllowedError' ? 'Para hablar necesito permiso de micrófono. Habilitalo en el navegador y tocá de nuevo. ' : 'No pude conectar. ') + (e.message || '');
     subtitulo(m); aviso(m, true); estado('listo');
@@ -970,12 +1021,14 @@ function conectar(nuevoModo, saludo) {
     const overrides = {};
     if (nuevoModo === 'texto') overrides.conversation = { textOnly: true };
     if (saludo != null) overrides.agent = { firstMessage: saludo };
+    const enIngles = nuevoModo === 'voz' && idioma === 'en' && s.idiomas?.includes('en');
+    if (enIngles) overrides.agent = { ...overrides.agent, language: 'en' };
     const opciones = {
       dynamicVariables: { ...s.variables, ubicacion_usuario: ubicacion?.texto || 'desconocida' },
       clientTools: herramientas, overrides, textOnly: nuevoModo === 'texto',
       onMessage: ({ message, role }) => {
         if (!message || mia !== serie) return;
-        if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); $('dijiste').textContent = message; if (modo === 'voz') voiceTurn(message); }
+        if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); $('dijiste').textContent = message; if (modo === 'voz') { const otro = idiomaDe(message); if (otro && otro !== idioma && s.idiomas?.includes(otro)) return void cambiarIdioma(otro, message); voiceTurn(message); } }
         else { burbuja('agent', message); subtitulo(message); }
       },
       onModeChange: ({ mode }) => { if (mia !== serie) return; hablando = mode === 'speaking'; if (modo === 'voz') { $('vozTitulo').textContent = hablando ? 'juju está hablando' : 'Te escucho'; estado(hablando ? 'hablando' : 'escuchando', 'voz'); ponerFase(); } },
@@ -1097,6 +1150,8 @@ function pintarFunciones(e) {
   }
 }
 $('ayuda').onclick = () => $('dlg').showModal();
+$('idioma').onclick = () => cambiarIdioma(idioma === 'en' ? 'es' : 'en');
+pintarIdioma();
 if (location.hash === '#como-funciona') $('dlg').showModal();
 if (location.hash === '#chat') verVista('chat');
 $('cerrarDlg').onclick = () => $('dlg').close();

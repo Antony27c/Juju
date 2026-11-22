@@ -32,7 +32,7 @@ const r = resumen();
 const PROMPT = `Sos "juju", asistente turístico de la provincia de Jujuy, Argentina. Cálido y directo. Es una conversación en vivo y muchas veces por voz. Texto plano: sin markdown, sin viñetas, sin emojis, sin leer links ni coordenadas en voz alta (la pantalla ya muestra tarjetas con mapa y teléfono).
 
 # Idioma
-Respondé siempre en el idioma del último mensaje del usuario: si te habla en inglés, en inglés; si te habla en español, en español argentino. Para decidirlo mirá solo ese último mensaje, no los anteriores ni el idioma en que venías respondiendo: aunque toda la charla haya sido en inglés, si el último mensaje está en español respondé en español, y al revés. Vale también después de usar una herramienta. Si cambia de idioma en el medio de la charla, cambiá con él en esa misma respuesta y, si tenés la herramienta language_detection, llamala. Estas instrucciones, los datos del directorio y las respuestas de las herramientas están en español: cuando respondas en inglés, traducí todo lo que digas (también las frases que te sugieren las herramientas) y dejá en español solo los nombres propios de los lugares. A las herramientas pasales siempre los valores en español ("mañana", "restaurante").
+Respondé siempre en el idioma del último mensaje del usuario: si te habla en inglés, en inglés; si te habla en español, en español argentino. Para decidirlo mirá solo ese último mensaje, no los anteriores ni el idioma en que venías respondiendo: aunque toda la charla haya sido en inglés, si el último mensaje está en español respondé en español, y al revés. Vale también después de usar una herramienta. Si cambia de idioma en el medio de la charla, cambiá con él en esa misma respuesta y, si tenés la herramienta language_detection, llamala. En una charla por voz la sesión escucha y habla en un solo idioma por vez, y lo que el usuario dice en el otro idioma te llega mal transcripto. Por eso, por voz, llamá a cambiar_idioma con "en" o "es" cuando el usuario te pide cambiar de idioma, cuando te habla en el otro idioma, o cuando lo que te llega no tiene sentido y parece el otro idioma mal transcripto (por ejemplo un "hello" seguido de palabras que no existen): la sesión se reconecta en ese idioma. Después de llamarla no digas nada más. Estas instrucciones, los datos del directorio y las respuestas de las herramientas están en español: cuando respondas en inglés, traducí todo lo que digas (también las frases que te sugieren las herramientas) y dejá en español solo los nombres propios de los lugares. A las herramientas pasales siempre los valores en español ("mañana", "restaurante").
 
 # Directo
 - Respondé en 1 o 2 oraciones. Cuanto más corta la respuesta, más rápido llega.
@@ -134,6 +134,15 @@ const HERRAMIENTAS = [
     },
   },
   {
+    type: 'client', name: 'cambiar_idioma', expects_response: true, response_timeout_secs: 10,
+    description: 'Solo para charlas por voz: reconecta la sesión para escuchar y hablar en otro idioma. Usala cuando el usuario pide cambiar de idioma, habla en el otro idioma, o lo que llega transcripto no tiene sentido y parece el otro idioma.',
+    parameters: {
+      type: 'object',
+      properties: { idioma: { type: 'string', enum: ['es', 'en'], description: '"en" para inglés, "es" para español.' } },
+      required: ['idioma'],
+    },
+  },
+  {
     type: 'client', name: 'reservar', expects_response: true, response_timeout_secs: 20,
     description: 'Reserva un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo. Sin confirmado: no reserva ni cobra, devuelve si hay disponibilidad y el monto y dice qué preguntarle al usuario (primero el método de pago, después la confirmación). Con confirmado en true, solo después de que el usuario dijo que sí a ese monto: registra el pago con el método que eligió y devuelve la reserva confirmada con su código, o avisa que quedó abierta en pantalla para que pague ahí.',
     parameters: {
@@ -203,6 +212,8 @@ function config(kind, level, toolIds) {
     // El agente arranca en español y pasa a inglés cuando detecta que el usuario habla inglés (y vuelve).
     c.conversation_config.agent.prompt.built_in_tools = { language_detection: { type: 'system', name: 'language_detection', description: '', params: { system_tool_type: 'language_detection' } } };
     c.conversation_config.language_presets = { en: { overrides: { agent: { first_message: SALUDO_EN } } } };
+    // La página abre la sesión de voz en inglés con overrides.agent.language cuando el usuario habla inglés.
+    c.platform_settings.overrides.conversation_config_override.agent.language = true;
   }
   return c;
 }
