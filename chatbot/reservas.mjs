@@ -68,7 +68,7 @@ function modelText(r) {
   const where = r.item.locality ? `${r.item.name} (${r.item.locality})` : r.item.name;
   const what = r.kind === 'product' ? `Reserva confirmada: ${where}` : `Reserva confirmada en ${where}`;
   return `${paid} ${what} para ${details}. Código de reserva: ${r.code}. `
-    + 'Decile al usuario con seguridad, en una o dos frases, que ya quedó confirmada ("Listo, ya te la confirmé"), con el lugar, la fecha y el código. Nunca digas que no podés confirmarla. '
+    + 'Decile al usuario con seguridad, en una o dos frases, que ya quedó confirmada ("Listo, ya te la confirmé"; si habla en inglés: "Done, your booking is confirmed"), con el lugar, la fecha y el código. Nunca digas que no podés confirmarla. '
     + 'En pantalla quedaron un mapa de cómo llegar y el botón para guardar la reserva en Google Calendar. Cerrá con esta frase: "También te añadí tu reserva a Google Calendar: tocá el botón para guardarla. Y en pantalla tenés el mapa de cómo llegar." '
     + LANGUAGE_NOTE;
 }

@@ -52,7 +52,7 @@ Added on 2026-11-22. This section describes the current behaviour; where an olde
 
 ### Demo bookings (`reservar`)
 
-- The `reservar` client tool replaces `solicitar_pago`. A booking goes **availability → payment method → confirmation → payment**. The first call (no `confirmado`) is a quote: `POST /api/reservas` with `cotizar: true` returns the amount and "hay disponibilidad" without booking or charging, and the page shows a "Por confirmar" card. If the user has not said how they pay, the agent asks with a fixed sentence: **"Tenés 2 métodos de pago disponibles: dinero en tu cuenta del Wells Fargo, o pagar con USDC a través de Cosmos Pay. ¿Con cuál querés pagar?"** (in English when the user speaks English; the agent never picks the method). Once they choose, it calls `reservar` again with `metodo_pago`, still without `confirmado`, and asks the user to confirm the activity, the amount, the method and the time in one sentence. Only after an explicit yes does it call `reservar` with `confirmado: true`; the page pays only if that call matches the last quote shown, method included. If the user asks whether they must pay in cash or in Argentine pesos, the agent answers that they pay in their local money and the seller receives Argentine pesos.
+- The `reservar` client tool replaces `solicitar_pago`. A booking goes **availability → payment method → confirmed**. The first call (no `confirmado`) is a quote: `POST /api/reservas` with `cotizar: true` returns availability and the amount, and the agent asks the payment question (Wells Fargo account or USDC). As soon as the user picks one ("la primera", "la segunda", "Wells Fargo", "USDC") the agent calls again with `metodo_pago` and `confirmado: true`, and the page confirms it (simulated payment, booking code, map and Calendar button). The page also confirms when a method arrives after a quote, even without `confirmado`, and never charges the same booking twice within two minutes.
 - The page enforces this: a call with `confirmado: true` pays only if it matches the last quote shown (same item, date, time, people, nights and amount). Otherwise it is treated as a new quote, so an amount the user has not seen is never paid.
 - Availability is not checked against anyone: the demo always answers that there is room.
 - On the confirmed call, `POST /api/reservas` (`chatbot/reservas.mjs`) **simulates the payment and confirms the booking at once**. It returns a code such as `JUJ-4F2A9C`. Nothing is charged and nothing is actually booked. The card on the page says "Demo · pago simulado".
@@ -111,7 +111,7 @@ Puntos de diseño:
 | `chatbot/pagos.mjs` | Reservas y pagos: Cosmos Pay y proveedor simulado |
 | `chatbot/productos.json` | Experiencias reservables, con precio por persona |
 | `chatbot/verificar.mjs` | Revisa qué está listo y qué falta configurar. No cambia nada |
-| `chatbot/reservas.mjs` | Demo bookings: simulated payment (Wells Fargo account or USDC through Cosmos Pay) and instant confirmation |
+| `chatbot/reservas.mjs` | Demo bookings: simulated payment (Wells Fargo account or USDC) and instant confirmation |
 | `chatbot/public/index.html` | Interfaz de juju |
 | `chatbot/.env.example` | Plantilla de configuración |
 
@@ -133,7 +133,7 @@ Cada vez que se cambie el prompt o las herramientas hay que volver a correr el p
 | `ELEVENLABS_API_KEY` | Obligatoria |
 | `ELEVENLABS_AGENT_ID` | Opcional. Vacía: el servidor busca el agente `juju` por nombre en la cuenta o lo crea, al arrancar (`prepararAgentes()` en `crear-agente.mjs`), y en cada arranque lo actualiza con el prompt, las cinco herramientas y la voz del código |
 | `ELEVENLABS_SINCRONIZAR` | Opcional. `off`: el servidor no toca los agentes al arrancar |
-| (voz) | No es una variable: la voz va fija en `crear-agente.mjs` (constante `VOZ`). Hoy es "Sarah", femenina, de las que trae toda cuenta. Para cambiarla se edita ese id y se vuelve a correr el script |
+| `ELEVENLABS_VOICE_ID` (voz) | Opcional. Sin ella, al preparar los agentes `crear-agente.mjs` busca en la biblioteca de ElevenLabs una voz nativa argentina (español, `es-AR`), la agrega a la cuenta como "juju (voz argentina)" y la usa para el español; la vez siguiente la reusa. En inglés habla "Sarah". `/api/estado` (`voz.voz_es`) dice cuál quedó |
 | `ELEVENLABS_TTS_MODEL` | Opcional. Por defecto `eleven_turbo_v2_5` |
 | `ELEVENLABS_LLM` | Opcional. Por defecto `claude-haiku-5-5` |
 | `ELEVENLABS_REALTIME_MODEL` | Optional. Live voice model: `eleven_realtime_v1_mini` (default), `eleven_realtime_v1_max` or `off` |
@@ -261,7 +261,7 @@ Las cuatro son `type: "client"`, con `expects_response: true` y 20 segundos de e
 | `buscar_lugares` | `texto`, `categoria`, `subcategoria`, `localidad`, `region`, `precio_max`, `solo_abiertos`, `hora`, `dia`, `radio_km`, `limite` | `POST /api/buscar` y muestra los lugares |
 | `ver_experiencias` | `localidad` (opcional) | `GET /api/productos` y muestra las experiencias reservables |
 | `como_llegar` | `lugar` (obligatorio), `localidad` | Resuelve el lugar por nombre (entre los ya mostrados o con `POST /api/buscar`), muestra el botón "Abrir en Google Maps" con el camino e intenta abrirlo. Si el nombre coincide con más de un lugar no abre nada y le devuelve las opciones al agente |
-| `reservar` | `lugar`, `localidad`, `producto_id`, `fecha`, `hora`, `personas`, `noches`, `metodo_pago` (`banco` = cuenta de Wells Fargo, `usdc` = USDC por Cosmos Pay; hace falta para pagar), `confirmado` (`true` solo después del sí del usuario) | Reserva de demostración. Sin `confirmado`: cotiza (una vez sin método y otra con el método elegido) y muestra la tarjeta "Por confirmar", sin pagar. Con `confirmado` y la misma cotización: `POST /api/reservas` simula el pago y muestra la reserva confirmada. Si es una experiencia del catálogo, el usuario eligió USDC y Cosmos Pay está configurado, abre la hoja de reserva para pagar de verdad |
+| `reservar` | `lugar`, `localidad`, `producto_id`, `fecha`, `hora`, `personas`, `noches`, `metodo_pago` (`banco` = cuenta de Wells Fargo, `usdc` = USDC; lo elige el usuario), `confirmado` (`true` solo después del sí del usuario) | Reserva de demostración. Sin `confirmado`: cotiza (una vez sin método y otra con el método elegido) y muestra la tarjeta "Por confirmar", sin pagar. Con `confirmado` y la misma cotización: `POST /api/reservas` simula el pago y muestra la reserva confirmada. Si es una experiencia del catálogo, el usuario eligió USDC y Cosmos Pay está configurado, abre la hoja de reserva para pagar de verdad |
 
 El catálogo de experiencias también viaja en la variable `{{catalogo_pagos}}` junto con la fecha de hoy, así el agente puede nombrar experiencias y precios sin llamar a ninguna herramienta.
 
