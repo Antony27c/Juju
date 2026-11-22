@@ -1,0 +1,9 @@
+# secretos y estado local: nunca al repo
+.env
+*.env
+!.env.example
+chatbot/agente.json
+chatbot/pagos.json
+node_modules/
+# descargas crudas (se regeneran con construir.py; incluyen respuestas de error)
+datos_crudos/

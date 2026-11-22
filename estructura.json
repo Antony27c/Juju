@@ -1,0 +1,75 @@
+{
+  "nombre": "Directorio turístico de la provincia de Jujuy",
+  "version": "1.0",
+  "archivos": {
+    "estructura": "estructura.json (este archivo: define campos, categorías, zonas y rangos de precio)",
+    "datos_completos": "jujuy_turismo.json (todos los registros, ordenados por categoría > región > localidad > rango de precio > nombre)",
+    "datos_por_categoria": "por_categoria/<categoria>.json (un archivo por categoría, mismo formato de registro)",
+    "planilla": "jujuy_turismo.csv (los mismos registros en formato tabla, para Excel)",
+    "datos_crudos": "datos_crudos/ (descargas originales sin procesar)"
+  },
+  "formato_datos_completos": {
+    "meta": {
+      "generado": "fecha ISO de generación",
+      "total_registros": "número",
+      "fuentes": ["lista de fuentes usadas"],
+      "conteo_por_categoria": {"<categoria>": "número"},
+      "conteo_por_region": {"<region>": "número"}
+    },
+    "registros": ["lista de objetos con el formato de 'registro'"]
+  },
+  "registro": {
+    "id": "string. Identificador único estable, p. ej. 'osm-node-123456'",
+    "nombre": "string. Nombre del lugar o establecimiento",
+    "categoria": "string. Una de las claves de 'categorias'",
+    "subcategoria": "string. Una de las subcategorías de esa categoría",
+    "region": "string. Una de las claves de 'regiones'",
+    "departamento": "string. Uno de los 16 departamentos de Jujuy",
+    "localidad": "string. Ciudad, pueblo o paraje más cercano",
+    "direccion": "string o null. Calle y número si se conoce",
+    "lat": "número. Latitud (WGS84)",
+    "lon": "número. Longitud (WGS84)",
+    "rango_precio": "string. Una de las claves de 'rangos_precio'",
+    "precio_origen": "string. 'dato' si viene de la fuente, 'estimado' si se dedujo del tipo/categoría del lugar, 'sin_dato' si no se pudo determinar",
+    "estrellas": "número o null. Solo alojamiento",
+    "cocina": "string o null. Tipo de cocina, solo gastronomía",
+    "telefono": "string o null",
+    "email": "string o null",
+    "web": "string o null",
+    "redes": "string o null. Instagram / Facebook",
+    "horario": "string o null. Formato opening_hours de OSM",
+    "descripcion": "string o null",
+    "altitud_m": "número o null. Solo cerros, miradores, etc.",
+    "fuente": "string. De dónde salió el registro",
+    "fuente_url": "string. Enlace al registro original"
+  },
+  "categorias": {
+    "alojamiento": ["hotel", "hostel", "hosteria_posada", "cabana", "departamento_turistico", "camping", "motel", "refugio"],
+    "gastronomia": ["restaurante", "cafe", "bar_pub", "comida_rapida", "heladeria", "panaderia", "patio_de_comidas"],
+    "atractivo_natural": ["cerro_pico", "volcan", "mirador", "cascada", "termas", "cueva", "salar_laguna", "area_protegida", "parque_plaza"],
+    "atractivo_cultural": ["museo", "sitio_arqueologico", "ruinas", "monumento", "iglesia_capilla", "obra_de_arte", "edificio_historico", "atractivo_general", "centro_cultural"],
+    "actividad_excursion": ["agencia_de_viajes", "guia", "cabalgata", "alquiler_bicicletas", "parque_tematico", "parque_acuatico", "pileta", "golf", "complejo_deportivo", "area_de_picnic"],
+    "vida_nocturna_ocio": ["boliche", "casino", "cine", "teatro"],
+    "compras": ["artesanias", "regalos_souvenirs", "mercado_feria", "vinoteca_bodega", "delicatessen", "cerveceria_artesanal", "outdoor"],
+    "servicios_al_viajero": ["informacion_turistica", "terminal_de_omnibus", "aeropuerto", "alquiler_de_autos", "casa_de_cambio", "estacion_de_servicio"]
+  },
+  "regiones": {
+    "Quebrada": ["Tumbaya", "Tilcara", "Humahuaca"],
+    "Puna": ["Cochinoca", "Rinconada", "Santa Catalina", "Yavi", "Susques"],
+    "Valles": ["Dr. Manuel Belgrano", "Palpalá", "El Carmen", "San Antonio"],
+    "Yungas": ["Ledesma", "Santa Bárbara", "San Pedro", "Valle Grande"]
+  },
+  "rangos_precio": {
+    "gratis": "Sin costo de entrada (plazas, miradores, cerros, iglesias, monumentos)",
+    "$": "Económico. Alojamiento: hasta ~USD 30 por noche (hostel, camping, residencial). Comida: hasta ~USD 8 por persona",
+    "$$": "Medio. Alojamiento: ~USD 30 a 70 por noche (hostería, hotel 2-3 estrellas, cabaña). Comida: ~USD 8 a 20 por persona",
+    "$$$": "Alto. Alojamiento: ~USD 70 a 150 por noche (hotel 4 estrellas, boutique). Comida: ~USD 20 a 40 por persona",
+    "$$$$": "Lujo. Alojamiento: más de ~USD 150 por noche (5 estrellas, lodge). Comida: más de ~USD 40 por persona",
+    "sin_dato": "No se pudo determinar"
+  },
+  "orden": ["categoria", "region", "localidad", "rango_precio", "nombre"],
+  "notas": [
+    "Los rangos de precio son orientativos. Mirar el campo 'precio_origen' de cada registro para saber si es un dato real o una estimación.",
+    "Los valores en USD son una referencia para que el rango no quede viejo por la inflación en pesos."
+  ]
+}

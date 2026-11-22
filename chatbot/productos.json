@@ -1,0 +1,7 @@
+{
+  "_leer": "Lo único que el chatbot puede cobrar. Son EJEMPLOS: reemplazalos por lo que realmente vendas (nombre y precio en USD). Si la lista queda vacía, el bot no ofrece pagos.",
+  "productos": [
+    { "id": "itinerario-1-dia", "nombre": "Itinerario personalizado de 1 día (ejemplo)", "precio_usd": 5 },
+    { "id": "itinerario-3-dias", "nombre": "Itinerario personalizado de 3 días (ejemplo)", "precio_usd": 12 }
+  ]
+}
