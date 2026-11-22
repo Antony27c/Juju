@@ -304,6 +304,7 @@ function leerJSONGemini(texto) {
 const REINTENTAR_CON_OTRO = new Set([404, 429, 500, 503]);
 const API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
 let modeloElegido = null;
+let pensarPoco = true;
 let modelosVistos = null; // lo que devolvió la lista de modelos la última vez que hizo falta consultarla
 export const modeloGeminiEnUso = () => modeloElegido;
 export const modelosGeminiVistos = () => modelosVistos;
@@ -342,9 +343,16 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
     contents: [{ parts: [{ text: `${PROMPT}\n\n${descripcion}` }, ...imagenes] }],
     generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
   };
+  // Es una clasificación simple: con poco razonamiento contesta en segundos. Si el modelo no acepta esa opción (400), va sin ella.
+  const enviar = (modelo, rapido) => fetchFn(`${API_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, signal: AbortSignal.timeout(20000),
+    body: JSON.stringify(rapido ? { ...cuerpo, generationConfig: { ...cuerpo.generationConfig, thinkingConfig: { thinkingLevel: 'low' } } } : cuerpo),
+  });
   const pedir = async (modelo) => {
     try {
-      return await fetchFn(`${API_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(cuerpo), signal: AbortSignal.timeout(12000) });
+      let x = pensarPoco ? await enviar(modelo, true) : null;
+      if (x && x.status === 400) { pensarPoco = false; x = null; }
+      return x || await enviar(modelo, false);
     } catch (e) { // sin respuesta o tardó de más: cuenta como un modelo caído y se prueba con otro
       return { ok: false, status: 0, fallo: error(`No se pudo conectar con Gemini (modelo ${modelo}: ${e?.name || 'error'}${e?.cause?.code ? ' ' + e.cause.code : ''}).`, 502) };
     }
@@ -358,7 +366,7 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
     modelosVistos = vistos.filter(n => /^gemini-/.test(n)).slice(0, 60);
     const probados = new Set([modelo]);
     for (const otro of ordenModelos(vistos).filter(n => !probados.has(n)).slice(0, 3)) {
-      if (Date.now() - desde > 25000) break; // el usuario está esperando
+      if (Date.now() - desde > 30000) break; // el usuario está esperando
       probados.add(otro); modelo = otro; r = await pedir(otro);
       if (!otroModelo(r)) break;
     }
