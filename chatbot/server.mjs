@@ -44,9 +44,9 @@ function prepararAgente() {
   if (!clave() || /^(off|no|0|false)$/i.test(process.env.ELEVENLABS_SINCRONIZAR || '')) return;
   const archivo = path.join(AQUI, 'agente.json');
   const tarea = (async () => {
+    let ids = {};
     try {
       const { prepararAgentes } = await import('./crear-agente.mjs');
-      let ids = {};
       try { if (existsSync(archivo)) ids = JSON.parse(await readFile(archivo, 'utf8')); } catch {}
       if (agente()) ids.agente = agente();
       if (voiceAgent()) ids.voice_agent = voiceAgent();
@@ -59,6 +59,9 @@ function prepararAgente() {
     } catch (e) {
       errorAgente = String(e.message || e).slice(0, 400);
       console.error(`ElevenLabs: no pude preparar el agente. ${errorAgente}`);
+      // Si el agente ya existía en la cuenta y solo falló la actualización, se usa como está.
+      if (!agente() && ids.agente) process.env.ELEVENLABS_AGENT_ID = ids.agente;
+      if (!voiceAgent() && ids.voice_agent) process.env.ELEVENLABS_VOICE_AGENT_ID = ids.voice_agent;
     } finally { if (preparacion === tarea) preparacion = null; }
   })();
   preparacion = tarea;

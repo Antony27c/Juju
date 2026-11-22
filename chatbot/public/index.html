@@ -372,6 +372,13 @@ const SDK = ['/vendor/elevenlabs-client.js', 'https://cdn.jsdelivr.net/npm/@elev
 let serie = 0; // cada sesión tiene su número: los avisos de una sesión ya reemplazada se ignoran
 let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false, ultimaLocalidad = null;
 const historial = []; // { rol, texto }: sirve para retomar el hilo al reconectar o pasar de texto a voz
+// ¿El último mensaje del usuario está en inglés? Cuenta palabras muy comunes de cada idioma; alcanza para elegir un saludo.
+const EN = /\b(the|is|are|what|where|how|can|you|want|would|like|please|and|for|with|my|me|to|do|i|in|it|book|pay|yes|tonight|tomorrow)\b/g;
+const ES = /\b(el|la|los|las|es|son|que|qu[eé]|d[oó]nde|c[oó]mo|puedo|quiero|por|favor|para|con|mi|me|en|un|una|hay|reservar|pagar|s[ií]|hoy|ma[nñ]ana|y|de)\b/g;
+function hablaIngles() {
+  const u = historial.findLast((h) => h.rol === 'user')?.texto.toLowerCase() || '';
+  return (u.match(EN) || []).length > (u.match(ES) || []).length;
+}
 
 // ---------- piezas de interfaz ----------
 function nodo(tag, clase, texto) { const n = document.createElement(tag); if (clase) n.className = clase; if (texto != null) n.textContent = texto; return n; }
@@ -559,29 +566,65 @@ const herramientas = {
       : `Quedó en pantalla el botón "Abrir en Google Maps" con el camino hasta "${l.nombre}"; el navegador no dejó abrirlo solo. Pedile que lo toque, en una frase.`;
   },
   // Reserva por voz o chat: el agente ya preguntó "¿USDC o transferencia?".
-  // Demo booking: the server fakes the payment and confirms at once (reservas.mjs).
-  // Única excepción: una experiencia del catálogo pagada con USDC cuando Cosmos Pay está configurado
-  // se paga de verdad, en la hoja de reserva.
+  // La reserva va en dos llamadas. La primera cotiza: dice si hay lugar y cuánto sale, y deja en pantalla la
+  // tarjeta "por confirmar". La segunda, con confirmado en true, paga (demo: reservas.mjs simula el pago).
+  // Si el agente manda confirmado sin haber cotizado eso mismo, se cotiza igual: nunca se paga un monto que
+  // el usuario no vio. Única excepción al pago simulado: una experiencia del catálogo pagada con USDC cuando
+  // Cosmos Pay está configurado se paga de verdad, en la hoja de reserva.
   async reservar(p = {}) {
-    p = p || {};
-    const cat = await cargarCatalogo().catch(() => null);
-    const prod = p.producto_id && cat?.lista.find((x) => x.id === p.producto_id);
-    if (prod && cat.proveedor === 'cosmospay' && /usdc|cripto|crypto/i.test(String(p.metodo_pago || ''))) {
-      const r = abrirReserva(prod, { personas: p.personas, fecha: p.fecha });
-      return `La reserva de "${prod.nombre}" para ${cuantas(r.personas)} el ${r.fecha}, total ${usd(totalDe(r))}, quedó abierta en pantalla. Todavía NO está paga ni confirmada: el usuario tiene que revisar la fecha y tocar el botón de pago. Decíselo en una frase. Va a estar confirmada cuando el sistema te avise que el pago se acreditó.`;
-    }
-    pensar('Procesando la reserva');
+    p = { ...(p || {}) };
+    const confirmado = p.confirmado === true || p.confirmado === 'true';
+    delete p.confirmado; delete p.cotizar;
+    pensar(confirmado ? 'Procesando la reserva' : 'Viendo si hay lugar');
     try {
+      const cot = await post('/api/reservas', { ...p, cotizar: true });
+      const firma = firmaDe(cot);
+      if (!confirmado || firma !== cotizada) {
+        cotizada = firma; tarjetaCotizacion(cot);
+        return (confirmado ? 'El usuario todavía no confirmó esta reserva con este monto, así que no se pagó nada. ' : '') + cot.texto_modelo;
+      }
+      if (!cot.method) { dejarDePensar(); return FALTA_METODO; }
+      const cat = await cargarCatalogo().catch(() => null);
+      const prod = p.producto_id && cat?.lista.find((x) => x.id === p.producto_id);
+      if (prod && cat.proveedor === 'cosmospay' && cot.method === 'usdc') {
+        dejarDePensar(); cotizada = null;
+        const r = abrirReserva(prod, { personas: p.personas, fecha: p.fecha });
+        return `La reserva de "${prod.nombre}" para ${cuantas(r.personas)} el ${r.fecha}, total ${usd(totalDe(r))}, quedó abierta en pantalla. Todavía NO está paga ni confirmada: el usuario tiene que revisar la fecha y tocar el botón de pago. Decíselo en una frase. Va a estar confirmada cuando el sistema te avise que el pago se acreditó.`;
+      }
       const r = await post('/api/reservas', p);
-      tarjetaReserva(r);
+      cotizada = null; tarjetaReserva(r);
       return r.texto_modelo;
     } catch (e) {
       dejarDePensar();
-      if (/metodo_pago/.test(e.message)) return 'Falta el método de pago. Preguntale al usuario si paga con USDC o con dinero de su cuenta bancaria por transferencia, y después llamá de nuevo a reservar.';
+      if (/metodo_pago/.test(e.message)) return FALTA_METODO;
       return `No se pudo hacer la reserva (${e.message}). Pedile al usuario el nombre del lugar o de la experiencia y probá de nuevo.`;
     }
   },
 };
+
+const FALTA_METODO = 'Falta el método de pago y todavía no se pagó nada. Preguntale al usuario si paga con USDC o con dinero de su cuenta bancaria por transferencia, y después llamá de nuevo a reservar con confirmado en true.';
+// Lo último que se cotizó. Para pagar, la llamada confirmada tiene que coincidir con esto.
+let cotizada = null;
+const firmaDe = (r) => [r.item.name, llano(r.date), r.time, r.people, r.nights, r.amount_usd].join('|');
+const detalleReserva = (r) => [r.item.locality, r.date, r.time && `${r.time} hs`, `${r.people} ${r.people === 1 ? 'persona' : 'personas'}`, r.nights && `${r.nights} ${r.nights === 1 ? 'noche' : 'noches'}`].filter(Boolean).join(' · ');
+const montoReserva = (r) => String(r.amount_usd).replace('.', ',');
+
+// Paso 1 en pantalla: hay lugar y esto es lo que se va a pagar. Todavía no se pagó nada.
+function tarjetaCotizacion(r) {
+  const paga = r.amount_usd > 0;
+  const c = nodo('section', 'pago reserva');
+  c.append(nodo('span', 'prueba', 'Demo · pago simulado'));
+  const paso = nodo('p', 'paso'); const ok = nodo('span', '', '✓'); ok.setAttribute('aria-hidden', 'true');
+  paso.append(ok, nodo('span', '', 'Hay disponibilidad')); c.append(paso);
+  const fin = nodo('div', 'fin');
+  fin.append(nodo('p', 'que', paga ? 'Por confirmar · todavía no se pagó' : 'Por confirmar'), nodo('h4', '', r.item.name), nodo('p', 'meta', detalleReserva(r)));
+  if (paga) { const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), montoReserva(r)); fin.append(monto); }
+  fin.append(nodo('p', 'codigo', (paga ? (r.method_label ? `Se paga con ${r.method_label}. ` : 'Falta elegir cómo pagás: USDC o transferencia. ') : '') + 'Decí que sí para confirmar.'));
+  c.append(fin); dejarDePensar(); agregar(c);
+  const f = nodo('div', 'ficha');
+  f.append(nodo('span', 'prueba', 'Por confirmar · demo'), nodo('b', '', r.item.name), nodo('span', 'meta', detalleReserva(r)), nodo('span', 'precio', paga ? `USD ${montoReserva(r)} · decí que sí para pagar` : 'Sin costo · decí que sí para reservar'));
+  $('tira').replaceChildren(f); tiraDe = 'reserva'; $('tira').hidden = false; $('verExp').setAttribute('aria-pressed', 'false');
+}
 
 const PROCESSING_MS = 900; // short "processing" beat so the payment step reads before the confirmation
 function tarjetaReserva(r) {
@@ -592,9 +635,7 @@ function tarjetaReserva(r) {
   paso.append(mini, nodo('span', '', paga ? `Procesando el pago con ${r.method_label}` : 'Confirmando la reserva'));
   const fin = nodo('div', 'fin'); fin.setAttribute('aria-hidden', 'true');
   fin.append(nodo('p', 'que', 'Reserva confirmada'), nodo('h4', '', r.item.name));
-  const personas = `${r.people} ${r.people === 1 ? 'persona' : 'personas'}`;
-  const noches = r.nights && `${r.nights} ${r.nights === 1 ? 'noche' : 'noches'}`;
-  const detalle = [r.item.locality, r.date, r.time && `${r.time} hs`, personas, noches].filter(Boolean).join(' · ');
+  const detalle = detalleReserva(r);
   fin.append(nodo('p', 'meta', detalle));
   if (paga) { const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), String(r.amount_usd).replace('.', ',')); fin.append(monto); }
   const codigo = nodo('p', 'codigo'); codigo.append('Código de reserva ', nodo('b', '', r.code)); fin.append(codigo);
@@ -816,7 +857,7 @@ async function iniciarVoz() {
   if (sinAgente) { subtitulo('Para hablar falta conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.'); return; }
   if (modo === 'voz' || conectandoVoz) return;
   conectandoVoz = true; silenciado = false; verVoz();
-  try { await conectar('voz', historial.length ? 'Dale, te escucho.' : undefined); }
+  try { await conectar('voz', historial.length ? (hablaIngles() ? "Go ahead, I'm listening." : 'Dale, te escucho.') : undefined); }
   catch (e) {
     const m = (e.name === 'NotAllowedError' ? 'Para hablar necesito permiso de micrófono. Habilitalo en el navegador y tocá de nuevo. ' : 'No pude conectar. ') + (e.message || '');
     subtitulo(m); aviso(m, true); estado('listo');

@@ -1,7 +1,8 @@
 // Demo reservations for juju.
-// The assistant asks how the user wants to pay (USDC or bank transfer) and then calls the
-// `reservar` tool. This module pretends the payment went through and confirms the booking at
-// once, so the demo never waits on a payment provider. Nothing is charged and nothing is booked.
+// The assistant asks how the user wants to pay (USDC or bank transfer) and calls the `reservar`
+// tool twice: first to quote (cotizar), so the user can confirm the activity, the amount and the
+// time, and then to confirm. This module pretends there is room and that the payment went
+// through, so the demo never waits on a provider. Nothing is charged and nothing is booked.
 // No imports on purpose: server.mjs resolves the place and the product and passes them in.
 
 // Reference prices in USD per tier, in line with "rangos_precio" in estructura.json.
@@ -38,15 +39,30 @@ function modelText(r) {
     + 'Decile al usuario en una o dos frases que el pago se acreditó y que la reserva quedó confirmada, con el lugar, la fecha y el código.';
 }
 
+// Lo que el agente tiene que decir después de cotizar: el usuario confirma actividad, monto y hora antes de pagar.
+function quoteText(r) {
+  const when = [r.date, r.time && `a las ${r.time}`].filter(Boolean).join(' ');
+  const details = [`${r.people} ${r.people === 1 ? 'persona' : 'personas'}`, r.nights && `${r.nights} ${r.nights === 1 ? 'noche' : 'noches'}`].filter(Boolean).join(', ');
+  const total = r.amount_usd > 0 ? `Total: USD ${r.amount_usd}${r.method_label ? ` con ${r.method_label}` : ''}.` : 'No tiene costo.';
+  const ask = r.amount_usd > 0
+    ? `"Hay disponibilidad. Para conectar la reserva y pagar, confirmame por favor que querés pagar ${r.item.name} por USD ${r.amount_usd}, ${when}."`
+    : `"Hay disponibilidad. Confirmame por favor que querés reservar ${r.item.name}, ${when}."`;
+  return `Hay disponibilidad, pero todavía NO está reservado ni pagado. ${r.item.name}${r.item.locality ? ` (${r.item.locality})` : ''}, ${when}, ${details}. ${total} `
+    + `Pedile la confirmación en una sola frase, con la actividad, el monto y la hora, así: ${ask} `
+    + (r.method ? '' : 'Falta el método de pago: en la misma frase preguntale si paga con USDC o por transferencia bancaria. ')
+    + 'Cuando diga que sí, llamá de nuevo a reservar con los mismos datos y confirmado en true. Si dice que no o cambia algo, no reserves.';
+}
+
 /**
- * Confirms a demo reservation and returns it, payment included.
- * @param {object} request tool parameters: lugar, localidad, producto_id, fecha, hora, personas, noches, metodo_pago
+ * Quotes a demo reservation (cotizar = true) or confirms it, payment included.
+ * @param {object} request tool parameters: lugar, localidad, producto_id, fecha, hora, personas, noches, metodo_pago, cotizar
  * @param {object|null} place directory entry in the compact shape returned by buscar(), when found
  * @param {object|null} product catalog entry from productos.json, when the user hires a product
  */
 export function confirmDemoReservation(request = {}, place = null, product = null) {
+  const quote = Boolean(request.cotizar);
   const method = paymentMethod(request.metodo_pago);
-  if (!method) throw new Error('metodo_pago must be "usdc" or "banco"');
+  if (!method && !quote) throw new Error('metodo_pago must be "usdc" or "banco"');
   const name = product?.nombre || place?.nombre || String(request.lugar || '').trim().slice(0, 120);
   if (!name) throw new Error('lugar or producto_id is required');
 
@@ -61,8 +77,8 @@ export function confirmDemoReservation(request = {}, place = null, product = nul
   else amount = (PER_PERSON_USD[tier] ?? PER_PERSON_USD[DEFAULT_TIER]) * people;
 
   const reservation = {
-    code: `JUJ-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
-    status: 'confirmed',
+    code: quote ? null : `JUJ-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
+    status: quote ? 'quoted' : 'confirmed',
     demo: true,
     kind: product ? 'product' : 'place',
     item: {
@@ -75,8 +91,8 @@ export function confirmDemoReservation(request = {}, place = null, product = nul
     nights,
     amount_usd: Math.round(amount * 100) / 100,
     method,
-    method_label: METHOD_LABELS[method],
-    paid_at: new Date().toISOString(),
+    method_label: method ? METHOD_LABELS[method] : null,
+    paid_at: quote ? null : new Date().toISOString(),
   };
-  return { ...reservation, texto_modelo: modelText(reservation) };
+  return { ...reservation, texto_modelo: quote ? quoteText(reservation) : modelText(reservation) };
 }

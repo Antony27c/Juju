@@ -49,8 +49,10 @@ Added on 2026-11-22. This section describes the current behaviour; where an olde
 
 ### Demo bookings (`reservar`)
 
-- The `reservar` client tool replaces `solicitar_pago`. When the user wants to book a place from the directory (or a catalog product), the agent asks in one sentence for what is missing: date, people, nights for lodging, and **whether they pay with USDC or with money from their bank account by transfer**. The agent never picks the method itself (`metodo_pago` is required: `usdc` or `banco`).
-- `POST /api/reservas` (`chatbot/reservas.mjs`) **simulates the payment and confirms the booking at once**. It returns a code such as `JUJ-4F2A9C`. Nothing is charged and nothing is actually booked. The card on the page says "Demo · pago simulado".
+- The `reservar` client tool replaces `solicitar_pago`. A booking takes **two calls**. The first one (no `confirmado`) is a quote: `POST /api/reservas` with `cotizar: true` returns the amount and "hay disponibilidad" without booking or charging, and the page shows a "Por confirmar" card. The agent then asks the user to confirm the activity, the amount and the time in one sentence, and in that same sentence **whether they pay with USDC or by bank transfer** if they have not said so (the agent never picks the method). Only after an explicit yes does it call `reservar` again with `confirmado: true`.
+- The page enforces this: a call with `confirmado: true` pays only if it matches the last quote shown (same item, date, time, people, nights and amount). Otherwise it is treated as a new quote, so an amount the user has not seen is never paid.
+- Availability is not checked against anyone: the demo always answers that there is room.
+- On the confirmed call, `POST /api/reservas` (`chatbot/reservas.mjs`) **simulates the payment and confirms the booking at once**. It returns a code such as `JUJ-4F2A9C`. Nothing is charged and nothing is actually booked. The card on the page says "Demo · pago simulado".
 - The amount is a reference figure: catalog products use their price. Places use the price tier from `estructura.json`: lodging per night ($ 25, $$ 50, $$$ 110, $$$$ 180 USD) and the rest per person ($ 7, $$ 14, $$$ 30, $$$$ 50 USD). Free places cost 0.
 - The Cosmos Pay code (`pagos.mjs`, `/api/pagos`, webhook) is unchanged, but the agent no longer uses it. To charge for real again, the `reservar` tool would have to call `/api/pagos` instead of `/api/reservas`.
 
@@ -256,7 +258,7 @@ Las cuatro son `type: "client"`, con `expects_response: true` y 20 segundos de e
 | `buscar_lugares` | `texto`, `categoria`, `subcategoria`, `localidad`, `region`, `precio_max`, `solo_abiertos`, `hora`, `dia`, `radio_km`, `limite` | `POST /api/buscar` y muestra los lugares |
 | `ver_experiencias` | `localidad` (opcional) | `GET /api/productos` y muestra las experiencias reservables |
 | `como_llegar` | `lugar` (obligatorio), `localidad` | Resuelve el lugar por nombre (entre los ya mostrados o con `POST /api/buscar`), muestra el botón "Abrir en Google Maps" con el camino e intenta abrirlo. Si el nombre coincide con más de un lugar no abre nada y le devuelve las opciones al agente |
-| `reservar` | `metodo_pago` (obligatorio: `usdc` o `banco`), `lugar`, `localidad`, `producto_id`, `fecha`, `hora`, `personas`, `noches` | Reserva de demostración: `POST /api/reservas` simula el pago y muestra la reserva confirmada. Si es una experiencia del catálogo, el usuario eligió USDC y Cosmos Pay está configurado, abre la hoja de reserva para pagar de verdad |
+| `reservar` | `lugar`, `localidad`, `producto_id`, `fecha`, `hora`, `personas`, `noches`, `metodo_pago` (`usdc` o `banco`, hace falta para pagar), `confirmado` (`true` solo después del sí del usuario) | Reserva de demostración en dos llamadas. Sin `confirmado`: cotiza y muestra la tarjeta "Por confirmar", sin pagar. Con `confirmado` y la misma cotización: `POST /api/reservas` simula el pago y muestra la reserva confirmada. Si es una experiencia del catálogo, el usuario eligió USDC y Cosmos Pay está configurado, abre la hoja de reserva para pagar de verdad |
 
 El catálogo de experiencias también viaja en la variable `{{catalogo_pagos}}` junto con la fecha de hoy, así el agente puede nombrar experiencias y precios sin llamar a ninguna herramienta.
 
@@ -358,7 +360,7 @@ Qué probar si hace falta más velocidad, con la cuenta ya conectada:
 
 `pagos.mjs` cobra las experiencias de `productos.json` (hoy son ejemplos, marcados con `"ejemplo": true`: los precios no están acordados con ningún operador). El modelo no puede fijar montos: pasa el id, la cantidad de personas y la fecha, y el servidor calcula el total (precio por persona × personas, de 1 a 20, fecha de hoy en adelante).
 
-Hay dos caminos de reserva. Por voz o chat, la herramienta `reservar` usa `reservas.mjs`: es una demostración que simula el pago al instante y devuelve un código `JUJ-XXXXXX`; no cobra ni reserva nada, y la pantalla lo marca como "Demo · pago simulado". En pantalla (botón del boleto o link directo), la hoja de reserva crea un pago real con `pagos.mjs` cuando hay un proveedor configurado, y si no lo hay usa la misma demostración.
+Hay dos caminos de reserva. Por voz o chat, la herramienta `reservar` usa `reservas.mjs`: es una demostración que primero cotiza y pide la confirmación del usuario, y recién con el sí simula el pago y devuelve un código `JUJ-XXXXXX`; no cobra ni reserva nada, y la pantalla lo marca como "Demo · pago simulado". En pantalla (botón del boleto o link directo), la hoja de reserva crea un pago real con `pagos.mjs` cuando hay un proveedor configurado, y si no lo hay usa la misma demostración.
 
 En el camino con pago, cada reserva es un pago con `personas`, `fecha` y un `codigo` (`JU-XXXXXX`). Queda confirmada cuando el pago pasa a `pagado`; la página le avisa al agente con `sendContextualUpdate`. No hay control de cupos ni aviso al operador: eso depende de quién preste la experiencia.
 

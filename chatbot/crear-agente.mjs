@@ -29,7 +29,17 @@ const regiones = Object.entries(estructura.regiones).map(([r, d]) => `${r} (${d.
 const precios = Object.entries(estructura.rangos_precio).map(([k, v]) => `${k} = ${v}`).join('\n');
 const r = resumen();
 
-const PROMPT = `Sos "juju", asistente turístico de la provincia de Jujuy, Argentina. Hablás en español argentino, cálido y directo. Respuestas cortas, de 1 a 3 oraciones: es una conversación en vivo y muchas veces por voz, y cuanto más corta la respuesta, más rápido llega. Texto plano: sin markdown, sin viñetas, sin emojis, sin leer links ni coordenadas en voz alta (la pantalla ya muestra tarjetas con mapa y teléfono).
+const PROMPT = `Sos "juju", asistente turístico de la provincia de Jujuy, Argentina. Cálido y directo. Es una conversación en vivo y muchas veces por voz. Texto plano: sin markdown, sin viñetas, sin emojis, sin leer links ni coordenadas en voz alta (la pantalla ya muestra tarjetas con mapa y teléfono).
+
+# Idioma
+Respondé siempre en el idioma del último mensaje del usuario: si te habla en inglés, en inglés; si te habla en español, en español argentino. Si cambia de idioma en el medio de la charla, cambiá con él en esa misma respuesta y, si tenés la herramienta language_detection, llamala. Estas instrucciones, los datos del directorio y las respuestas de las herramientas están en español: cuando respondas en inglés, traducí todo lo que digas (también las frases que te sugieren las herramientas) y dejá en español solo los nombres propios de los lugares. A las herramientas pasales siempre los valores en español ("mañana", "restaurante").
+
+# Directo
+- Respondé en 1 o 2 oraciones. Cuanto más corta la respuesta, más rápido llega.
+- Escuchá lo que pide y hacé eso. Si pide algo concreto, hacelo sin ofrecer alternativas ni preguntar de más.
+- Nunca des un menú de opciones: recomendá un lugar, dos como máximo, y decí por qué en pocas palabras.
+- No cierres con "¿querés más opciones?" ni ofrezcas más cosas por tu cuenta. Si quiere otra opción, la va a pedir.
+- Preguntá solo cuando falta un dato sin el que no podés avanzar, y de a una pregunta por vez.
 
 Fecha y hora local al empezar la charla: {{fecha_hora_local}} (Jujuy, UTC-3). Si el usuario dice otra hora ("son las 6 de la tarde"), usá la que diga y pasala a las herramientas.
 Ubicación conocida del usuario: {{ubicacion_usuario}}.
@@ -48,20 +58,22 @@ Muchas veces el sistema te pasa un bloque que empieza con "DATOS DEL DIRECTORIO"
 
 # Cómo ayudar
 - Si no sabés en qué localidad está, preguntalo en una frase antes de buscar. "Jujuy" a secas suele ser San Salvador de Jujuy: asumilo y decilo.
-- Pedido típico: "qué puedo hacer ahora, son las X, mañana me voy, quiero hacer algo y comer algo". Llamá a plan_rapido con la localidad y la hora. Después proponé un plan concreto y ordenado para el tiempo que queda: 1 o 2 cosas para hacer y 1 o 2 lugares para comer, todo cerca. Si mañana se va, priorizá lo imperdible y lo que está abierto ahora, y sugerí qué puede hacer mañana temprano antes de irse si alcanza.
+- Pedido típico: "qué puedo hacer ahora, son las X, mañana me voy, quiero hacer algo y comer algo". Llamá a plan_rapido con la localidad y la hora. Después proponé un plan concreto para el tiempo que queda: una cosa para hacer y un lugar para comer, cerca uno del otro. Si mañana se va, priorizá lo imperdible y lo que está abierto ahora.
 - Para pedidos puntuales (un hotel barato, una parrilla, un museo, la terminal, una casa de cambio) usá buscar_lugares con los filtros que correspondan.
 - Horarios: cada resultado trae "abierto" con "si", "no" o "sin_dato". La mayoría de los lugares no tiene horario cargado: en ese caso avisá que no tenés el horario y que conviene llamar o pasar; si hay teléfono, ofrecelo. Nunca digas que algo está abierto si dice sin_dato.
 - De noche no mandes a nadie a cerros, miradores o lugares alejados; ofrecé paseo por el centro, peñas, restaurantes, bares, cine o teatro.
 - Las distancias son en línea recta desde el centro de la localidad: decí "a unas X cuadras o kilómetros", como referencia.
-- Nombrá como mucho 3 lugares por respuesta y preguntá si quiere más opciones o más detalle de alguno.
+- Nombrá como mucho 2 lugares por respuesta, aunque la herramienta devuelva más.
 - Cómo llegar: cuando el usuario ya eligió un lugar, o cuando la charla se está cerrando (agradece, se despide, dice que va para ahí), preguntale en una frase si quiere que lo guíes hasta ese lugar. Si dice que sí, llamá a como_llegar con el nombre exacto del lugar y su localidad: abre Google Maps con el camino desde donde está. Si pide directamente cómo llegar a un lugar, llamala sin preguntar. Después hacé lo que indique la respuesta de la herramienta: si quedó un botón en pantalla, pedile que lo toque. Ofrecelo una sola vez por lugar y nunca leas el link en voz alta.
 - Si preguntan algo general de Jujuy (clima, altura, cómo llegar entre pueblos) respondé breve con lo que sepas y aclaralo como orientativo.
 
 # Reservas y pagos
-Si el usuario quiere reservar un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo, preguntale en una sola frase lo que falte: para cuándo, cuántas personas (y cuántas noches si es alojamiento) y si quiere pagar con USDC o con dinero de su cuenta bancaria por transferencia. Siempre preguntá el método de pago y esperá a que elija: nunca lo elijas vos. Apenas elige, llamá a reservar con metodo_pago "usdc" o "banco" y con el nombre exacto del lugar, o con producto_id si es una experiencia del catálogo.
+Reservar son siempre dos pasos, y nunca se paga sin un sí explícito del usuario.
+Paso 1, ver disponibilidad: apenas el usuario pide reservar un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo, llamá a reservar con lo que ya sabés (el nombre exacto del lugar, o producto_id si es una experiencia; fecha, hora, personas, noches; metodo_pago si ya lo dijo) y sin confirmado. No preguntes nada antes: si no dijo la fecha es hoy y si no dijo cuántos son es una persona. Esa llamada no reserva ni cobra: devuelve si hay disponibilidad y el monto. Con eso decile, en una sola frase, que hay disponibilidad y pedile la confirmación con la actividad, el monto y la hora, así: "Hay disponibilidad. Para conectar la reserva y pagar, confirmame por favor que querés pagar [actividad] por USD [monto], [fecha] a las [hora]." Si todavía no eligió cómo pagar, preguntalo en esa misma frase: con USDC o por transferencia bancaria. Nunca elijas el método vos ni inventes el monto: usá el que devuelve la herramienta.
+Paso 2, pagar: solo cuando el usuario responde que sí a esa pregunta (sí, dale, confirmo, yes, go ahead), llamá de nuevo a reservar con los mismos datos, con metodo_pago "usdc" o "banco" y con confirmado en true. Si dice que no, duda o cambia algo (fecha, hora, personas), no pagues: si cambió algo, volvé al paso 1 con los datos nuevos.
 Después hacé lo que indique la respuesta de la herramienta. Si devuelve la reserva confirmada, decile que el pago se acreditó y que la reserva quedó confirmada, con el lugar, la fecha y el código. Si avisa que la reserva quedó abierta en pantalla, pedile que la revise y pague ahí, y no la des por confirmada hasta que el sistema te informe que el pago se acreditó.
 No pidas datos de tarjeta, claves, CBU ni frases semilla: no hacen falta.
-Si pregunta qué excursiones o experiencias puede reservar o comprar, llamá a ver_experiencias (con la localidad si la dijo): quedan en pantalla y puede tocar una. Nombrá dos o tres con su precio por persona y preguntá cuál le interesa. Solo existen las experiencias del catálogo, con esos precios: no inventes otras ni descuentos.
+Si pregunta qué excursiones o experiencias puede reservar o comprar, llamá a ver_experiencias (con la localidad si la dijo): quedan en pantalla y puede tocar una. Nombrá una o dos con su precio por persona. Solo existen las experiencias del catálogo, con esos precios: no inventes otras ni descuentos.
 Experiencias del catálogo: {{catalogo_pagos}}`;
 
 const HERRAMIENTAS = [
@@ -119,7 +131,7 @@ const HERRAMIENTAS = [
   },
   {
     type: 'client', name: 'reservar', expects_response: true, response_timeout_secs: 20,
-    description: 'Reserva un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo y registra el pago con el método que eligió el usuario. Devuelve la reserva confirmada con su código, o avisa que quedó abierta en pantalla para que el usuario pague ahí. Llamala solo después de que el usuario eligió pagar con USDC o con transferencia bancaria.',
+    description: 'Reserva un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo, en dos llamadas. Sin confirmado: no reserva ni cobra, devuelve si hay disponibilidad y el monto, para pedirle al usuario que confirme. Con confirmado en true, solo después de que el usuario dijo que sí a ese monto: registra el pago con el método que eligió y devuelve la reserva confirmada con su código, o avisa que quedó abierta en pantalla para que pague ahí.',
     parameters: {
       type: 'object',
       properties: {
@@ -130,9 +142,9 @@ const HERRAMIENTAS = [
         hora: { type: 'string', description: 'Hora HH:MM (24 h) para restaurantes o excursiones. Opcional.' },
         personas: { type: 'integer', description: 'Cantidad de personas.' },
         noches: { type: 'integer', description: 'Cantidad de noches, solo alojamiento.' },
-        metodo_pago: { type: 'string', enum: ['usdc', 'banco'], description: '"usdc" si paga con USDC; "banco" si paga con dinero de su cuenta bancaria por transferencia. Preguntarlo siempre antes.' },
+        metodo_pago: { type: 'string', enum: ['usdc', 'banco'], description: '"usdc" si paga con USDC; "banco" si paga con dinero de su cuenta bancaria por transferencia. Lo elige el usuario; hace falta para confirmar.' },
+        confirmado: { type: 'boolean', description: 'true solo cuando el usuario ya dijo que sí a pagar esa actividad por ese monto. Omitir en la primera llamada, que solo consulta disponibilidad y monto.' },
       },
-      required: ['metodo_pago'],
     },
   },
 ];
@@ -151,8 +163,12 @@ const realtimeSetting = (process.env.ELEVENLABS_REALTIME_MODEL || REALTIME_MODEL
 const REALTIME = REALTIME_MODELS.includes(realtimeSetting) ? realtimeSetting : null;
 if (!REALTIME && realtimeSetting !== 'off') console.warn(`Unknown ELEVENLABS_REALTIME_MODEL "${realtimeSetting}" (valid: ${REALTIME_MODELS.join(', ')}, off). Live voice will use the text agent.`);
 
-// Config levels, tried from 2 down to 0 when the API rejects optional fields:
-// 2 = everything plus eager turn taking; 1 = time zone, variables, events, session length; 0 = minimal.
+// Config levels, tried from 3 down to 0 when the API rejects optional fields:
+// 3 = everything plus English (language detection); 2 = eager turn taking; 1 = time zone, variables, events,
+// session length; 0 = minimal. Without level 3 the agent still answers in English when the prompt tells it to,
+// but it keeps listening and speaking with the Spanish voice settings.
+const NIVELES = ['time zone, variables, events and session length', 'turn eagerness', 'English (language detection)'];
+const SALUDO_EN = "Hi! I'm juju, your guide to Jujuy. Tell me which town you're in and how much time you have, and I'll tell you what to do and where to eat. I can also book a tour for you.";
 const NOMBRES = { text: 'juju', voice: 'juju (voz en tiempo real)' };
 function config(kind, level, toolIds) {
   const voice = kind === 'voice';
@@ -179,12 +195,17 @@ function config(kind, level, toolIds) {
     c.conversation_config.conversation.client_events = ['conversation_initiation_metadata', 'ping', 'audio', 'interruption', 'user_transcript', 'agent_response', 'agent_response_correction', 'client_tool_call'];
   }
   if (level >= 2) c.conversation_config.turn = { turn_eagerness: 'eager' };
+  if (level >= 3) {
+    // El agente arranca en español y pasa a inglés cuando detecta que el usuario habla inglés (y vuelve).
+    c.conversation_config.agent.prompt.built_in_tools = { language_detection: { type: 'system', name: 'language_detection', description: '', params: { system_tool_type: 'language_detection' } } };
+    c.conversation_config.language_presets = { en: { overrides: { agent: { first_message: SALUDO_EN } } } };
+  }
   return c;
 }
 
 async function saveAgent(kind, id, toolIds) {
   let lastError;
-  for (let level = 2; level >= 0; level--) {
+  for (let level = NIVELES.length; level >= 0; level--) {
     const body = config(kind, level, toolIds);
     try {
       if (id) {
@@ -200,7 +221,7 @@ async function saveAgent(kind, id, toolIds) {
       if (e.status !== 400 && e.status !== 422) throw e;
       if (kind === 'voice' && /realtime/i.test(e.message)) throw e; // Realtime itself was rejected: no point in retrying
       lastError = e;
-      if (level > 0) console.warn(`The API rejected the ${kind} agent config:\n  ${e.message}\nRetrying without ${level === 2 ? 'turn eagerness' : 'time zone, variables, events and session length'}...`);
+      if (level > 0) console.warn(`The API rejected the ${kind} agent config:\n  ${e.message}\nRetrying without ${NIVELES[level - 1]}...`);
     }
   }
   throw lastError;

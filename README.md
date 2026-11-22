@@ -9,7 +9,9 @@ Guía de la provincia de Jujuy que se usa hablando. Le contás dónde estás y c
 - **Directorio.** 2.755 lugares de Jujuy (comida, alojamiento, atractivos, servicios), con distancia, precio aproximado, teléfono, mapa y, cuando está cargado, horario.
 - **Cómo llegar.** Cuando elegís un lugar, juju pregunta si querés que te guíe. Si decís que sí, abre Google Maps con el camino desde donde estás y deja el botón en pantalla. Cada lugar de las listas tiene además su link "Cómo llegar".
 - **Respuesta rápida.** Antes de que el mensaje llegue al modelo, el servidor ya buscó los lugares para esa localidad y esa hora (tarda milisegundos).
-- **Reservas por voz.** Pedís reservar un lugar o una experiencia, juju pregunta si pagás con USDC o por transferencia y te da un código. Es una demostración: el pago es simulado, no se cobra ni se reserva nada.
+- **Español e inglés.** juju responde en el idioma en que le hablás y cambia si cambiás vos.
+- **Respuestas directas.** Hace lo que le pedís y recomienda un lugar, dos como máximo, sin listas de opciones.
+- **Reservas por voz.** Pedís reservar un lugar o una experiencia, juju te dice que hay disponibilidad y te pide que confirmes la actividad, el monto y la hora (y si pagás con USDC o por transferencia). Solo con tu sí paga y te da un código. Es una demostración: el pago es simulado, no se cobra ni se reserva nada, y la disponibilidad no se consulta con nadie.
 - **Reservas en pantalla.** Elegís una experiencia, cuántas personas y la fecha, y ves el total. Con Cosmos Pay configurado se paga de verdad; sin eso usa la misma demostración.
 - **Pagos.** En dólares digitales (USDC o USDT) con Cosmos Pay, o en modo de prueba sin mover dinero.
 
@@ -74,7 +76,7 @@ Para tener en cuenta:
 
 ## Qué falta
 
-- La conversación con ElevenLabs (voz y texto) está programada pero no se probó: todavía no hay clave cargada.
+- La conversación por voz no se probó hablando de verdad: se verificó que el chat responde y que la sesión de voz abre en el deploy, no cómo suena ni el cambio de idioma por voz.
 - Las experiencias y sus precios son de ejemplo, sin acuerdo con ningún operador.
 - La reserva por voz es una demostración: dice "pago acreditado" y "reserva confirmada" sin cobrar ni avisar a ningún hotel, restaurante u operador. En pantalla aparece marcada como "Demo · pago simulado".
 - La reserva con pago real registra el pedido, cobra y da un código. No controla cupos ni avisa al operador.
