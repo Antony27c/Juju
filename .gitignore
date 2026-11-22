@@ -4,6 +4,7 @@
 !.env.example
 chatbot/agente.json
 chatbot/pagos.json
+chatbot/.pasaporte-secreto
 node_modules/
 # descargas crudas (se regeneran con construir.py; incluyen respuestas de error)
 datos_crudos/

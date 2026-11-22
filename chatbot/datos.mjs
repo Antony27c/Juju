@@ -395,3 +395,8 @@ export function planRapido(p = {}) {
     para_hacer: hacer, para_comer: comer,
   };
 }
+
+/** One directory record by its stable id (used by the Pasaporte to join its stops with the directory). */
+export function registroPorId(id) {
+  return registros.find((r) => r.id === id) || null;
+}

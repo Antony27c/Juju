@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0e1a" media="(prefers-color-scheme: dark)">
+<title>Pasaporte de Jujuy · juju</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Plus+Jakarta+Sans:wght@400..800&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous" referrerpolicy="no-referrer">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+<style>
+  /* Same system as the main page: light surfaces, one typeface, pixel lettering only for the brand and small labels.
+     The passport adds stamps and badges drawn as pixel art, in the seven colors of the hills. */
+  :root {
+    --suelo: #f5f4f0; --papel: #ffffff; --hueco: #eeece6; --tinta: #15172b; --tenue: #5a6077; --linea: #e3e1da;
+    --acento: #c2185b; --sobre-acento: #ffffff; --si: #17754a; --no: #b3261e; --duda: #8a6100;
+    --f1: #cf1c6b; --f2: #b5202e; --f3: #e56a1c; --f4: #edb21f; --f5: #2c8a4d; --f6: #1397a6; --f7: #5d3fa6;
+    --sombra: 0 1px 2px rgb(21 23 43 / .05), 0 10px 28px rgb(21 23 43 / .07);
+    --texto: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+    --pixel: "Pixelify Sans", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --radio: 16px; --radio-s: 12px; --suave: cubic-bezier(.22, 1, .36, 1);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --suelo: #0c0e1a; --papel: #161929; --hueco: #1e2237; --tinta: #eef0f8; --tenue: #9ea5bd; --linea: #272b44;
+      --acento: #ff6b9d; --sobre-acento: #1a0610; --si: #5fd39a; --no: #ff8a80; --duda: #e9c46a;
+      --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
+      --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .38);
+      color-scheme: dark;
+    }
+    :root:not([data-theme="light"]) .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.6); }
+  }
+  :root[data-theme="dark"] {
+    --suelo: #0c0e1a; --papel: #161929; --hueco: #1e2237; --tinta: #eef0f8; --tenue: #9ea5bd; --linea: #272b44;
+    --acento: #ff6b9d; --sobre-acento: #1a0610; --si: #5fd39a; --no: #ff8a80; --duda: #e9c46a;
+    --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
+    --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .38);
+    color-scheme: dark;
+  }
+  :root[data-theme="dark"] .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.6); }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--suelo); color: var(--tinta); font: 400 16px/1.5 var(--texto); -webkit-font-smoothing: antialiased; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+  a { color: var(--acento); text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 8px; }
+  h1, h2, h3, p { margin: 0; }
+
+  .pagina { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-left, 0px)) max(28px, env(safe-area-inset-bottom, 0px)); }
+
+  /* --- tapa --- */
+  .tapa { display: flex; align-items: center; gap: 12px; padding-block: 14px 12px; }
+  .nombre { font: 700 30px/1 var(--pixel); letter-spacing: .01em; color: var(--tinta); text-decoration: none; }
+  .titulo-tapa { font: 500 15px/1 var(--pixel); letter-spacing: .06em; text-transform: uppercase; color: var(--tenue); padding: 7px 11px; background: var(--hueco); border-radius: 999px; }
+  .volver { margin-left: auto; height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; background: var(--papel); border: 1px solid var(--linea); border-radius: 999px; color: var(--tinta); text-decoration: none; font-size: 14px; font-weight: 650; transition: border-color .15s var(--suave); }
+  .volver:hover { border-color: var(--tenue); }
+  .franjas { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--f1) 0 14.28%, var(--f2) 0 28.57%, var(--f3) 0 42.85%, var(--f4) 0 57.14%, var(--f5) 0 71.42%, var(--f6) 0 85.71%, var(--f7) 0); }
+
+  /* --- layout: one column on phones; map on the right, sticky, on wide screens --- */
+  .cuerpo { display: grid; gap: 18px; padding-top: 18px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 980px) {
+    .cuerpo { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); grid-template-areas: "portada mapa" "sellado mapa" "listas mapa" "como mapa" "pie mapa"; align-items: start; column-gap: 28px; }
+    .portada { grid-area: portada; } .sellado { grid-area: sellado; } .listas { grid-area: listas; } .como { grid-area: como; } .pie-pagina { grid-area: pie; }
+    .mapa-caja { grid-area: mapa; position: sticky; top: 16px; }
+    .mapa { height: min(640px, calc(100vh - 150px)) !important; }
+  }
+  .tarjeta { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 18px; }
+
+  /* --- portada: count and the strip of stamps --- */
+  .rotulo { font: 500 14px/1 var(--pixel); letter-spacing: .06em; text-transform: uppercase; color: var(--tenue); }
+  .portada h1 { margin-top: 10px; font: 750 clamp(34px, 8vw, 52px)/1.02 var(--texto); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .portada h1 em { font-style: normal; color: var(--acento); }
+  .bajada { margin-top: 8px; color: var(--tenue); max-width: 46ch; }
+  .tira-sellos { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(18px, 1fr)); gap: 4px; }
+  .celda { aspect-ratio: 1; background: var(--hueco); box-shadow: inset 0 0 0 1px var(--linea); transition: background-color .35s var(--suave), transform .35s var(--suave); }
+  .celda.llena { background: var(--c); box-shadow: none; }
+  .celda.recien { animation: latido .7s var(--suave); }
+  @keyframes latido { 0% { transform: scale(.4); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  .regiones { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .regiones li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 11px; background: var(--hueco); border-radius: 999px; font-size: 13.5px; font-weight: 600; }
+  .regiones li::before { content: ""; width: 9px; height: 9px; background: var(--c); }
+  .regiones b { font-variant-numeric: tabular-nums; color: var(--tenue); font-weight: 600; }
+
+  /* --- new stamp: the stamp lands, eased, then the card settles --- */
+  .sellado { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; border: 2px solid var(--c, var(--acento)); animation: entra .45s var(--suave); }
+  .sellado.error { --c: var(--no); }
+  @keyframes entra { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .estampa { width: 76px; height: 76px; display: grid; place-items: center; color: var(--c, var(--acento)); border: 3px solid currentColor; border-radius: 50%; transform: rotate(-8deg); animation: estampar .6s var(--suave); }
+  .estampa svg { width: 44px; height: 44px; }
+  @keyframes estampar { 0% { opacity: 0; transform: scale(1.7) rotate(-18deg); } 55% { opacity: 1; transform: scale(.92) rotate(-6deg); } 100% { transform: scale(1) rotate(-8deg); } }
+  .sellado h2 { margin-top: 6px; font-size: 22px; font-weight: 750; letter-spacing: -.02em; line-height: 1.15; overflow-wrap: anywhere; }
+  .sellado .meta { margin-top: 2px; }
+  .nuevas { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .nuevas li { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 6px; border-radius: 999px; background: var(--hueco); font-size: 13.5px; font-weight: 650; }
+  .nuevas li span { width: 22px; height: 22px; display: grid; place-items: center; color: var(--c); }
+  .nuevas li svg { width: 18px; height: 18px; }
+  .cerrar { align-self: start; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--linea); background: var(--papel); border-radius: 50%; cursor: pointer; }
+  .cerrar svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+  /* --- map --- */
+  .mapa-caja { display: flex; flex-direction: column; gap: 10px; }
+  .mapa-cab { display: flex; align-items: center; gap: 10px; }
+  .mapa-cab h2 { font-size: 18px; font-weight: 750; letter-spacing: -.02em; }
+  .mapa-cab .desde { margin-left: auto; font-size: 13px; color: var(--tenue); text-align: right; }
+  .mapa { height: 360px; border-radius: var(--radio); border: 1px solid var(--linea); overflow: hidden; background: var(--hueco); z-index: 0; }
+  .sin-mapa { padding: 18px; color: var(--tenue); }
+  .leyenda { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--tenue); }
+  .leyenda li { display: inline-flex; align-items: center; gap: 7px; }
+  .leyenda i { display: inline-block; }
+  .ley-hecha { width: 12px; height: 12px; background: linear-gradient(135deg, var(--f3) 0 25%, var(--f7) 0 50%, var(--f5) 0 75%, var(--f6) 0); } /* filled, in the color of its region */
+  .ley-falta { width: 12px; height: 12px; background: var(--papel); box-shadow: inset 0 0 0 2px var(--tinta); }
+  .ley-no { width: 12px; height: 12px; background: var(--hueco); box-shadow: inset 0 0 0 2px var(--tenue); opacity: .8; }
+  .ley-tuyo { width: 22px; height: 0; border-top: 4px solid var(--acento); }
+  .ley-sigue { width: 22px; height: 0; border-top: 3px dotted var(--tenue); }
+  .boton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--linea); background: var(--papel); cursor: pointer; font-size: 14px; font-weight: 650; color: var(--tinta); text-decoration: none; transition: border-color .15s var(--suave), background-color .15s var(--suave); white-space: nowrap; }
+  .boton:hover { border-color: var(--tenue); }
+  .boton.lleno { background: var(--acento); border-color: var(--acento); color: var(--sobre-acento); }
+  .boton:disabled { opacity: .55; cursor: default; }
+  .boton svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* map markers: little pixel squares in the color of each region */
+  .pin-caja { background: none; border: 0; }
+  .pin { width: 26px; height: 26px; display: grid; place-items: center; font: 800 12.5px/1 var(--texto); font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px rgb(0 0 0 / .25); transition: transform .2s var(--suave); }
+  .pin-hecha { background: var(--c); color: #fff; }
+  .pin-si { background: var(--papel); color: var(--tinta); box-shadow: inset 0 0 0 3px var(--c), 0 2px 6px rgb(0 0 0 / .2); }
+  .pin-no, .pin-otro_dia { background: var(--hueco); color: var(--tenue); box-shadow: inset 0 0 0 2px var(--tenue), 0 1px 3px rgb(0 0 0 / .15); opacity: .85; }
+  .pin-vos { width: 16px; height: 16px; border-radius: 50%; background: var(--acento); box-shadow: 0 0 0 4px rgb(194 24 91 / .25); }
+  .leaflet-container { font: inherit; background: var(--hueco); }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--papel); color: var(--tinta); box-shadow: var(--sombra); }
+  .leaflet-popup-content-wrapper { border-radius: var(--radio-s); }
+  .leaflet-popup-content { margin: 12px 14px; display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; }
+  .leaflet-popup-content b { font-size: 15px; line-height: 1.25; }
+  .leaflet-container a.leaflet-popup-close-button { color: var(--tenue); }
+  .leaflet-control-attribution { font-size: 11px; }
+
+  /* --- lists --- */
+  .segmentos { display: flex; gap: 4px; padding: 4px; background: var(--hueco); border-radius: 999px; }
+  .segmentos button { flex: 1; min-width: 0; height: 38px; border: 0; border-radius: 999px; background: none; cursor: pointer; font-size: 14px; font-weight: 650; color: var(--tenue); transition: background-color .2s var(--suave), color .2s var(--suave); white-space: nowrap; }
+  .segmentos button[aria-pressed="true"] { background: var(--papel); color: var(--tinta); box-shadow: 0 1px 3px rgb(21 23 43 / .12); }
+  .segmentos b { font-variant-numeric: tabular-nums; font-weight: 650; opacity: .7; }
+  .panel { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .grupo-cab { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; }
+  .grupo-cab h3 { font: 500 14px/1 var(--pixel); letter-spacing: .06em; text-transform: uppercase; color: var(--tenue); }
+  .grupo-cab span { font-size: 13px; color: var(--tenue); }
+  .parada { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 14px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .num { width: 30px; height: 30px; display: grid; place-items: center; font: 800 14px/1 var(--texto); font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 3px var(--c); }
+  .parada[data-ahora="no"] .num, .parada[data-ahora="otro_dia"] .num { box-shadow: inset 0 0 0 2px var(--tenue); color: var(--tenue); }
+  .parada.hecha .num { background: var(--c); color: #fff; box-shadow: none; }
+  .parada.hecha .num svg { width: 18px; height: 18px; }
+  .parada h3 { font-size: 16.5px; font-weight: 750; line-height: 1.25; letter-spacing: -.015em; overflow-wrap: anywhere; }
+  .meta { font-size: 14px; color: var(--tenue); overflow-wrap: anywhere; }
+  .consejo { margin-top: 6px; display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600; }
+  .consejo::before { content: ""; flex: none; width: 8px; height: 8px; background: currentColor; }
+  .consejo.si { color: var(--si); } .consejo.no { color: var(--no); } .consejo.otro_dia { color: var(--duda); }
+  .acciones { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .acciones .boton { height: 34px; padding: 0 12px; font-size: 13.5px; }
+  .nota { margin-top: 8px; font-size: 13.5px; color: var(--tenue); }
+  .nota.mal { color: var(--no); } .nota.bien { color: var(--si); font-weight: 600; }
+  .vacio { padding: 18px; text-align: center; color: var(--tenue); background: var(--papel); border: 1px dashed var(--linea); border-radius: var(--radio); }
+
+  /* badges */
+  .insignias { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .insignia { display: flex; flex-direction: column; gap: 8px; padding: 14px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .insignia .icono { width: 56px; height: 56px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); box-shadow: inset 0 0 0 3px var(--c); }
+  .insignia .icono svg { width: 34px; height: 34px; }
+  .insignia.bloqueada .icono { color: var(--tenue); background: var(--hueco); box-shadow: inset 0 0 0 2px var(--linea); opacity: .8; }
+  .insignia b { font-size: 15px; line-height: 1.2; letter-spacing: -.01em; }
+  .insignia p { font-size: 13px; color: var(--tenue); line-height: 1.35; }
+  .barra { height: 8px; background: var(--hueco); overflow: hidden; }
+  .barra i { display: block; height: 100%; width: var(--p); background: var(--c); transition: width .5s var(--suave); }
+  .insignia .cuenta { font-size: 12.5px; font-weight: 650; color: var(--tenue); font-variant-numeric: tabular-nums; }
+  .insignia.ganada .cuenta { color: var(--si); }
+
+  /* --- how to stamp, footer --- */
+  .como h2 { font-size: 18px; font-weight: 750; letter-spacing: -.02em; }
+  .como ol { margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--tenue); }
+  .como b { color: var(--tinta); }
+  .pie-pagina { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; font-size: 13.5px; color: var(--tenue); }
+  .pie-pagina .boton { margin-left: auto; }
+  .pie-pagina .boton.armado { border-color: var(--no); color: var(--no); }
+
+  @media (max-width: 480px) { .titulo-tapa { display: none; } .sellado { grid-template-columns: auto minmax(0, 1fr); } .sellado .cerrar { grid-column: 2; grid-row: 1; justify-self: end; } .estampa { width: 64px; height: 64px; } .estampa svg { width: 36px; height: 36px; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <header class="tapa">
+    <a class="nombre" href="/" aria-label="juju, volver al inicio">juju</a>
+    <span class="titulo-tapa">Pasaporte</span>
+    <a class="volver" href="/">Volver a juju</a>
+  </header>
+  <div class="franjas" aria-hidden="true"></div>
+
+  <main class="cuerpo">
+    <section class="portada" aria-labelledby="cuenta">
+      <p class="rotulo">Pasaporte de Jujuy</p>
+      <h1 id="cuenta"><em id="sellados">0</em> de <span id="total">–</span> sellos</h1>
+      <p class="bajada" id="bajada">Escaneá el QR de cada parada con la cámara del celular, juntá sellos y ganá insignias.</p>
+      <div class="tira-sellos" id="tiraSellos" role="img" aria-label="Sellos del pasaporte"></div>
+      <ul class="regiones" id="regiones"></ul>
+    </section>
+
+    <section class="sellado tarjeta" id="sellado" hidden aria-live="assertive"></section>
+
+    <section class="mapa-caja" aria-labelledby="mapaTitulo">
+      <div class="mapa-cab">
+        <h2 id="mapaTitulo">Tu recorrido</h2>
+        <span class="desde" id="desde"></span>
+      </div>
+      <div class="mapa" id="mapa" role="region" aria-label="Mapa con las paradas del pasaporte, tu recorrido y lo que te falta"></div>
+      <ul class="leyenda">
+        <li><i class="ley-hecha"></i>Sellada</li>
+        <li><i class="ley-falta"></i>Conviene ahora</li>
+        <li><i class="ley-no"></i>Ahora no u otro día</li>
+        <li><i class="ley-tuyo"></i>Tu recorrido</li>
+        <li><i class="ley-sigue"></i>Lo que te falta, en orden</li>
+      </ul>
+      <div><button class="boton" id="ubicar" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Ordenar desde donde estoy</button></div>
+    </section>
+
+    <section class="listas" aria-label="Paradas e insignias">
+      <div class="segmentos">
+        <button type="button" data-panel="falta" aria-pressed="true" aria-controls="panelFalta">Te falta <b id="nFalta"></b></button>
+        <button type="button" data-panel="visitadas" aria-pressed="false" aria-controls="panelVisitadas">Visitadas <b id="nVisitadas"></b></button>
+        <button type="button" data-panel="insignias" aria-pressed="false" aria-controls="panelInsignias">Insignias <b id="nInsignias"></b></button>
+      </div>
+      <div class="panel" id="panelFalta"></div>
+      <div class="panel" id="panelVisitadas" hidden></div>
+      <div class="panel" id="panelInsignias" hidden><div class="insignias" id="insignias"></div></div>
+    </section>
+
+    <section class="como tarjeta" aria-labelledby="comoTitulo">
+      <h2 id="comoTitulo">Cómo sellar</h2>
+      <ol>
+        <li>En cada parada hay un <b>código QR</b>. Escanealo con la cámara del celular: se abre esta página y el sello se suma solo.</li>
+        <li>¿No encontrás el QR? Estando en el lugar, tocá <b>Sellar acá</b>: uso tu ubicación para confirmar que estás ahí.</li>
+        <li>Con los sellos ganás <b>insignias</b>. Preguntale a juju "¿qué me falta visitar?" y te arma el recorrido.</li>
+      </ol>
+    </section>
+
+    <footer class="pie-pagina">
+      <span>Tu pasaporte se guarda solo en este dispositivo.</span>
+      <button class="boton" id="borrar" type="button">Borrar mi pasaporte</button>
+    </footer>
+  </main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+function nodo(tag, clase, texto) { const n = document.createElement(tag); if (clase) n.className = clase; if (texto != null) n.textContent = texto; return n; }
+const post = (ruta, body) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+  .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw Object.assign(new Error(d.error || 'No se pudo completar el pedido'), { data: d }); return d; });
+
+// ---------- pixel art: 12x12 grids, "#" full pixel, "o" half tone ----------
+const PIXELES = {
+  sello: ['....####....', '..##....##..', '.#........#.', '.#.......##.', '#.......##.#', '#..#...##..#', '#..##.##...#', '#...###....#', '.#...#....#.', '.#........#.', '..##....##..', '....####....'],
+  cerro: ['............', '.....##.....', '....####....', '...##oo##...', '...######...', '..##oooo##..', '..########..', '.##oooooo##.', '.##########.', '############', 'oooooooooooo', '............'],
+  iglesia: ['.....##.....', '....####....', '.....##.....', '....####....', '...######...', '...##..##...', '..########..', '..##.##.##..', '..##.##.##..', '..##....##..', '..##.##.##..', '############'],
+  cactus: ['.....##.....', '....####....', '....####....', '.#..####....', '.##.####.#..', '.##.####.##.', '.#######.##.', '..######.##.', '....#######.', '....####....', '....####....', '..oooooooo..'],
+  mapa: ['....####....', '...######...', '..###..###..', '..##....##..', '..##....##..', '..###..###..', '...######...', '....####....', '.....##.....', '.....##.....', '..oooooooo..', '............'],
+  sol: ['.....##.....', '.#...##...#.', '..#......#..', '....####....', '...######...', '##.######.##', '##.######.##', '...######...', '....####....', '..#......#..', '.#...##...#.', '.....##.....'],
+  llama: ['.#.#........', '.###........', '.####.......', '.##.........', '.##.........', '.##.........', '.#########..', '.##########.', '.#########..', '.##.##.##.#.', '.##.##.##...', '.#..#..#....'],
+  rio: ['............', '.##...##....', '#..#.#..#.#.', '....#....#..', '............', '.oo...oo....', 'o..o.o..o.o.', '....o....o..', '............', '.##...##....', '#..#.#..#.#.', '....#....#..'],
+  arbol: ['....####....', '..########..', '.####oo####.', '############', '###oo####oo#', '.##########.', '..########..', '....####....', '.....##.....', '.....##.....', '.....##.....', '...######...'],
+  estrella: ['.....##.....', '.....##.....', '....####....', '....####....', '############', '.##########.', '..########..', '...######...', '...######...', '..###..###..', '..##....##..', '.##......##.'],
+  ok: ['............', '............', '..........#.', '.........##.', '........##..', '.#.....##...', '.##...##....', '..##.##.....', '...###......', '....#.......', '............', '............'],
+};
+function pixel(nombre) {
+  const filas = PIXELES[nombre] || PIXELES.sello;
+  let r = '';
+  filas.forEach((fila, y) => [...fila].forEach((c, x) => {
+    if (c === '#') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+    else if (c === 'o') r += `<rect x="${x}" y="${y}" width="1" height="1" opacity=".45"/>`;
+  }));
+  return `<svg viewBox="0 0 12 12" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">${r}</svg>`;
+}
+const conPixel = (clase, nombre, color) => { const s = nodo('span', clase); s.innerHTML = pixel(nombre); if (color) s.style.setProperty('--c', `var(--${color})`); return s; };
+
+// ---------- the passport lives on this device ----------
+const CLAVE = 'juju-pasaporte';
+function leerVisitas() { try { const d = JSON.parse(localStorage.getItem(CLAVE) || '{}'); return Array.isArray(d.visitas) ? d.visitas : []; } catch { return []; } }
+function guardarVisitas(v) { try { localStorage.setItem(CLAVE, JSON.stringify({ visitas: v })); return true; } catch { return false; } }
+
+let st = null, aqui = null, panel = 'falta', recien = null;
+const fechaCorta = (iso) => { try { return new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Jujuy', weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)); } catch { return ''; } };
+const kmTexto = (n) => (n == null ? '' : n < 1 ? 'a menos de 1 km' : `a ${n} km`);
+
+async function actualizar() {
+  st = await post('/api/pasaporte/estado', { visitas: leerVisitas(), lat: aqui?.lat, lon: aqui?.lon });
+  pintar();
+}
+
+// ---------- drawing ----------
+function pintar() {
+  $('sellados').textContent = st.sellados; $('total').textContent = st.total;
+  const faltan = st.total - st.sellados;
+  $('bajada').textContent = st.sellados === 0 ? 'Escaneá el QR de cada parada con la cámara del celular, juntá sellos y ganá insignias.'
+    : faltan === 0 ? '¡Completaste el pasaporte! Sellaste todas las paradas de Jujuy.'
+    : `Te ${faltan === 1 ? 'falta 1 parada' : `faltan ${faltan} paradas`}. Abajo están en el orden que más te conviene.`;
+  // one cell per stop, region by region: the strip fills as the passport does
+  const tira = $('tiraSellos'); tira.replaceChildren();
+  const hechas = new Set(st.visitadas.map((v) => v.slug));
+  const todas = [...st.visitadas, ...st.pendientes].sort((a, b) => a.region.localeCompare(b.region) || a.nombre.localeCompare(b.nombre));
+  for (const p of todas) {
+    const c = nodo('i', 'celda' + (hechas.has(p.slug) ? ' llena' : '') + (p.slug === recien ? ' recien' : ''));
+    c.style.setProperty('--c', `var(--${p.color})`); c.title = p.nombre; tira.append(c);
+  }
+  tira.setAttribute('aria-label', `${st.sellados} de ${st.total} sellos`);
+  $('regiones').replaceChildren(...st.regiones.map((r) => { const li = nodo('li', '', r.region + ' '); li.style.setProperty('--c', `var(--${r.color})`); li.append(nodo('b', '', `${r.hechas}/${r.total}`)); return li; }));
+  $('desde').textContent = `Distancias en línea recta desde ${st.desde}`;
+  const ganadas = st.insignias.filter((b) => b.ganada).length;
+  $('nFalta').textContent = st.pendientes.length; $('nVisitadas').textContent = st.visitadas.length; $('nInsignias').textContent = `${ganadas}/${st.insignias.length}`;
+  pintarFalta(); pintarVisitadas(); pintarInsignias(); pintarMapa();
+}
+
+function pintarFalta() {
+  const p = $('panelFalta'); p.replaceChildren();
+  if (!st.pendientes.length) { p.append(nodo('p', 'vacio', 'No te falta ninguna parada. ¡Sos de Jujuy!')); return; }
+  const grupos = [['si', 'Conviene ahora'], ['no', 'Ahora no'], ['otro_dia', 'Para otro día']];
+  for (const [clave, titulo] of grupos) {
+    const lista = st.pendientes.filter((x) => x.ahora === clave);
+    if (!lista.length) continue;
+    const cab = nodo('div', 'grupo-cab'); cab.append(nodo('h3', '', titulo), nodo('span', '', String(lista.length))); p.append(cab);
+    for (const x of lista) p.append(fichaParada(x));
+  }
+}
+
+function fichaParada(x) {
+  const f = nodo('article', 'parada'); f.dataset.ahora = x.ahora; f.style.setProperty('--c', `var(--${x.color})`);
+  const n = nodo('span', 'num', String(x.orden)); n.setAttribute('aria-label', `Parada ${x.orden} del recorrido sugerido`);
+  const info = nodo('div', 'info');
+  info.append(nodo('h3', '', x.nombre), nodo('p', 'meta', [x.localidad, x.region, kmTexto(x.distancia_km)].filter(Boolean).join(' · ')));
+  const etiqueta = { si: 'Conviene ahora', no: 'Ahora no', otro_dia: 'Otro día' }[x.ahora];
+  info.append(nodo('p', 'consejo ' + x.ahora, `${etiqueta}: ${x.motivo}`));
+  const acc = nodo('div', 'acciones');
+  const ir = nodo('a', 'boton', 'Cómo llegar'); ir.href = x.como_llegar; ir.target = '_blank'; ir.rel = 'noopener noreferrer';
+  const ver = nodo('button', 'boton', 'Ver en el mapa'); ver.type = 'button'; ver.onclick = () => enfocar(x.slug);
+  const sellar = nodo('button', 'boton lleno', 'Sellar acá'); sellar.type = 'button';
+  const nota = nodo('p', 'nota'); nota.setAttribute('aria-live', 'polite'); nota.hidden = true;
+  sellar.onclick = () => sellarAca(x, sellar, nota);
+  acc.append(ir, ver, sellar); info.append(acc, nota);
+  f.append(n, info);
+  return f;
+}
+
+function pintarVisitadas() {
+  const p = $('panelVisitadas'); p.replaceChildren();
+  if (!st.visitadas.length) { p.append(nodo('p', 'vacio', 'Todavía no sellaste ninguna parada. Escaneá el QR de la primera.')); return; }
+  for (const v of [...st.visitadas].reverse()) {
+    const f = nodo('article', 'parada hecha'); f.style.setProperty('--c', `var(--${v.color})`);
+    const n = conPixel('num', 'ok'); n.setAttribute('aria-hidden', 'true');
+    const info = nodo('div', 'info');
+    info.append(nodo('h3', '', v.nombre), nodo('p', 'meta', [v.localidad, v.region].join(' · ')));
+    info.append(nodo('p', 'meta', `Sellada ${fechaCorta(v.en)} · ${v.metodo === 'gps' ? 'con tu ubicación' : 'con QR'}`));
+    f.append(n, info); p.append(f);
+  }
+}
+
+function pintarInsignias() {
+  const g = $('insignias'); g.replaceChildren();
+  for (const b of [...st.insignias].sort((a, c) => (c.ganada - a.ganada) || (c.hecho / c.meta - a.hecho / a.meta))) {
+    const t = nodo('article', 'insignia ' + (b.ganada ? 'ganada' : 'bloqueada')); t.style.setProperty('--c', `var(--${b.color})`);
+    t.append(conPixel('icono', b.icono), nodo('b', '', b.nombre), nodo('p', '', b.ganada ? b.descripcion : b.pista));
+    const barra = nodo('div', 'barra'); const i = nodo('i'); i.style.setProperty('--p', `${Math.round((b.hecho / b.meta) * 100)}%`); barra.append(i);
+    barra.setAttribute('role', 'progressbar'); barra.setAttribute('aria-valuemin', '0'); barra.setAttribute('aria-valuemax', String(b.meta)); barra.setAttribute('aria-valuenow', String(b.hecho)); barra.setAttribute('aria-label', b.nombre);
+    t.append(barra, nodo('span', 'cuenta', b.ganada ? 'Ganada' : `${b.hecho} de ${b.meta}`));
+    g.append(t);
+  }
+}
+
+// ---------- map: your track (solid) and what is left (dotted, in the suggested order) ----------
+let mapa = null, capa = null, marcas = new Map(), encuadrado = false;
+const tinta = (k) => getComputedStyle(document.documentElement).getPropertyValue('--' + k).trim();
+function pintarMapa() {
+  if (!window.L) { // Leaflet is deferred: it draws on "load"; only after that is a missing map an error
+    if (document.readyState === 'complete' && !$('mapa').querySelector('.sin-mapa')) $('mapa').replaceChildren(nodo('p', 'sin-mapa', 'No se pudo cargar el mapa. La lista tiene las mismas paradas.'));
+    return;
+  }
+  if (!mapa) {
+    $('mapa').replaceChildren();
+    mapa = L.map('mapa', { scrollWheelZoom: false, zoomSnap: 0.5 });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(mapa);
+    capa = L.layerGroup().addTo(mapa);
+    mapa.on('focus', () => mapa.scrollWheelZoom.enable()); mapa.on('blur', () => mapa.scrollWheelZoom.disable());
+  }
+  capa.clearLayers(); marcas = new Map();
+  const tuyo = st.visitadas.map((v) => [v.lat, v.lon]);
+  if (tuyo.length > 1) L.polyline(tuyo, { color: tinta('acento'), weight: 4, opacity: 0.9, lineJoin: 'miter' }).addTo(capa);
+  const inicio = aqui ? [[aqui.lat, aqui.lon]] : tuyo.length ? [tuyo.at(-1)] : [];
+  const sigue = [...inicio, ...st.pendientes.map((p) => [p.lat, p.lon])];
+  if (sigue.length > 1) L.polyline(sigue, { color: tinta('tenue'), weight: 3, opacity: 0.85, dashArray: '2 8', lineCap: 'square' }).addTo(capa);
+  const marca = (p, clase, texto) => {
+    const icon = L.divIcon({ className: 'pin-caja', html: `<span class="pin pin-${clase}" style="--c: var(--${p.color})">${texto}</span>`, iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -12] });
+    const m = L.marker([p.lat, p.lon], { icon, title: p.nombre, keyboard: true }).addTo(capa);
+    const pop = nodo('div'); pop.append(nodo('b', '', p.nombre), nodo('span', '', `${p.localidad} · ${p.region}`));
+    pop.append(nodo('span', '', clase === 'hecha' ? `Sellada ${fechaCorta(p.en)}` : `${{ si: 'Conviene ahora', no: 'Ahora no', otro_dia: 'Otro día' }[clase]}: ${p.motivo}`));
+    if (clase !== 'hecha') { const a = nodo('a', '', 'Cómo llegar'); a.href = p.como_llegar; a.target = '_blank'; a.rel = 'noopener noreferrer'; pop.append(a); }
+    m.bindPopup(pop); marcas.set(p.slug, m);
+  };
+  for (const v of st.visitadas) marca(v, 'hecha', '✓');
+  for (const p of st.pendientes) marca(p, p.ahora, String(p.orden));
+  if (aqui) L.marker([aqui.lat, aqui.lon], { icon: L.divIcon({ className: 'pin-caja', html: '<span class="pin-vos"></span>', iconSize: [16, 16], iconAnchor: [8, 8] }), title: 'Estás acá', keyboard: false }).addTo(capa);
+  if (!encuadrado) { mapa.fitBounds([...st.visitadas, ...st.pendientes].map((p) => [p.lat, p.lon]), { padding: [26, 26] }); encuadrado = true; }
+}
+function enfocar(slug) {
+  const m = marcas.get(slug); if (!m || !mapa) return;
+  $('mapa').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+  mapa.flyTo(m.getLatLng(), 13, { duration: 0.8, easeLinearity: 0.25 });
+  setTimeout(() => m.openPopup(), 850);
+}
+
+// ---------- stamping ----------
+async function sumarSello(r) {
+  const visitas = leerVisitas();
+  if (visitas.some((v) => v.slug === r.parada.slug)) { mostrarSello(r.parada, [], true); return; }
+  const antes = new Set((st?.insignias || []).filter((b) => b.ganada).map((b) => b.id));
+  visitas.push({ slug: r.parada.slug, en: r.en, metodo: r.metodo });
+  if (!guardarVisitas(visitas)) { mostrarError('No pude guardar el sello en este navegador. Revisá que no esté en modo privado.'); return; }
+  recien = r.parada.slug;
+  await actualizar();
+  mostrarSello(r.parada, st.insignias.filter((b) => b.ganada && !antes.has(b.id)), false);
+}
+function mostrarSello(p, nuevas, repetido) {
+  const s = $('sellado'); s.className = 'sellado tarjeta'; s.style.setProperty('--c', `var(--${p.color})`); s.replaceChildren();
+  const texto = nodo('div');
+  texto.append(nodo('p', 'rotulo', repetido ? 'Ya tenías este sello' : 'Sello nuevo'), nodo('h2', '', p.nombre), nodo('p', 'meta', `${p.localidad} · ${p.region}`));
+  if (nuevas.length) {
+    const ul = nodo('ul', 'nuevas');
+    for (const b of nuevas) { const li = nodo('li'); li.append(conPixel('', b.icono, b.color), `Insignia: ${b.nombre}`); ul.append(li); }
+    texto.append(ul);
+  }
+  s.append(conPixel('estampa', 'sello'), texto, botonCerrar());
+  s.hidden = false; s.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function mostrarError(msg) {
+  const s = $('sellado'); s.className = 'sellado tarjeta error'; s.replaceChildren();
+  const texto = nodo('div'); texto.append(nodo('p', 'rotulo', 'No se pudo sellar'), nodo('h2', '', msg));
+  s.append(conPixel('estampa', 'sello'), texto, botonCerrar()); s.hidden = false;
+}
+function botonCerrar() {
+  const b = nodo('button', 'cerrar'); b.type = 'button'; b.setAttribute('aria-label', 'Cerrar el aviso');
+  b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  b.onclick = () => { $('sellado').hidden = true; }; return b;
+}
+const posicion = () => new Promise((ok, mal) => {
+  if (!navigator.geolocation) return mal(new Error('Este navegador no deja usar la ubicación.'));
+  navigator.geolocation.getCurrentPosition((p) => ok({ lat: p.coords.latitude, lon: p.coords.longitude }), () => mal(new Error('No pude obtener tu ubicación. Revisá el permiso del navegador.')), { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
+});
+async function sellarAca(x, boton, nota) {
+  boton.disabled = true; nota.hidden = false; nota.className = 'nota'; nota.textContent = 'Buscando tu ubicación…';
+  try {
+    const pos = await posicion();
+    const r = await post('/api/pasaporte/sello', { slug: x.slug, lat: pos.lat, lon: pos.lon });
+    nota.className = 'nota bien'; nota.textContent = '¡Sellada!';
+    await sumarSello(r);
+  } catch (e) { nota.className = 'nota mal'; nota.textContent = e.message; boton.disabled = false; }
+}
+
+// ---------- controls ----------
+document.querySelectorAll('.segmentos button').forEach((b) => b.addEventListener('click', () => {
+  panel = b.dataset.panel;
+  document.querySelectorAll('.segmentos button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  $('panelFalta').hidden = panel !== 'falta'; $('panelVisitadas').hidden = panel !== 'visitadas'; $('panelInsignias').hidden = panel !== 'insignias';
+}));
+$('ubicar').onclick = async () => {
+  const b = $('ubicar'); b.disabled = true;
+  try { aqui = await posicion(); await actualizar(); b.lastChild.textContent = 'Ordenado desde donde estás'; }
+  catch (e) { mostrarError(e.message); b.disabled = false; }
+};
+let borrarArmado = null;
+$('borrar').onclick = async () => {
+  const b = $('borrar');
+  if (!borrarArmado) { // two taps: a slip of the finger should not erase a trip
+    b.textContent = 'Tocá otra vez para borrar todo'; b.classList.add('armado');
+    borrarArmado = setTimeout(() => { b.textContent = 'Borrar mi pasaporte'; b.classList.remove('armado'); borrarArmado = null; }, 4000);
+    return;
+  }
+  clearTimeout(borrarArmado); borrarArmado = null; b.textContent = 'Borrar mi pasaporte'; b.classList.remove('armado');
+  guardarVisitas([]); recien = null; $('sellado').hidden = true; await actualizar();
+};
+
+// ---------- start: draw, then the stamp from the QR that opened the page ----------
+(async () => {
+  try { await actualizar(); } catch (e) { mostrarError('No hay conexión con el servidor de juju.'); return; }
+  const codigo = new URLSearchParams(location.search).get('sello');
+  if (codigo) {
+    history.replaceState(null, '', location.pathname);
+    try { await sumarSello(await post('/api/pasaporte/sello', { codigo })); } catch (e) { mostrarError(e.message); }
+  }
+})();
+window.addEventListener('load', () => { if (st && !mapa) pintarMapa(); }); // Leaflet may arrive after the first draw
+</script>
+</body>
+</html>

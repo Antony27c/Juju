@@ -22,6 +22,7 @@ const { momento } = await import('./horarios.mjs');
 const pagos = await import('./pagos.mjs');
 const { contexto, comoTexto } = await import('./contexto.mjs');
 const { confirmDemoReservation } = await import('./reservas.mjs');
+const { handlePasaporte } = await import('./pasaporte.mjs');
 const conTexto = (d) => ({ ...d, texto_modelo: comoTexto(d) }); // versión compacta para el modelo
 
 // En un hosting el puerto llega en PORT y hay que escuchar en todas las interfaces; en la máquina local, solo en 127.0.0.1.
@@ -256,6 +257,7 @@ const servidor = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': TIPOS['.html'] });
       return res.end(PAGINA_SIMULADA(p));
     }
+    if (await handlePasaporte(req, res, { url, base, json, readBody: cuerpo, asJson: comoJson })) return;
     if (ruta.startsWith('/api/')) return json(res, 404, { error: 'ruta desconocida' });
 
     // archivos estáticos (solo dentro de public/)

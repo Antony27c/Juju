@@ -77,6 +77,11 @@
   .ayuda:hover, .lengua:hover { border-color: var(--tenue); }
   .ayuda { padding: 0 14px; font-size: 13.5px; font-weight: 600; }
   .ayuda .corto { display: none; }
+  /* link to the Pasaporte: same pill as "Cómo funciona", with a stamp in front */
+  .ayuda.pasaporte { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: inherit; }
+  .pasaporte svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  @media (max-width: 480px) { .ayuda.pasaporte { justify-content: center; } }
+  @media (max-width: 359px) { .reloj { display: none; } } /* the smallest phones: the header keeps its buttons in one row */
   .lengua { min-width: 46px; padding: 0 10px; font: 600 15px/1 var(--pixel); letter-spacing: .04em; }
   .app[data-vista="voz"] .lengua { margin-left: auto; }
   .app[data-vista="chat"] .lengua { display: none; }
@@ -340,6 +345,7 @@
     <span class="reloj" id="reloj" title="Hora local de Jujuy (UTC−3)">--:-- en Jujuy</span>
     <span class="estado"><span class="punto" id="punto"></span><span id="estado">listo</span></span>
     <button class="lengua" id="idioma" type="button" aria-label="Idioma de la voz">ES</button>
+    <a class="ayuda pasaporte" id="pasaporte" href="/pasaporte.html" aria-label="Pasaporte de Jujuy: sellos, insignias y recorrido"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9.5" r="6"/><path d="M9.6 9.6l1.7 1.7 3.2-3.4M8.6 14.6L7.5 21l4.5-2.4 4.5 2.4-1.1-6.4"/></svg><span class="largo">Pasaporte</span></a>
     <button class="ayuda" id="ayuda" type="button" aria-label="Cómo funciona"><span class="largo">Cómo funciona</span><span class="corto" aria-hidden="true">?</span></button>
   </header>
   <div class="franjas" id="franjas" aria-hidden="true"></div>
@@ -759,8 +765,29 @@ function gustoEnChat() {
   agregar(c, true); cajaGusto(c);
 }
 
+// Pasaporte de Jujuy: the stamps live on this device (pasaporte.html keeps them); the server orders what is left.
+function mostrarPasaporte(d) { // card in the chat and, in the voice view, as the only card
+  const armar = (clase) => {
+    const g = nodo('section', clase);
+    g.append(nodo('p', 'sobre', 'Pasaporte de Jujuy'), nodo('h4', '', `${d.sellados} de ${d.total} sellos`));
+    const sigue = d.pendientes.find((x) => x.ahora === 'si');
+    if (sigue) g.append(nodo('p', 'meta', `Te conviene ahora: ${sigue.nombre} · ${sigue.localidad}`));
+    const a = nodo('a', 'boton lleno', 'Abrir mi pasaporte'); a.href = '/pasaporte.html'; a.target = '_blank'; a.rel = 'noopener'; g.append(a);
+    return g;
+  };
+  dejarDePensar(); agregar(armar('guia'));
+  $('tira').replaceChildren(armar('ficha guia')); tiraDe = 'guia'; $('tira').hidden = false; $('verExp').setAttribute('aria-pressed', 'false');
+}
+
 // ---------- herramientas que el agente ejecuta en esta página ----------
 const herramientas = {
+  async mi_pasaporte(p = {}) {
+    let visitas = [];
+    try { visitas = JSON.parse(localStorage.getItem('juju-pasaporte') || '{}').visitas || []; } catch {}
+    const d = await post('/api/pasaporte/estado', { visitas, lat: ubicacion?.lat, lon: ubicacion?.lon, hora: p?.hora });
+    mostrarPasaporte(d);
+    return d.texto_modelo;
+  },
   // El agente pide reconectar la voz en otro idioma (lo que escucha le llega mal transcripto, o el usuario lo pidió).
   async cambiar_idioma(p = {}) {
     const nuevo = /^en/i.test(String(p?.idioma || '')) ? 'en' : 'es';
@@ -1548,6 +1575,7 @@ const ICONOS = {
   lista: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
   boleto: '<path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6.5v11" stroke-dasharray="1.5 3"/>',
   ruta: '<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6.5a3 3 0 0 0 0-6h-5a3 3 0 0 1 0-6H16"/>',
+  sello: '<circle cx="12" cy="9.5" r="6"/><path d="M9.6 9.6l1.7 1.7 3.2-3.4M8.6 14.6L7.5 21l4.5-2.4 4.5 2.4-1.1-6.4"/>',
 };
 function pintarFunciones(e) {
   const total = e?.datos?.total ? e.datos.total.toLocaleString('es-AR') : 'miles de';
@@ -1559,6 +1587,7 @@ function pintarFunciones(e) {
     ['reloj', 'Mirá qué está abierto', 'Cada lugar dice si está abierto, cerrado o sin horario.' + (conHorario ? ' Hoy ' + conHorario + ' lugares tienen horario cargado.' : '') + ' Cuando no lo tengo te aviso, no lo invento.'],
     ['lista', 'Llevate los datos', 'Distancia, precio aproximado, mapa, teléfono y sitio web de ' + total + ' lugares de toda la provincia.'],
     ['ruta', 'Dejá que te guíe', 'Cuando elegís un lugar te pregunto si querés que te guíe. Si decís que sí, se abre Google Maps con el camino desde donde estás. Cada lugar también tiene su link "Cómo llegar".'],
+    ['sello', 'Juntá sellos', 'Tocá "Pasaporte": en cada parada imperdible hay un QR para escanear y sumar el sello. Ganás insignias y ves en el mapa tu recorrido y lo que te falta. También podés preguntarme "¿qué me falta visitar?".'],
   ];
   if (e?.voz?.tiempo_real) funciones[0][2] += ' La voz corre en tiempo real.';
   const p = e?.pagos;
