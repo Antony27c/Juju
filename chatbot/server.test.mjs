@@ -22,8 +22,8 @@ test('servidor: URL mal escrita, reservas y lugares', async () => {
     assert.doesNotMatch((await r.json()).item.name, /Camping/);
 
     r = await post(base, '/api/reservas', { lugar: 'Hotel inventado xyz', personas: 2, noches: 3, metodo_pago: 'banco' });
-    assert.equal(r.status, 400);
-    assert.match((await r.json()).error, /No encontré/);
+    assert.equal(r.status, 404);
+    assert.match((await r.json()).error, /no figura en el directorio/);
 
     r = await post(base, '/api/reservas', { lugar: 'Hornocal', personas: 2, metodo_pago: 'usdc', cotizar: true });
     const d = await r.json();
