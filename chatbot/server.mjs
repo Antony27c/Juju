@@ -51,6 +51,12 @@ const clave = () => process.env.ELEVENLABS_API_KEY || '';
 const voiceAgent = () => process.env.ELEVENLABS_VOICE_AGENT_ID || '';
 const realtimeModel = () => process.env.ELEVENLABS_REALTIME_MODEL || 'eleven_realtime_v1_mini';
 const agentFor = (modo) => (modo === 'voz' && voiceAgent()) || agente();
+// Qué agente atiende la voz si la página no pide uno. Por defecto, el del chat (escucha, modelo de texto, voz): en las
+// pruebas con audio real del 22/11/2026 llamó siempre a las herramientas y nombró solo lugares del directorio. El de
+// tiempo real conecta y responde más rápido, pero con las mismas grabaciones no llamó a las herramientas e inventó
+// lugares y precios. Queda a pedido: ?voz=tiempo-real en la página, o VOZ_TIEMPO_REAL=si para que vuelva a ser el de siempre.
+const realtimePorDefecto = () => /^(1|si|sí|true|on)$/i.test(process.env.VOZ_TIEMPO_REAL || '');
+const vozClasica = (pedida) => pedida === 'clasica' || (pedida !== 'tiempo-real' && !realtimePorDefecto());
 
 // Con ELEVENLABS_API_KEY sola alcanza: al arrancar se buscan (o se crean) los agentes y sus herramientas en la cuenta
 // y los ids quedan en memoria. Corre en segundo plano: el servidor atiende mientras tanto, y un error solo se registra.
@@ -151,7 +157,7 @@ function catalogoTexto() {
     + ps.map((p) => `${p.id} = ${[p.nombre, p.localidad && `sale de ${p.localidad}`, p.duracion, `USD ${p.precio_usd}`].filter(Boolean).join(', ')}`).join('; ') + '.';
 }
 
-// clasica: la voz con el agente del chat en vez del de tiempo real (la página lo pide con ?voz=clasica)
+// clasica: la voz con el agente del chat en vez del de tiempo real (ver vozClasica)
 async function sesion(modo, clasica = false) {
   if (!clave()) return [503, { error: 'Falta cargar ELEVENLABS_API_KEY en el servidor.' }];
   // si el agente todavía se está preparando, el pedido espera un rato en vez de fallar
@@ -202,7 +208,8 @@ const servidor = http.createServer(async (req, res) => {
         // mientras el agente se prepara cuenta como configurado: /api/sesion espera a que termine
         agente_configurado: Boolean(clave() && (agente() || preparacion)), clave_cargada: Boolean(clave()), ...(errorAgente ? { error_agente: errorAgente } : {}),
         datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
-        voz: { tiempo_real: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
+        // tiempo_real: el que atiende la voz por defecto; tiempo_real_disponible: se puede pedir con ?voz=tiempo-real
+        voz: { tiempo_real: Boolean(voiceAgent()) && realtimePorDefecto(), tiempo_real_disponible: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
         estilo: { aviso: AVISO_ESTILO(), con_imagenes: Boolean(process.env.GEMINI_API_KEY) },
         // null = todavía no se sabe (el agente se está preparando, o no se sincronizó en este arranque)
         ingles_por_voz: { chat: niveles.texto == null ? null : niveles.texto >= 3, tiempo_real: niveles.voz == null ? null : niveles.voz >= 3 },
@@ -221,7 +228,7 @@ const servidor = http.createServer(async (req, res) => {
       if (!product && !place) return json(res, 404, { error: p.lugar ? `"${String(p.lugar).slice(0, 80)}" no figura en el directorio` : 'falta el nombre del lugar o el producto_id' });
       try { return json(res, 200, confirmDemoReservation(p, place, product, pagos.hoyJujuy())); } catch (e) { return json(res, 400, { error: e.message }); }
     }
-    if (ruta === '/api/sesion') { if (excedido(req, 'sesion')) return json(res, 429, DEMASIADO); const [c, o] = await sesion(url.searchParams.get('modo'), url.searchParams.get('voz') === 'clasica'); return json(res, c, o); }
+    if (ruta === '/api/sesion') { if (excedido(req, 'sesion')) return json(res, 429, DEMASIADO); const [c, o] = await sesion(url.searchParams.get('modo'), vozClasica(url.searchParams.get('voz'))); return json(res, c, o); }
     if (ruta === '/api/buscar' && req.method === 'POST') return json(res, 200, conTexto(buscar(comoJson(await cuerpo(req)))));
     if (ruta === '/api/contexto' && req.method === 'POST') return json(res, 200, contexto(comoJson(await cuerpo(req))));
     if (ruta === '/api/plan' && req.method === 'POST') return json(res, 200, conTexto(planRapido(comoJson(await cuerpo(req)))));
@@ -278,7 +285,7 @@ servidor.listen(PUERTO, HOST, () => {
   console.log(`juju escuchando en ${HOST}:${PUERTO}${URL_PUBLICA ? ` · ${URL_PUBLICA}` : HOST === '127.0.0.1' ? ` · http://localhost:${PUERTO}` : ''}`);
   console.log(`Datos: ${r.total} registros desde ${r.origen} (${r.con_horario} con horario cargado)`);
   console.log(`ElevenLabs: ${clave() ? 'API key OK' : 'FALTA ELEVENLABS_API_KEY'} · ${agente() ? 'agente ' + agente() : clave() ? 'sin id de agente: lo busco o lo creo ahora' : 'sin clave no hay agente'}`);
-  console.log(`Voice: ${voiceAgent() ? `Eleven Realtime (${realtimeModel()}) on agent ${voiceAgent()}` : 'text agent (no realtime voice agent configured)'}`);
+  console.log(`Voice: ${voiceAgent() && realtimePorDefecto() ? `Eleven Realtime (${realtimeModel()}) on agent ${voiceAgent()}` : `text agent${voiceAgent() ? ' (realtime agent available with ?voz=tiempo-real or VOZ_TIEMPO_REAL=si)' : ''}`}`);
   console.log(`Pagos: ${JSON.stringify(pagos.estadoPagos())}`);
   prepararAgente();
   // la librería de voz queda comprimida desde el arranque: el primer visitante no espera esos 2 segundos

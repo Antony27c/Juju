@@ -1132,12 +1132,13 @@ function cargarSDK() {
 // so connecting never waits on the ElevenLabs round trip. Each signed URL or token is used once.
 const SESSION_TTL_MS = 60_000;
 const sessionCache = {};
-// ?voz=clasica en la dirección de la página: la voz usa el agente del chat (más lento, más obediente) en vez del de tiempo real.
-const VOZ_CLASICA = new URLSearchParams(location.search).get('voz') === 'clasica';
+// ?voz=tiempo-real o ?voz=clasica en la dirección de la página elige qué agente atiende la voz; sin eso decide el servidor
+// (por defecto el del chat, que sigue las reglas; el de tiempo real es más rápido pero inventó lugares en las pruebas).
+const VOZ_PEDIDA = new URLSearchParams(location.search).get('voz');
 function prefetchSession(m) {
   const hit = sessionCache[m];
   if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.promise;
-  const promise = fetch('/api/sesion?modo=' + m + (m === 'voz' && VOZ_CLASICA ? '&voz=clasica' : ''), { signal: AbortSignal.timeout(35000) }).then(async (r) => {
+  const promise = fetch('/api/sesion?modo=' + m + (m === 'voz' && VOZ_PEDIDA ? '&voz=' + encodeURIComponent(VOZ_PEDIDA) : ''), { signal: AbortSignal.timeout(35000) }).then(async (r) => {
     const s = await r.json();
     if (!r.ok) throw new Error(s.error || 'No se pudo abrir la sesión');
     return s;

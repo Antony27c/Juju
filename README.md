@@ -4,7 +4,7 @@ Guía de la provincia de Jujuy que se usa hablando. Le contás dónde estás y c
 
 ## Qué hace
 
-- **Voz en vivo.** En la pantalla principal tocás el micrófono y conversás: lo que dice juju se lee en grande y un paisaje de cerritos en pixel art se mueve con la voz de quien habla. Usa ElevenLabs Agents: un agente de voz en tiempo real (Eleven Realtime) y, si la cuenta no lo tiene, el agente de texto con la voz Turbo.
+- **Voz en vivo.** En la pantalla principal tocás el micrófono y conversás: lo que dice juju se lee en grande y un paisaje de cerritos en pixel art se mueve con la voz de quien habla. Usa ElevenLabs Agents. La voz la atiende por defecto el mismo agente del chat (escucha, modelo de texto y voz Turbo), que en las pruebas con audio real siguió las reglas y nombró solo lugares del directorio. El agente de tiempo real (Eleven Realtime) conecta y responde más rápido, pero con las mismas grabaciones inventó lugares y precios: queda a pedido, con `?voz=tiempo-real` en la dirección de la página o `VOZ_TIEMPO_REAL=si` en el servidor.
 - **Chat escrito.** La misma charla, por texto, con las listas de lugares completas.
 - **Directorio.** 2.755 lugares de Jujuy (comida, alojamiento, atractivos, servicios), con distancia, precio aproximado, teléfono, mapa y, cuando está cargado, horario.
 - **Mapa.** Cuando juju sugiere lugares, aparecen en un mapa (mosaicos de OpenStreetMap, sin librerías) con pines numerados igual que la lista; tocar un pin abre el lugar en Google Maps. Está en el chat y en la vista de voz.
@@ -81,6 +81,7 @@ El agente se prepara solo en cada arranque, en segundo plano. Si ElevenLabs lo r
 | `ELEVENLABS_API_KEY` | Sí | Tu clave de ElevenLabs |
 | `ELEVENLABS_AGENT_ID` | No | Id de un agente de texto ya creado. Vacío: el servidor lo busca por nombre o lo crea |
 | `ELEVENLABS_VOICE_AGENT_ID` | No | Id del agente de voz en tiempo real. Vacío: el servidor lo busca o lo crea; si la cuenta no lo admite, la voz usa el agente de texto |
+| `VOZ_TIEMPO_REAL` | No | `si` para que la voz la atienda el agente de tiempo real. Vacío: la atiende el agente del chat |
 | `ELEVENLABS_SINCRONIZAR` | No | `off` para que el servidor no toque los agentes al arrancar |
 | `PAGOS_PROVEEDOR` | No | `simulado` para probar o `cosmospay` para cobrar |
 | `COSMOSPAY_API_KEY` | Solo con `cosmospay` | `dv_…` red de prueba, `prod_…` red real |
