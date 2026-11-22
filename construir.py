@@ -142,6 +142,90 @@ def georef(puntos):
     return cache
 
 
+# ---------- redes sociales ----------
+SUB_RED = {
+    "hospedaje": "hosteria_posada", "hostal": "hosteria_posada", "residencial": "hosteria_posada",
+    "bed_and_breakfast": "hosteria_posada", "hospedaje_rural": "hosteria_posada", "casa_rural": "hosteria_posada",
+    "eco_lodge": "hosteria_posada", "lodge": "hosteria_posada", "casa_de_campo": "cabana", "casa_temporaria": "cabana",
+    "departamento_temporario": "departamento_turistico", "apart_hotel": "departamento_turistico", "glamping": "camping",
+    "parrilla": "restaurante", "pizzeria": "restaurante", "comida_regional": "restaurante", "parador": "restaurante",
+    "comedor": "restaurante", "viandas": "restaurante", "cerveceria": "bar_pub", "sandwicheria": "comida_rapida",
+    "jugueria": "cafe", "discoteca": "boliche", "tienda_regional": "regalos_souvenirs",
+    "productos_regionales": "regalos_souvenirs", "textiles_decoracion": "artesanias", "tienda_diseno": "artesanias",
+    "oficina_de_turismo": "informacion_turistica", "promocion_turistica": "informacion_turistica",
+    "taxi_traslados": "traslados", "transporte_turismo": "traslados", "turismo_rural_comunitario": "turismo_rural",
+    "kayak": "turismo_aventura", "nautica": "turismo_aventura", "pesca": "turismo_aventura",
+    "cicloturismo": "turismo_aventura", "turismo_activo": "turismo_aventura", "trekking": "guia",
+    "avistaje_de_aves": "guia", "excursiones": "agencia_de_viajes", "parque_nacional": "area_protegida",
+    "reserva_natural": "area_protegida", "dique": "atractivo_general", "paraje_rural": "atractivo_general",
+    "centro_de_interpretacion": "museo", "sitio_historico": "edificio_historico"}
+CAT_DE_SUB = {s: c for c, ss in EST["categorias"].items() for s in ss}
+LOC_ALIAS = {"san pedro de jujuy": "San Pedro", "barrancas abdon castro tolay": "Abdón Castro Tolay",
+             "parque nacional calilegua": "Calilegua", "villa jardin de reyes": "Termas de Reyes"}
+LOC_DEPTO = {"dique la cienaga": "El Carmen", "dique las maderas": "El Carmen", "salinas grandes": "Tumbaya",
+             "laguna de pozuelos": "Rinconada", "los panos": "Dr. Manuel Belgrano"}
+STOP = set("""hotel hostel hosteria hostal hospedaje posada cabana cabanas apart suites suite restaurante restaurant resto
+restobar bar cafe cafeteria parrilla pizzeria pizzas pizza camping complejo turistico turismo casa de del la el los las y en
+jujuy argentina oficial by residencial departamentos departamento temporario temporarios boutique spa lodge""".split())
+REG_ARCHIVO = {"quebrada": "Quebrada", "puna": "Puna", "capital": "Valles", "valles": "Valles", "yungas": "Yungas"}
+P_SUB.update({"pena": "$$"})
+
+
+def nucleo(nombre, loc):
+    fuera = STOP | set(norm(loc).split())
+    return " ".join(w for w in norm(nombre.replace("&amp;", "&")).split() if w not in fuera)
+
+
+def agregar_redes(salida, asent):
+    import glob, hashlib
+    indice = collections.defaultdict(list)
+    for r in salida:
+        n = nucleo(r["nombre"], r["localidad"])
+        if len(n) >= 4: indice[(n, r["region"])].append(r)
+    grupos = collections.OrderedDict()
+    for f in sorted(glob.glob(os.path.join(CRUDO, "redes_*.json"))):
+        region = REG_ARCHIVO[os.path.basename(f)[6:-5]]
+        for x in json.load(open(f, encoding="utf-8")):
+            x["nombre"] = x["nombre"].replace("&amp;", "&").strip()
+            n = nucleo(x["nombre"], x["localidad"]) or norm(x["nombre"])
+            grupos.setdefault((n, region, norm(x["localidad"])), []).append(x)
+    cruzados = nuevos = 0
+    for (n, region, nloc), xs in grupos.items():
+        urls = " | ".join(dict.fromkeys(x["url"] for x in xs))
+        dato = lambda k: next((x[k] for x in xs if x.get(k)), None)
+        cand = indice.get((n, region), [])
+        loc = LOC_ALIAS.get(nloc, xs[0]["localidad"])
+        ms = [a for a in asent if norm(a[2]) == norm(loc)]
+        ms = [a for a in ms if a[3] in EST["regiones"][region]] or ms
+        depto = ms[0][3] if ms else LOC_DEPTO.get(nloc)
+        if ms: loc = ms[0][2]
+        mismos = [r for r in cand if norm(r["localidad"]) == norm(loc)] or [r for r in cand if depto and r["departamento"] == depto]
+        if mismos:
+            r = mismos[0]
+            r["redes"] = urls; r["fuente"] = "OpenStreetMap + redes sociales"
+            r["telefono"] = r["telefono"] or dato("telefono"); r["direccion"] = r["direccion"] or dato("direccion")
+            r["descripcion"] = r["descripcion"] or dato("descripcion"); r["precio_mencionado"] = dato("precio_mencionado")
+            cruzados += 1; continue
+        x = xs[0]
+        sub = SUB_RED.get(x["subcategoria"], x["subcategoria"])
+        if x["subcategoria"] == "pena": sub = "pena"
+        if x["subcategoria"] == "termas": sub = "termas"
+        cat = CAT_DE_SUB.get(sub)
+        if not cat: cat, sub = "atractivo_cultural", "atractivo_general"
+        pm = dato("precio_mencionado")
+        rango, origen, _ = precio(cat, sub, {})
+        if pm and "gratuit" in pm.lower(): rango, origen = "gratis", "dato"
+        salida.append({
+            "id": "red-" + hashlib.md5(x["url"].encode()).hexdigest()[:10], "nombre": x["nombre"], "categoria": cat,
+            "subcategoria": sub, "region": region, "departamento": depto, "localidad": loc,
+            "direccion": dato("direccion"), "lat": None, "lon": None, "rango_precio": rango, "precio_origen": origen,
+            "precio_mencionado": pm, "estrellas": None, "cocina": None, "telefono": dato("telefono"), "email": None,
+            "web": None, "redes": urls, "horario": None, "descripcion": dato("descripcion"), "altitud_m": None,
+            "fuente": "Redes sociales (búsqueda web)", "fuente_url": x["url"]})
+        nuevos += 1
+    print("redes: cuentas", sum(len(v) for v in grupos.values()), "| negocios", len(grupos), "| cruzados con OSM", cruzados, "| nuevos", nuevos)
+
+
 def titulo(s):
     if s and s == s.upper():
         s = " ".join(w if w.lower() in ("de", "del", "la", "las", "los", "el", "y") and i else w.capitalize()
@@ -185,7 +269,8 @@ def main():
         salida.append({
             "id": "osm-%s-%s" % (e["type"], e["id"]), "nombre": nombre, "categoria": cat, "subcategoria": sub,
             "region": REGION_DE[depto], "departamento": depto, "localidad": loc[2], "direccion": calle,
-            "lat": lat, "lon": lon, "rango_precio": rango, "precio_origen": origen, "estrellas": est,
+            "lat": lat, "lon": lon, "rango_precio": rango, "precio_origen": origen, "precio_mencionado": None,
+            "estrellas": est,
             "cocina": t.get("cuisine") if cat == "gastronomia" else None,
             "telefono": t.get("phone") or t.get("contact:phone"), "email": t.get("email") or t.get("contact:email"),
             "web": t.get("website") or t.get("contact:website"), "redes": redes,
@@ -193,12 +278,14 @@ def main():
             "altitud_m": ele, "fuente": "OpenStreetMap",
             "fuente_url": "https://www.openstreetmap.org/%s/%s" % (e["type"], e["id"])})
 
+    agregar_redes(salida, asent)
     salida.sort(key=lambda r: (ORDEN_CAT[r["categoria"]], r["region"], norm(r["localidad"]),
                                ORDEN_PRECIO[r["rango_precio"]], norm(r["nombre"])))
     cnt = lambda campo: dict(collections.Counter(r[campo] for r in salida).most_common())
     meta = {"generado": datetime.date.today().isoformat(), "total_registros": len(salida),
             "fuentes": ["OpenStreetMap (© colaboradores de OpenStreetMap, licencia ODbL)",
-                        "Georef - API del Servicio de Normalización de Datos Geográficos de Argentina (departamento y localidad)"],
+                        "Georef - API del Servicio de Normalización de Datos Geográficos de Argentina (departamento y localidad)",
+                        "Instagram y Facebook, vía resultados de buscadores web (cuentas de negocios turísticos)"],
             "conteo_por_categoria": cnt("categoria"), "conteo_por_region": cnt("region"),
             "conteo_por_rango_precio": cnt("rango_precio"), "conteo_por_precio_origen": cnt("precio_origen")}
     json.dump({"meta": meta, "registros": salida}, open(os.path.join(BASE, "jujuy_turismo.json"), "w", encoding="utf-8"),
@@ -215,6 +302,7 @@ def main():
     print("fuera de Jujuy descartados:", fuera)
     print(json.dumps(dict(collections.Counter(r["categoria"] + "/" + r["subcategoria"] for r in salida).most_common()), ensure_ascii=False))
     print(collections.Counter(r["departamento"] for r in salida))
+    print("con redes:", sum(1 for r in salida if r["redes"]), "| con telefono:", sum(1 for r in salida if r["telefono"]), "| fuente:", cnt("fuente"))
     malas = [s for c, ss in EST["categorias"].items() for s in []]
     validas = {(c, s) for c, ss in EST["categorias"].items() for s in ss}
     print("subcategorias fuera de estructura:", {(r["categoria"], r["subcategoria"]) for r in salida} - validas)

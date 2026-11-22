@@ -1,43 +1,9 @@
 {
-  "_leer": "COMPLETAR con la documentación oficial de CosmosPay. Mientras base_url y crear_pago.ruta estén vacíos, CosmosPay queda desactivado. Los nombres de campo de 'cuerpo' y 'respuesta' de abajo son EJEMPLOS de forma, no los reales: hay que reemplazarlos por los que indique la documentación. La API key va en .env (COSMOSPAY_API_KEY), nunca acá.",
-  "base_url": "",
-  "auth": { "header": "Authorization", "prefijo": "Bearer " },
-  "headers_extra": {},
-  "crear_pago": {
-    "metodo": "POST",
-    "ruta": "",
-    "_variables_disponibles": "{{monto}} (número) {{monto_texto}} {{moneda}} {{concepto}} {{referencia}} {{url_exito}} {{url_cancelado}} {{url_webhook}}",
-    "cuerpo": {
-      "amount": "{{monto}}",
-      "currency": "{{moneda}}",
-      "description": "{{concepto}}",
-      "reference": "{{referencia}}",
-      "success_url": "{{url_exito}}",
-      "cancel_url": "{{url_cancelado}}",
-      "webhook_url": "{{url_webhook}}"
-    },
-    "_respuesta": "Ruta (con puntos) de cada dato dentro del JSON que devuelve CosmosPay, p. ej. 'data.checkout_url'",
-    "respuesta": { "id": "", "url_pago": "", "direccion": "", "vence": "", "estado": "" }
-  },
-  "consultar_pago": {
-    "metodo": "GET",
-    "ruta": "",
-    "_ruta": "p. ej. '/.../{{id}}' usando el id que devolvió CosmosPay, o {{referencia}}",
-    "respuesta": { "estado": "" }
-  },
-  "estados": {
-    "_leer": "Valores de estado de CosmosPay que equivalen a cada estado interno",
-    "pagado": [],
-    "pendiente": [],
-    "vencido": [],
-    "fallido": []
-  },
-  "webhook": {
-    "_leer": "Si CosmosPay firma los webhooks (HMAC), indicar el header. El secreto va en .env (COSMOSPAY_WEBHOOK_SECRET). 'referencia' e 'id' son las rutas de esos datos dentro del cuerpo del webhook.",
-    "header_firma": "",
-    "algoritmo": "sha256",
-    "codificacion": "hex",
-    "referencia": "",
-    "id": ""
-  }
+  "_leer": "Configuración de Cosmos Pay (https://dev.cosmospay.lat). La API key va en .env (COSMOSPAY_API_KEY), nunca acá. Con una clave dv_... los pagos van a la red de prueba; con una prod_... a la red real.",
+  "_destino": "Tu cuenta PÚBLICA de Stellar (empieza con G, 56 caracteres) que recibe los cobros. Tiene que tener habilitada (trustline) cada moneda de la lista. Nunca pongas acá la clave secreta (la que empieza con S).",
+  "destino": "",
+  "_monedas": "Monedas estables en dólares con las que se puede pagar. Se cobran 1 a 1 con el precio en USD de productos.json. Aceptadas: USDC, USDT0, PYUSD. En la red de prueba solo existe USDC.",
+  "monedas": ["USDC", "USDT0"],
+  "_checkoutTheme": "Diseño de la página de pago de Cosmos Pay: classic, split, ticket o card.",
+  "checkoutTheme": "classic"
 }

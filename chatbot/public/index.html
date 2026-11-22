@@ -107,6 +107,7 @@
   .pago .monto small { font: 500 13px var(--dato); color: var(--tenue); letter-spacing: 0; margin-right: 6px; }
   .pago .fila { display: flex; flex-direction: column; gap: 8px; }
   .pago .nota { font-size: 13px; color: var(--tenue); overflow-wrap: anywhere; }
+  .pago .qr { align-self: center; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--linea); }
   .prueba { align-self: flex-start; font: 500 11px/1 var(--dato); letter-spacing: .06em; text-transform: uppercase; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 6px; padding: 5px 8px; }
   .boton { cursor: pointer; border-radius: 10px; border: 1px solid var(--tinta); background: transparent; padding: 10px 14px; font-weight: 600; text-align: center; }
   .boton.lleno { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
@@ -277,19 +278,21 @@ const herramientas = {
 function tarjetaPago(prod, cat) {
   const c = nodo('section', 'pago');
   if (cat.proveedor === 'simulado') c.append(nodo('span', 'prueba', 'Modo de prueba · no se cobra'));
+  else if (cat.red === 'testnet') c.append(nodo('span', 'prueba', 'Red de prueba · no es dinero real'));
   c.append(nodo('p', 'que', prod.nombre));
   const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), String(prod.precio_usd).replace('.', ',')); c.append(monto);
   const fila = nodo('div', 'fila'); const nota = nodo('span', 'nota');
   for (const m of cat.monedas) {
-    const b = nodo('button', 'boton' + (m === 'USD' ? ' lleno' : ''), m === 'USD' ? 'Pagar en dólares' : `Pagar en cripto (${m})`); b.type = 'button';
+    const b = nodo('button', 'boton' + (m === cat.monedas[0] ? ' lleno' : ''), `Pagar con ${m.etiqueta}`); b.type = 'button';
     b.onclick = async () => {
       fila.querySelectorAll('button').forEach((x) => { x.disabled = true; });
       nota.textContent = 'Generando el pago';
       try {
-        const p = await post('/api/pagos', { producto_id: prod.id, moneda: m });
+        const p = await post('/api/pagos', { producto_id: prod.id, moneda: m.id });
         fila.replaceChildren();
         const a = p.url_pago && enlace('Abrir la página de pago', p.url_pago); if (a) { a.className = 'boton lleno'; a.style.textDecoration = 'none'; fila.append(a); }
-        if (p.direccion) { const d = nodo('span', 'nota', `Enviá ${p.monto} ${p.moneda} a esta dirección: ${p.direccion}`); d.style.userSelect = 'all'; fila.append(d); }
+        if (p.qr && String(p.qr).startsWith('data:image/png;base64,')) { const q = nodo('img', 'qr'); q.src = p.qr; q.alt = 'Código QR para pagar desde tu billetera'; q.width = 180; q.height = 180; fila.append(q); fila.append(nodo('span', 'nota', 'O escaneá el código con tu billetera de Stellar.')); }
+        if (p.vence) fila.append(nodo('span', 'nota', `El pedido vence a las ${new Date(p.vence).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}.`));
         nota.textContent = 'Esperando la confirmación del pago';
         seguirPago(p.id, nota, prod);
       } catch (e) { nota.textContent = `No se pudo generar el pago. ${e.message}`; fila.querySelectorAll('button').forEach((x) => { x.disabled = false; }); }

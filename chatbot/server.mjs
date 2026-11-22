@@ -40,7 +40,8 @@ function catalogoTexto() {
   const e = pagos.estadoPagos();
   const ps = pagos.productos();
   if (e.proveedor === 'ninguno' || e.proveedor === 'sin_configurar' || !ps.length) return 'Pagos no disponibles por ahora.';
-  return `Monedas: ${e.monedas.join(' o ')}. Productos: ` + ps.map((p) => `${p.id} = ${p.nombre}, USD ${p.precio_usd}`).join('; ') + (e.proveedor === 'simulado' ? ' (modo de prueba, no se cobra de verdad).' : '.');
+  const modo = e.proveedor === 'simulado' ? ' (modo de prueba, no se cobra de verdad)' : e.red === 'testnet' ? ' (red de prueba, no es dinero real)' : '';
+  return `Se paga con ${e.monedas.map((m) => m.etiqueta).join(' o ')}${modo}. Productos: ` + ps.map((p) => `${p.id} = ${p.nombre}, USD ${p.precio_usd}`).join('; ') + '.';
 }
 
 async function sesion(modo) {
