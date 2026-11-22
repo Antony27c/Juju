@@ -409,6 +409,12 @@ const SDK = ['/vendor/elevenlabs-client.js', 'https://cdn.jsdelivr.net/npm/@elev
 let serie = 0; // cada sesión tiene su número: los avisos de una sesión ya reemplazada se ignoran
 let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false, ultimaLocalidad = null;
 const historial = []; // { rol, texto }: sirve para retomar el hilo al reconectar o pasar de texto a voz
+// Lo que dijo el usuario, numerado. Una reserva solo avanza con cosas que dijo él (cómo paga y el sí), no con lo que
+// decida el modelo: en las pruebas, el modelo de voz eligió el método y confirmó sin que nadie se lo pidiera.
+const dichos = []; let nDicho = 0;
+const METODO_DICHO = { usdc: /usdc|u\.?\s?s\.?\s?d\.?\s?c|cosmos|cripto|crypto|stable/i, banco: /wells|fargo|banco|bank|cuenta|account|transfer/i };
+const DICE_SI = /(^|[^a-záéíóúñ])(s[ií]|sip|dale|confirmo|confirmado|confirm|de una|ok|okay|okey|listo|adelante|hacelo|pagalo|pag[aá]|claro|por supuesto|obvio|yes|yeah|yep|sure|go ahead|do it|correct|please do)([^a-záéíóúñ]|$)/i;
+const DICE_NO = /(^|[^a-záéíóúñ])(no|todav[ií]a no|esper[aá]|cancel[aá]?|wait|not yet|don'?t|stop)([^a-záéíóúñ]|$)/i;
 // ¿El último mensaje del usuario está en inglés? Cuenta palabras muy comunes de cada idioma; alcanza para elegir un saludo.
 const EN = /\b(the|is|are|what|where|how|can|you|want|would|like|please|and|for|with|my|me|to|do|i|in|it|book|pay|yes|tonight|tomorrow|hello|hi|thanks|english|have|there|this|that|am)\b/g;
 const ES = /\b(el|la|los|las|es|son|que|qu[eé]|d[oó]nde|c[oó]mo|puedo|quiero|por|favor|para|con|mi|me|en|un|una|hay|reservar|pagar|s[ií]|hoy|ma[nñ]ana|y|de)\b/g;
@@ -477,6 +483,7 @@ function burbuja(rol, texto) {
   if (rol === 'user') { turno = { ancla: n, grupo: null, vistos: new Set() }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
   $('probar').hidden = true; // las frases de ejemplo solo acompañan el arranque
   historial.push({ rol, texto }); if (historial.length > 30) historial.shift();
+  if (rol === 'user') { dichos.push({ n: ++nDicho, texto }); if (dichos.length > 30) dichos.shift(); }
 }
 function aviso(texto, error, arriba) { agregar(nodo('div', 'aviso' + (error ? ' error' : ''), texto), arriba); }
 function pensar(texto = 'juju está pensando') {
@@ -661,12 +668,32 @@ const herramientas = {
     const confirmado = p.confirmado === true || p.confirmado === 'true';
     delete p.confirmado; delete p.cotizar;
     pensar(confirmado ? 'Procesando la reserva' : 'Chequeando la disponibilidad');
+    // una reserva nueva empieza a contar desde el último mensaje del usuario (el que la pidió)
+    const item = llano(p.producto_id || p.lugar || '');
+    if (item !== itemReserva) { itemReserva = item; reservaDesde = nDicho; cotizada = null; }
+    // el método de pago vale solo si lo dijo el usuario en esta reserva
+    let eligioSolo = false;
+    if (p.metodo_pago) {
+      const tipo = /usdc|usd_coin|cripto|crypto|cosmos/i.test(String(p.metodo_pago)) ? 'usdc' : 'banco';
+      if (!dichos.some((d) => d.n >= reservaDesde && METODO_DICHO[tipo].test(d.texto))) { delete p.metodo_pago; eligioSolo = true; }
+    }
     try {
       const cot = await post('/api/reservas', { ...p, cotizar: true });
-      const firma = firmaDe(cot);
-      if (!confirmado || firma !== cotizada) {
-        cotizada = firma; tarjetaCotizacion(cot);
-        return (confirmado ? 'El usuario todavía no confirmó esta reserva con este monto, así que no se pagó nada. ' : '') + cot.texto_modelo;
+      const firma = firmaDe(cot), nueva = firma !== cotizada;
+      // y se paga solo si, después de ver esta cotización, lo último que dijo el usuario es un sí
+      let sinSi = false;
+      if (confirmado && !nueva) {
+        const ultimo = () => dichos.findLast((d) => d.n > cotizadaEn);
+        if (!ultimo()) await new Promise((ok) => setTimeout(ok, 1200)); // por voz, la transcripción puede llegar un instante después
+        const u = ultimo();
+        sinSi = !u || !DICE_SI.test(u.texto) || DICE_NO.test(u.texto);
+      }
+      if (!confirmado || nueva || sinSi) {
+        if (nueva) { cotizada = firma; cotizadaEn = nDicho; tarjetaCotizacion(cot); } else dejarDePensar();
+        const antes = eligioSolo ? 'El usuario todavía no eligió cómo pagar, así que no se tomó ningún método: no lo elijas vos. '
+          : sinSi ? 'El usuario todavía no dijo que sí a esta reserva, así que no se pagó nada. Pedile la confirmación y esperá a que responda antes de volver a llamar. '
+          : confirmado ? 'El usuario todavía no confirmó esta reserva con este monto, así que no se pagó nada. ' : '';
+        return antes + cot.texto_modelo;
       }
       if (!cot.method) { dejarDePensar(); return FALTA_METODO; }
       const cat = await cargarCatalogo().catch(() => null);
@@ -677,7 +704,7 @@ const herramientas = {
         return `La reserva de "${prod.nombre}" para ${cuantas(r.personas)} el ${r.fecha}, total ${usd(totalDe(r))}, quedó abierta en pantalla. Todavía NO está paga ni confirmada: el usuario tiene que revisar la fecha y tocar el botón de pago. Decíselo en una frase. Va a estar confirmada cuando el sistema te avise que el pago se acreditó.`;
       }
       const r = await post('/api/reservas', p);
-      cotizada = null; tarjetaReserva(r);
+      cotizada = null; itemReserva = ''; tarjetaReserva(r);
       return r.texto_modelo;
     } catch (e) {
       dejarDePensar();
@@ -689,7 +716,7 @@ const herramientas = {
 
 const FALTA_METODO = "Falta el método de pago y todavía no se pagó nada. Preguntáselo al usuario así, en su idioma: \"Tenés 2 métodos de pago disponibles: dinero en tu cuenta del Wells Fargo, o pagar con USDC a través de Cosmos Pay. ¿Con cuál querés pagar?\" (en inglés: \"You have 2 payment methods available: money in your Wells Fargo account, or paying with USDC through Cosmos Pay. Which one do you want to pay with?\"). Cuando elija, llamá de nuevo a reservar con metodo_pago y sin confirmado.";
 // Lo último que se cotizó, método de pago incluido. Para pagar, la llamada confirmada tiene que coincidir con esto.
-let cotizada = null;
+let cotizada = null, cotizadaEn = 0, itemReserva = '', reservaDesde = 0;
 const firmaDe = (r) => [r.item.name, llano(r.date), r.time, r.people, r.nights, r.amount_usd, r.method].join('|');
 const detalleReserva = (r) => [r.item.locality, r.date, r.time && `${r.time} hs`, `${r.people} ${r.people === 1 ? 'persona' : 'personas'}`, r.nights && `${r.nights} ${r.nights === 1 ? 'noche' : 'noches'}`].filter(Boolean).join(' · ');
 const montoReserva = (r) => String(r.amount_usd).replace('.', ',');
@@ -918,10 +945,12 @@ function cargarSDK(i = 0) {
 // so connecting never waits on the ElevenLabs round trip. Each signed URL or token is used once.
 const SESSION_TTL_MS = 60_000;
 const sessionCache = {};
+// ?voz=clasica en la dirección de la página: la voz usa el agente del chat (más lento, más obediente) en vez del de tiempo real.
+const VOZ_CLASICA = new URLSearchParams(location.search).get('voz') === 'clasica';
 function prefetchSession(m) {
   const hit = sessionCache[m];
   if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.promise;
-  const promise = fetch('/api/sesion?modo=' + m).then(async (r) => {
+  const promise = fetch('/api/sesion?modo=' + m + (m === 'voz' && VOZ_CLASICA ? '&voz=clasica' : '')).then(async (r) => {
     const s = await r.json();
     if (!r.ok) throw new Error(s.error || 'No se pudo abrir la sesión');
     return s;

@@ -109,19 +109,20 @@ function catalogoTexto() {
     + ps.map((p) => `${p.id} = ${[p.nombre, p.localidad && `sale de ${p.localidad}`, p.duracion, `USD ${p.precio_usd}`].filter(Boolean).join(', ')}`).join('; ') + '.';
 }
 
-async function sesion(modo) {
+// clasica: la voz con el agente del chat en vez del de tiempo real (la página lo pide con ?voz=clasica)
+async function sesion(modo, clasica = false) {
   if (!clave()) return [503, { error: 'Falta cargar ELEVENLABS_API_KEY en el servidor.' }];
   // si el agente todavía se está preparando, el pedido espera un rato en vez de fallar
   if (preparacion) await Promise.race([preparacion, new Promise((ok) => setTimeout(ok, 25000))]);
   if (!agente()) return [503, { error: errorAgente ? `No se pudo preparar el agente en ElevenLabs. ${errorAgente}` : 'El agente de ElevenLabs todavía se está preparando. Probá de nuevo en unos segundos.' }];
   const ruta = modo === 'voz' ? 'conversation/token' : 'conversation/get-signed-url';
-  const r = await fetch(`${API}/v1/convai/${ruta}?agent_id=${encodeURIComponent(agentFor(modo))}`, { headers: { 'xi-api-key': clave() }, signal: AbortSignal.timeout(15000) });
+  const r = await fetch(`${API}/v1/convai/${ruta}?agent_id=${encodeURIComponent(clasica ? agente() : agentFor(modo))}`, { headers: { 'xi-api-key': clave() }, signal: AbortSignal.timeout(15000) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) return [502, { error: `ElevenLabs respondió ${r.status}`, detalle: d }];
   return [200, {
-    signedUrl: d.signed_url, conversationToken: d.token, realtime: modo === 'voz' && Boolean(voiceAgent()),
+    signedUrl: d.signed_url, conversationToken: d.token, realtime: modo === 'voz' && !clasica && Boolean(voiceAgent()),
     // idiomas en los que se puede abrir la sesión (la página manda overrides.agent.language)
-    idiomas: (modo === 'voz' && voiceAgent() ? niveles.voz : niveles.texto) >= 3 ? ['es', 'en'] : ['es'],
+    idiomas: (modo === 'voz' && !clasica && voiceAgent() ? niveles.voz : niveles.texto) >= 3 ? ['es', 'en'] : ['es'],
     variables: { fecha_hora_local: momento().etiqueta, catalogo_pagos: catalogoTexto() },
   }];
 }
@@ -170,7 +171,7 @@ const servidor = http.createServer(async (req, res) => {
       const product = p.producto_id ? pagos.productos().find((x) => x.id === p.producto_id) || null : null;
       try { return json(res, 200, confirmDemoReservation(p, product ? null : findPlace(p), product, pagos.hoyJujuy())); } catch (e) { return json(res, 400, { error: e.message }); }
     }
-    if (ruta === '/api/sesion') { if (excedido(req, 'sesion')) return json(res, 429, DEMASIADO); const [c, o] = await sesion(url.searchParams.get('modo')); return json(res, c, o); }
+    if (ruta === '/api/sesion') { if (excedido(req, 'sesion')) return json(res, 429, DEMASIADO); const [c, o] = await sesion(url.searchParams.get('modo'), url.searchParams.get('voz') === 'clasica'); return json(res, c, o); }
     if (ruta === '/api/buscar' && req.method === 'POST') return json(res, 200, conTexto(buscar(comoJson(await cuerpo(req)))));
     if (ruta === '/api/contexto' && req.method === 'POST') return json(res, 200, contexto(comoJson(await cuerpo(req))));
     if (ruta === '/api/plan' && req.method === 'POST') return json(res, 200, conTexto(planRapido(comoJson(await cuerpo(req)))));
