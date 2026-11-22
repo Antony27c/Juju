@@ -16,6 +16,8 @@ if (existsSync(path.join(AQUI, '.env'))) process.loadEnvFile(path.join(AQUI, '.e
 const { buscar, planRapido, resumen, localidadMasCercana } = await import('./datos.mjs');
 const { momento } = await import('./horarios.mjs');
 const pagos = await import('./pagos.mjs');
+const { contexto, comoTexto } = await import('./contexto.mjs');
+const conTexto = (d) => ({ ...d, texto_modelo: comoTexto(d) }); // versión compacta para el modelo
 
 const PUERTO = Number(process.env.PUERTO) || 3000;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -72,8 +74,9 @@ const servidor = http.createServer(async (req, res) => {
       return json(res, 200, { agente_configurado: Boolean(clave() && agente()), datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos() });
     }
     if (ruta === '/api/sesion') { const [c, o] = await sesion(url.searchParams.get('modo')); return json(res, c, o); }
-    if (ruta === '/api/buscar' && req.method === 'POST') return json(res, 200, buscar(comoJson(await cuerpo(req))));
-    if (ruta === '/api/plan' && req.method === 'POST') return json(res, 200, planRapido(comoJson(await cuerpo(req))));
+    if (ruta === '/api/buscar' && req.method === 'POST') return json(res, 200, conTexto(buscar(comoJson(await cuerpo(req)))));
+    if (ruta === '/api/contexto' && req.method === 'POST') return json(res, 200, contexto(comoJson(await cuerpo(req))));
+    if (ruta === '/api/plan' && req.method === 'POST') return json(res, 200, conTexto(planRapido(comoJson(await cuerpo(req)))));
     if (ruta === '/api/cerca') {
       const l = localidadMasCercana(Number(url.searchParams.get('lat')), Number(url.searchParams.get('lon')));
       return json(res, 200, l && l.km < 150 ? { localidad: l.nombre, km: Math.round(l.km) } : { localidad: null });

@@ -184,6 +184,15 @@ for (const r of registros) {
   r._info = (r.horario ? 1 : 0) + (r.telefono ? 0.5 : 0) + (r.web || r.redes ? 0.5 : 0) + (r.descripcion ? 0.5 : 0) + (r._interes || 0);
 }
 
+/** Nombres con los que se puede mencionar una localidad en una frase: [clave normalizada, nombre]. */
+export function clavesLocalidades() {
+  const ambiguas = new Set(['centro', 'capital', 'la capital']);
+  const out = new Map();
+  for (const l of LOCALIDADES) for (const c of l.claves) if (c.length >= 4 && !ambiguas.has(c)) out.set(c, l.nombre);
+  for (const [c, v] of DE_REGISTROS) if (c.length >= 5 && v.n >= 5 && !ambiguas.has(c) && !out.has(c)) out.set(c, v.nombre);
+  return [...out.entries()].sort((a, b) => b[0].length - a[0].length);
+}
+
 export function resumen() {
   const por = {};
   for (const r of registros) por[r.categoria] = (por[r.categoria] || 0) + 1;

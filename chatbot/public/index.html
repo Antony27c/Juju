@@ -186,7 +186,7 @@ const $ = (id) => document.getElementById(id);
 const chat = $('chat');
 const SDK = ['/vendor/elevenlabs-client.js', 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.37.1/dist/lib.iife.js', 'https://unpkg.com/@elevenlabs/client@1.37.1/dist/lib.iife.js'];
 
-let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false;
+let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false, ultimaLocalidad = null;
 const historial = []; // { rol, texto }: sirve para retomar el hilo al reconectar o pasar de texto a voz
 
 // ---------- piezas de interfaz ----------
@@ -245,8 +245,18 @@ function lista(titulo, lugares) {
 
 const post = (ruta, body) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
   .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'No se pudo completar el pedido'); return d; });
-// al modelo no le mandamos los links de mapa: ya están en pantalla
-const paraModelo = (d) => JSON.stringify(d, (k, v) => (k === 'mapa' || k === 'categoria' ? undefined : v));
+// al modelo le va la versión en texto compacto (menos tokens = respuesta más rápida)
+const paraModelo = (d) => d.texto_modelo || JSON.stringify(d, (k, v) => (k === 'mapa' || k === 'categoria' ? undefined : v));
+// Búsqueda previa: adjunta al mensaje los lugares ya filtrados, así el modelo responde en una sola pasada.
+async function adjuntarDatos(texto) {
+  try {
+    const c = await post('/api/contexto', { texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon });
+    if (c.localidad) ultimaLocalidad = c.localidad;
+    if (!c.texto_modelo) return;
+    conv.sendContextualUpdate(c.texto_modelo);
+    for (const g of c.grupos) lista(g.titulo, g.lugares);
+  } catch (e) { console.warn('sin búsqueda previa', e); }
+}
 const conUbicacion = (p) => (!p.localidad && ubicacion ? { ...p, lat: ubicacion.lat, lon: ubicacion.lon } : p);
 
 // ---------- herramientas que el agente ejecuta en esta página ----------
@@ -380,6 +390,7 @@ async function enviar(texto) {
   burbuja('user', texto); pensar();
   try {
     if (!conv) await conectar('texto', ''); // sin saludo: responde directo al mensaje
+    await adjuntarDatos(texto);
     ultimoEnviado = texto;
     conv.sendUserMessage(texto);
   } catch (e) { dejarDePensar(); aviso(e.message, true); estado('listo'); }
@@ -405,7 +416,7 @@ $('ubic').onclick = () => {
     const { latitude: lat, longitude: lon } = pos.coords;
     const d = await fetch(`/api/cerca?lat=${lat}&lon=${lon}`).then((r) => r.json());
     if (!d.localidad) return aviso('Parece que no estás en Jujuy. Decime en qué localidad vas a estar.');
-    ubicacion = { lat, lon, texto: `en o cerca de ${d.localidad}` };
+    ubicacion = { lat, lon, texto: `en o cerca de ${d.localidad}` }; ultimaLocalidad = d.localidad;
     $('ubic').classList.add('activo');
     aviso(`Ubicación compartida: cerca de ${d.localidad}`);
     conv?.sendContextualUpdate(`El usuario compartió su ubicación: está ${ubicacion.texto}. Usá esa localidad en las búsquedas salvo que pida otra.`);
