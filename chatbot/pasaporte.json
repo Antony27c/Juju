@@ -1,0 +1,52 @@
+{
+  "_leer": "Paradas e insignias del Pasaporte de Jujuy. Cada parada apunta a un lugar del directorio por su id (jujuy_turismo.json): de ahí salen el nombre, las coordenadas y el horario. 'titulo' reemplaza el nombre solo para mostrar. 'tema' es cultura o naturaleza. Lo de naturaleza y lo marcado con 'aire_libre' no se recomienda de noche. Para sumar una parada, agregala acá: su QR aparece solo en /qr.html.",
+  "titulo": "Pasaporte de Jujuy",
+  "radio_gps_m": 300,
+  "regiones": { "Quebrada": "f3", "Puna": "f7", "Valles": "f5", "Yungas": "f6" },
+  "paradas": [
+    { "slug": "siete-colores", "id": "osm-node-595486608", "titulo": "Cerro de los Siete Colores", "tema": "naturaleza", "etiquetas": ["colores"] },
+    { "slug": "los-colorados", "id": "osm-node-5630878118", "tema": "naturaleza" },
+    { "slug": "iglesia-purmamarca", "id": "osm-node-595486456", "tema": "cultura" },
+    { "slug": "salinas-grandes", "id": "osm-node-14054411901", "titulo": "Salinas Grandes", "tema": "naturaleza" },
+    { "slug": "cuesta-de-lipan", "id": "osm-node-14054151701", "tema": "naturaleza" },
+    { "slug": "paleta-del-pintor", "id": "osm-node-7025906687", "tema": "naturaleza", "etiquetas": ["colores"] },
+    { "slug": "posta-de-hornillos", "id": "osm-way-298017385", "tema": "cultura" },
+    { "slug": "pucara-de-tilcara", "id": "osm-way-46595370", "tema": "cultura", "aire_libre": true },
+    { "slug": "garganta-del-diablo", "id": "osm-node-1684171805", "tema": "naturaleza" },
+    { "slug": "tropico-de-capricornio", "id": "osm-way-910512961", "tema": "cultura", "aire_libre": true },
+    { "slug": "iglesia-de-uquia", "id": "osm-node-2521333883", "tema": "cultura" },
+    { "slug": "monumento-independencia", "id": "osm-way-198776416", "tema": "cultura" },
+    { "slug": "candelaria-humahuaca", "id": "osm-way-204350283", "tema": "cultura" },
+    { "slug": "hornocal", "id": "osm-node-4905099626", "titulo": "Serranía del Hornocal", "tema": "naturaleza", "etiquetas": ["colores"] },
+
+    { "slug": "laguna-de-pozuelos", "id": "osm-relation-11256269", "tema": "naturaleza" },
+    { "slug": "casa-de-yavi", "id": "osm-relation-9419125", "titulo": "Casa Hacienda de Yavi", "tema": "cultura" },
+    { "slug": "mirador-de-yavi", "id": "osm-node-10983108609", "tema": "naturaleza" },
+    { "slug": "iglesia-casabindo", "id": "osm-way-496261917", "tema": "cultura" },
+    { "slug": "barrancas", "id": "osm-relation-11663204", "tema": "cultura", "aire_libre": true },
+    { "slug": "paicone", "id": "osm-node-14281965301", "tema": "naturaleza", "etiquetas": ["colores"] },
+
+    { "slug": "cabildo-de-jujuy", "id": "osm-node-4301542654", "tema": "cultura" },
+    { "slug": "catedral-de-jujuy", "id": "osm-way-437656947", "tema": "cultura" },
+    { "slug": "termas-de-reyes", "id": "osm-node-6350273898", "titulo": "Termas de Reyes", "tema": "naturaleza" },
+    { "slug": "potrero-de-yala", "id": "osm-relation-10726213", "tema": "naturaleza" },
+    { "slug": "dique-la-cienaga", "id": "osm-node-13073078842", "tema": "naturaleza" },
+
+    { "slug": "calilegua", "id": "osm-relation-2870916", "tema": "naturaleza" },
+    { "slug": "termas-del-jordan", "id": "osm-node-5939082902", "tema": "naturaleza" },
+    { "slug": "qhapaq-nan", "id": "osm-way-861232097", "titulo": "Qhapaq Ñan en Santa Ana", "tema": "cultura", "aire_libre": true },
+    { "slug": "las-lancitas", "id": "osm-relation-11683743", "tema": "naturaleza" }
+  ],
+  "insignias": [
+    { "id": "primer-sello", "nombre": "Primer sello", "descripcion": "Sellaste tu primera parada.", "pista": "Sellá cualquier parada.", "icono": "sello", "color": "f1", "regla": { "tipo": "cantidad", "n": 1 } },
+    { "id": "cerros-de-colores", "nombre": "Cerros de colores", "descripcion": "Los cuatro cerros de colores.", "pista": "Sellá los cuatro cerros de colores.", "icono": "cerro", "color": "f3", "regla": { "tipo": "etiqueta", "etiqueta": "colores" } },
+    { "id": "historia-viva", "nombre": "Historia viva", "descripcion": "Cinco paradas de historia y cultura.", "pista": "Sellá cinco iglesias, museos o sitios arqueológicos.", "icono": "iglesia", "color": "f2", "regla": { "tipo": "tema", "tema": "cultura", "n": 5 } },
+    { "id": "naturaleza-pura", "nombre": "Naturaleza pura", "descripcion": "Cinco paradas de naturaleza.", "pista": "Sellá cinco cerros, lagunas, termas o parques.", "icono": "cactus", "color": "f5", "regla": { "tipo": "tema", "tema": "naturaleza", "n": 5 } },
+    { "id": "cuatro-regiones", "nombre": "Las cuatro regiones", "descripcion": "Un sello en la Quebrada, la Puna, los Valles y las Yungas.", "pista": "Sellá una parada en cada región.", "icono": "mapa", "color": "f4", "regla": { "tipo": "regiones" } },
+    { "id": "quebrada", "nombre": "Quebrada completa", "descripcion": "Todas las paradas de la Quebrada de Humahuaca.", "pista": "Sellá todas las paradas de la Quebrada.", "icono": "sol", "color": "f3", "regla": { "tipo": "region", "region": "Quebrada" } },
+    { "id": "puna", "nombre": "Puna completa", "descripcion": "Todas las paradas de la Puna.", "pista": "Sellá todas las paradas de la Puna.", "icono": "llama", "color": "f7", "regla": { "tipo": "region", "region": "Puna" } },
+    { "id": "valles", "nombre": "Valles completos", "descripcion": "Todas las paradas de los Valles.", "pista": "Sellá todas las paradas de los Valles.", "icono": "rio", "color": "f5", "regla": { "tipo": "region", "region": "Valles" } },
+    { "id": "yungas", "nombre": "Yungas completas", "descripcion": "Todas las paradas de las Yungas.", "pista": "Sellá todas las paradas de las Yungas.", "icono": "arbol", "color": "f6", "regla": { "tipo": "region", "region": "Yungas" } },
+    { "id": "todo-jujuy", "nombre": "Todo Jujuy", "descripcion": "Todas las paradas del pasaporte.", "pista": "Sellá todas las paradas.", "icono": "estrella", "color": "f4", "regla": { "tipo": "todas" } }
+  ]
+}

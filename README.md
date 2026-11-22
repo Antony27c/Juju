@@ -58,6 +58,20 @@ Con la clave sola alcanza: al arrancar, el servidor busca en tu cuenta los agent
 2. En `chatbot/cosmospay.config.json`: tu cuenta Stellar pública (empieza con `G`) en `destino`. Nunca la clave secreta.
 3. En `chatbot/productos.json`: las experiencias reales con su precio por persona. Las que vienen cargadas son ejemplos.
 
+### Pasaporte de Jujuy (stamps, badges and QR codes)
+
+Tourists collect a stamp at each of the 29 must-see stops (`chatbot/pasaporte.json`, all taken from the directory by id) and earn badges. The passport page (`/pasaporte.html`, "Pasaporte" button in the header) shows:
+
+- the stamps per region and the badges with their progress (pixel art, same palette as the interface);
+- a map with the tourist's track (stamps in order) and what is left, in a suggested nearest-first order;
+- for each stop left, whether it is a good idea now, not now (closed, or outdoors at night) or for another day (far away).
+
+How a stamp works: each stop has a QR that opens `/s/<stop>.<signature>`. The signature is an HMAC with `PASAPORTE_SECRETO`, so a stamp cannot be faked from the stop name. Without the QR, a tourist standing at the place can stamp with their location (within `PASAPORTE_RADIO_M`, 300 m by default). Progress is kept in the browser (localStorage); the server stores nothing. juju answers "¿qué me falta visitar?" through the `mi_pasaporte` tool.
+
+Printing the QR codes: open `/qr.html` from the server machine, or `/qr.html?clave=<PASAPORTE_CLAVE>` on a deploy, and print (one poster per stop). **Set `PASAPORTE_SECRETO` on the deploy before printing**: without it a random secret is used and every fresh deploy invalidates the printed codes.
+
+To add a stop, add its directory id to `chatbot/pasaporte.json`; its QR shows up on `/qr.html`. Badge rules live in the same file.
+
 ## Deploy en Railway
 
 El repo ya trae `Dockerfile` y `railway.json`. No hay que configurar comandos ni carpeta raíz.
@@ -105,4 +119,6 @@ Para tener en cuenta:
 | `chatbot/public/index.html` | La interfaz |
 | `jujuy_turismo.json`, `estructura.json` | El directorio y su estructura |
 | `construir.py` | Arma el directorio a partir de los datos crudos |
+| `chatbot/pasaporte.json`, `chatbot/pasaporte.mjs` | Pasaporte de Jujuy: stops, badges, signed QR codes, stamps and the suggested route |
+| `chatbot/public/pasaporte.html`, `chatbot/public/qr.html` | Passport page (map, stamps, badges) and the printable QR sheet |
 | `elevenlabs.md` | Detalle técnico: ElevenLabs, búsqueda previa, pagos y seguridad |

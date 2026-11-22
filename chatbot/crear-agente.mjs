@@ -28,6 +28,7 @@ const subcats = Object.entries(estructura.categorias).map(([c, s]) => `${c}: ${s
 const regiones = Object.entries(estructura.regiones).map(([r, d]) => `${r} (${d.join(', ')})`).join('; ');
 const precios = Object.entries(estructura.rangos_precio).map(([k, v]) => `${k} = ${v}`).join('\n');
 const r = resumen();
+const paradasPasaporte = JSON.parse(readFileSync(path.join(AQUI, 'pasaporte.json'), 'utf8')).paradas.length;
 
 const PROMPT = `Sos "juju", asistente turístico de la provincia de Jujuy, Argentina. Cálido y directo. Es una conversación en vivo y muchas veces por voz. Texto plano: sin markdown, sin viñetas, sin emojis, sin leer links ni coordenadas en voz alta (la pantalla ya muestra tarjetas con mapa y teléfono).
 
@@ -78,7 +79,10 @@ Paso 2, pagar: solo cuando el usuario responde que sí a la confirmación (sí, 
 Después hacé lo que indique la respuesta de la herramienta. Si devuelve la reserva confirmada, decile que el pago se acreditó y que la reserva quedó confirmada, con el lugar, la fecha y el código, y cerrá avisando que también le añadiste la reserva a Google Calendar (tiene que tocar el botón para guardarla) y que en pantalla tiene el mapa de cómo llegar. Si avisa que la reserva quedó abierta en pantalla, pedile que la revise y pague ahí, y no la des por confirmada hasta que el sistema te informe que el pago se acreditó.
 No pidas datos de tarjeta, claves, CBU ni frases semilla: no hacen falta.
 Si pregunta qué excursiones o experiencias puede reservar o comprar, llamá a ver_experiencias (con la localidad si la dijo): quedan en pantalla y puede tocar una. Nombrá una o dos con su precio por persona. Solo existen las experiencias del catálogo, con esos precios: no inventes otras ni descuentos.
-Experiencias del catálogo: {{catalogo_pagos}}`;
+Experiencias del catálogo: {{catalogo_pagos}}
+
+# Pasaporte de Jujuy
+Hay un pasaporte con ${paradasPasaporte} paradas imperdibles de las cuatro regiones. En cada una hay un QR: el usuario lo escanea con la cámara del celular y suma el sello; si no encuentra el QR, en la página del pasaporte puede sellar con su ubicación estando ahí. Con los sellos gana insignias (por ejemplo los cerros de colores, cinco paradas de historia o una región completa). Si pregunta por su pasaporte, sus sellos, sus insignias, qué le falta visitar, qué ya visitó o qué recorrido le conviene, llamá a mi_pasaporte y respondé con eso: nombrá la parada que más le conviene ahora y, si alguna no conviene ahora, decí cuál y por qué en pocas palabras. Nunca inventes sellos, paradas ni insignias. El pasaporte, con el mapa de su recorrido, se abre con el botón "Pasaporte" de arriba.`;
 
 const HERRAMIENTAS = [
   {
@@ -140,6 +144,14 @@ const HERRAMIENTAS = [
       type: 'object',
       properties: { idioma: { type: 'string', enum: ['es', 'en'], description: '"en" para inglés, "es" para español.' } },
       required: ['idioma'],
+    },
+  },
+  {
+    type: 'client', name: 'mi_pasaporte', expects_response: true, response_timeout_secs: 15,
+    description: 'Devuelve el Pasaporte de Jujuy del usuario: cuántos sellos tiene, qué insignias ganó y cuáles le faltan, qué paradas ya visitó y qué le falta visitar en el orden sugerido, separando lo que conviene ahora, lo que ahora no (de noche o cerrado) y lo que queda para otro día. Deja en pantalla el botón para abrir el pasaporte con el mapa. Usala cuando pregunta por su pasaporte, sellos, insignias, qué le falta visitar o qué ya visitó.',
+    parameters: {
+      type: 'object',
+      properties: { hora: { type: 'string', description: 'Hora de referencia HH:MM (24 h) si el usuario dijo otra. Omitir para la hora actual.' } },
     },
   },
   {
