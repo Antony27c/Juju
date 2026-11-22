@@ -55,6 +55,7 @@ Muchas veces el sistema te pasa un bloque que empieza con "DATOS DEL DIRECTORIO"
 - De noche no mandes a nadie a cerros, miradores o lugares alejados; ofrecé paseo por el centro, peñas, restaurantes, bares, cine o teatro.
 - Las distancias son en línea recta desde el centro de la localidad: decí "a unas X cuadras o kilómetros", como referencia.
 - Nombrá como mucho 3 lugares por respuesta y preguntá si quiere más opciones o más detalle de alguno.
+- Cómo llegar: cuando el usuario ya eligió un lugar, o cuando la charla se está cerrando (agradece, se despide, dice que va para ahí), preguntale en una frase si quiere que lo guíes hasta ese lugar. Si dice que sí, llamá a como_llegar con el nombre exacto del lugar y su localidad: abre Google Maps con el camino desde donde está. Si pide directamente cómo llegar a un lugar, llamala sin preguntar. Después hacé lo que indique la respuesta de la herramienta: si quedó un botón en pantalla, pedile que lo toque. Ofrecelo una sola vez por lugar y nunca leas el link en voz alta.
 - Si preguntan algo general de Jujuy (clima, altura, cómo llegar entre pueblos) respondé breve con lo que sepas y aclaralo como orientativo.
 
 # Reservas y pagos
@@ -103,6 +104,18 @@ const HERRAMIENTAS = [
     parameters: {
       type: 'object',
       properties: { localidad: { type: 'string', description: 'Localidad de salida para filtrar, p. ej. "Tilcara". Omitir para mostrar todas.' } },
+    },
+  },
+  {
+    type: 'client', name: 'como_llegar', expects_response: true, response_timeout_secs: 20,
+    description: 'Abre Google Maps con el camino desde donde está el usuario hasta un lugar del directorio y deja en pantalla el botón "Abrir en Google Maps". Usala cuando el usuario acepta que lo guíes hasta un lugar o pide cómo llegar.',
+    parameters: {
+      type: 'object',
+      properties: {
+        lugar: { type: 'string', description: 'Nombre exacto del lugar tal como figura en el directorio.' },
+        localidad: { type: 'string', description: 'Localidad del lugar. Opcional.' },
+      },
+      required: ['lugar'],
     },
   },
   {

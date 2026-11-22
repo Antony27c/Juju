@@ -115,7 +115,7 @@ Puntos de diseño:
 Requiere Node 21.7 o superior.
 
 1. En `chatbot/`, copiar `.env.example` como `.env` y completar `ELEVENLABS_API_KEY`. La clave necesita permiso para ElevenLabs Agents.
-2. `node crear-agente.mjs`. Crea cuatro herramientas y el agente, y escribe `ELEVENLABS_AGENT_ID` en `.env`.
+2. `node crear-agente.mjs`. Crea cinco herramientas y el agente, y escribe `ELEVENLABS_AGENT_ID` en `.env`.
 3. `node server.mjs` y abrir `http://localhost:3000`. En Windows también sirve `iniciar.bat`, que crea el `.env` si falta y corre la verificación antes de arrancar.
 
 `node verificar.mjs` muestra en cualquier momento qué está listo (datos, búsqueda, experiencias, pagos, agente) y qué falta.
@@ -226,7 +226,7 @@ const conv = await ElevenLabsClient.Conversation.startSession({
   // conversationToken, connectionType: 'webrtc', textOnly: false,
 
   dynamicVariables: { fecha_hora_local, catalogo_pagos, ubicacion_usuario },
-  clientTools: { plan_rapido, buscar_lugares, ver_experiencias, reservar },
+  clientTools: { plan_rapido, buscar_lugares, ver_experiencias, como_llegar, reservar },
   onMessage: ({ message, role }) => {},      // role: 'user' | 'agent'
   onModeChange: ({ mode }) => {},            // 'speaking' | 'listening'
   onError: (mensaje) => {},
@@ -255,6 +255,7 @@ Las cuatro son `type: "client"`, con `expects_response: true` y 20 segundos de e
 | `plan_rapido` | `localidad`, `hora`, `dia` | `POST /api/plan` y muestra los lugares |
 | `buscar_lugares` | `texto`, `categoria`, `subcategoria`, `localidad`, `region`, `precio_max`, `solo_abiertos`, `hora`, `dia`, `radio_km`, `limite` | `POST /api/buscar` y muestra los lugares |
 | `ver_experiencias` | `localidad` (opcional) | `GET /api/productos` y muestra las experiencias reservables |
+| `como_llegar` | `lugar` (obligatorio), `localidad` | Resuelve el lugar por nombre (entre los ya mostrados o con `POST /api/buscar`), muestra el botón "Abrir en Google Maps" con el camino e intenta abrirlo. Si el nombre coincide con más de un lugar no abre nada y le devuelve las opciones al agente |
 | `reservar` | `metodo_pago` (obligatorio: `usdc` o `banco`), `lugar`, `localidad`, `producto_id`, `fecha`, `hora`, `personas`, `noches` | Reserva de demostración: `POST /api/reservas` simula el pago y muestra la reserva confirmada. Si es una experiencia del catálogo, el usuario eligió USDC y Cosmos Pay está configurado, abre la hoja de reserva para pagar de verdad |
 
 El catálogo de experiencias también viaja en la variable `{{catalogo_pagos}}` junto con la fecha de hoy, así el agente puede nombrar experiencias y precios sin llamar a ninguna herramienta.

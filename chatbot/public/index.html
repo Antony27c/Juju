@@ -184,6 +184,12 @@
   .reserva .codigo { margin: 6px 0 0; padding-top: 10px; border-top: 2px dashed var(--linea); font-size: 14px; color: var(--tenue); }
   .reserva .codigo b { font-size: 16px; font-weight: 700; letter-spacing: .06em; font-variant-numeric: tabular-nums; color: var(--tinta); user-select: all; }
 
+  /* cómo llegar: el lugar y un solo botón que abre el camino en Google Maps */
+  .guia { align-self: flex-start; width: min(100%, 380px); display: flex; flex-direction: column; gap: 4px; }
+  .guia h4 { margin: 0; font: 650 19px/1.2 var(--titular); overflow-wrap: anywhere; }
+  .guia .boton { margin-top: 8px; text-decoration: none; }
+  .ficha.guia { width: min(100%, 320px); padding: 13px 14px 14px; }
+
   /* voz encendida mientras se mira el chat */
   .voz { flex: none; display: flex; align-items: center; gap: 14px; padding-block: 10px; border-top: 1px solid var(--linea); background: var(--papel); }
   .barras { display: flex; align-items: flex-end; gap: 0; height: 32px; flex: none; }
@@ -407,7 +413,35 @@ const legible = (t) => String(t || '').replace(/_/g, ' ');
 const km = (n) => (n < 0.1 ? 'en el centro' : n < 1 ? `a ${Math.round(n * 10) * 100} m` : `a ${String(n).replace('.', ',')} km`);
 const precio = (p) => (!p ? null : p.startsWith('gratis') ? 'gratis' : p.replace(' (estimado)', ' aprox.'));
 
+// Lugares que ya pasaron por la pantalla, por nombre: "cómo llegar" los resuelve sin volver a buscar.
+const conocidos = new Map();
+const llano = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+function porNombre(lugares, nombre) { // los lugares cuyo nombre coincide con lo pedido; si hay un nombre igual, solo ese
+  const n = llano(nombre), palabras = n.split(/\s+/).filter((p) => p.length > 3), de = (x) => llano(x.nombre);
+  const igual = lugares.filter((x) => de(x) === n);
+  if (igual.length) return igual.slice(0, 1);
+  return lugares.filter((x) => de(x).includes(n) || (de(x).length > 3 && n.includes(de(x))) || (palabras.length > 0 && palabras.every((p) => de(x).includes(p))));
+}
+function recorrido(l) { // link de Google Maps con el camino desde donde está el usuario hasta el lugar
+  try {
+    const punto = new URL(l.mapa).searchParams.get('query');
+    return /^-?[\d.]+,-?[\d.]+$/.test(punto || '') ? `https://www.google.com/maps/dir/?api=1&destination=${punto}` : null;
+  } catch { return null; }
+}
+function mostrarGuia(l, url) { // el botón queda en el chat y, en la vista de voz, como única ficha
+  const armar = (clase) => {
+    const g = nodo('section', clase);
+    g.append(nodo('p', 'sobre', 'Cómo llegar'), nodo('h4', '', l.nombre));
+    const donde = [l.direccion, l.localidad].filter(Boolean).join(' · '); if (donde) g.append(nodo('p', 'meta', donde));
+    const a = enlace('Abrir en Google Maps', url); a.className = 'boton lleno'; g.append(a);
+    return g;
+  };
+  dejarDePensar(); agregar(armar('guia'));
+  $('tira').replaceChildren(armar('ficha guia')); tiraDe = 'guia'; $('tira').hidden = false; $('verExp').setAttribute('aria-pressed', 'false');
+}
+
 function lista(titulo, lugares) {
+  for (const l of lugares || []) conocidos.set(llano(l.nombre), l);
   // The pre-search and a tool call can return the same place in one turn: show each place once.
   lugares = (lugares || []).filter((l) => {
     const key = `${l.nombre}|${l.localidad || ''}`;
@@ -431,6 +465,7 @@ function lista(titulo, lugares) {
     if (extra) fila.append(nodo('p', 'meta', extra));
     const acc = nodo('div', 'acc');
     const mapa = l.mapa && enlace('Ver en el mapa', l.mapa); if (mapa) acc.append(mapa);
+    const camino = l.mapa && recorrido(l); if (camino) acc.append(enlace('Cómo llegar', camino));
     const web = l.web && /^https?:/.test(l.web) && enlace('Sitio web', l.web); if (web) acc.append(web);
     if (l.telefono) {
       const num = String(l.telefono).split(/[;,]/)[0].trim();
@@ -502,6 +537,27 @@ const herramientas = {
     mostrarExperiencias(l, true);
     return 'En pantalla quedaron estas experiencias; el usuario puede tocar una para reservarla:\n' + l.map((x) => `- ${x.id}: ${x.nombre} | ${detalleExp(x)} | USD ${x.precio_usd} por persona`).join('\n');
   },
+  // El usuario aceptó que juju lo guíe: se abre Google Maps con el camino y queda el botón en pantalla.
+  // Un navegador puede frenar la apertura automática (no viene de un toque), por eso el botón va siempre.
+  async como_llegar({ lugar, localidad } = {}) {
+    const n = llano(lugar);
+    if (!n) return 'Falta el nombre del lugar. Preguntale a cuál quiere ir.';
+    let candidatos = porNombre([...conocidos.values()], lugar), parecidos = [];
+    if (!candidatos.length) {
+      const d = await post('/api/buscar', conUbicacion({ texto: lugar, localidad, limite: 15 })).catch(() => null);
+      parecidos = d?.resultados || []; candidatos = porNombre(parecidos, lugar);
+    }
+    // con más de un lugar posible no se adivina: mandar a alguien al lugar equivocado es peor que preguntar
+    if (candidatos.length > 1) return `Hay más de un lugar que coincide con "${lugar}": ${candidatos.slice(0, 4).map((x) => x.nombre).join('; ')}. No abrí ningún mapa. Preguntale a cuál quiere ir y volvé a llamar con ese nombre exacto.`;
+    const l = candidatos[0], url = l && recorrido(l);
+    if (!url) return `No encontré un lugar llamado "${lugar}" en el directorio, así que no abrí ningún mapa.` + (parecidos.length ? ` Con nombre parecido hay: ${parecidos.slice(0, 4).map((x) => x.nombre).join('; ')}. Preguntale si es alguno de esos.` : ' Pedile el nombre del lugar.');
+    mostrarGuia(l, url);
+    let abierta = null;
+    try { abierta = window.open(url, '_blank'); if (abierta) abierta.opener = null; } catch {}
+    return abierta
+      ? `Se abrió Google Maps con el camino hasta "${l.nombre}" y quedó el botón "Abrir en Google Maps" en pantalla. Decíselo en una frase.`
+      : `Quedó en pantalla el botón "Abrir en Google Maps" con el camino hasta "${l.nombre}"; el navegador no dejó abrirlo solo. Pedile que lo toque, en una frase.`;
+  },
   // Reserva por voz o chat: el agente ya preguntó "¿USDC o transferencia?".
   // Demo booking: the server fakes the payment and confirms at once (reservas.mjs).
   // Única excepción: una experiencia del catálogo pagada con USDC cuando Cosmos Pay está configurado
@@ -559,7 +615,6 @@ function tarjetaReserva(r) {
 let catalogo = null, reserva = null; // reserva = { prod, personas, fecha, pago }
 const cargarCatalogo = async () => (catalogo = await fetch('/api/productos').then((r) => r.json()));
 const sinCobro = (cat) => cat.proveedor === 'ninguno' || cat.proveedor === 'sin_configurar';
-const llano = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const usd = (n) => 'USD ' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
 const cuantas = (n) => `${n} ${n === 1 ? 'persona' : 'personas'}`;
 const totalDe = (r) => Math.round(r.prod.precio_usd * r.personas * 100) / 100;
@@ -974,6 +1029,7 @@ const ICONOS = {
   reloj: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   lista: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
   boleto: '<path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6.5v11" stroke-dasharray="1.5 3"/>',
+  ruta: '<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6.5a3 3 0 0 0 0-6h-5a3 3 0 0 1 0-6H16"/>',
 };
 function pintarFunciones(e) {
   const total = e?.datos?.total ? e.datos.total.toLocaleString('es-AR') : 'miles de';
@@ -984,6 +1040,7 @@ function pintarFunciones(e) {
     ['pin', 'Buscá cerca tuyo', 'En el chat, el botón del pin usa tu ubicación para no preguntarte la localidad. Solo se usa en esta charla.'],
     ['reloj', 'Mirá qué está abierto', 'Cada lugar dice si está abierto, cerrado o sin horario.' + (conHorario ? ' Hoy ' + conHorario + ' lugares tienen horario cargado.' : '') + ' Cuando no lo tengo te aviso, no lo invento.'],
     ['lista', 'Llevate los datos', 'Distancia, precio aproximado, mapa, teléfono y sitio web de ' + total + ' lugares de toda la provincia.'],
+    ['ruta', 'Dejá que te guíe', 'Cuando elegís un lugar te pregunto si querés que te guíe. Si decís que sí, se abre Google Maps con el camino desde donde estás. Cada lugar también tiene su link "Cómo llegar".'],
   ];
   if (e?.voz?.tiempo_real) funciones[0][2] += ' La voz corre en tiempo real.';
   const p = e?.pagos;
