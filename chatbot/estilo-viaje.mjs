@@ -358,19 +358,35 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
     }
   };
   const otroModelo = (x) => x.status === 0 || REINTENTAR_CON_OTRO.has(x.status);
-  const desde = Date.now();
-  let modelo = modeloElegido || MODELO_GEMINI();
-  let r = await pedir(modelo);
-  if (otroModelo(r)) { // no existe, está saturado o no contesta: se prueba con los más parecidos
-    const vistos = await modelosDisponibles(apiKey, fetchFn);
-    modelosVistos = vistos.filter(n => /^gemini-/.test(n)).slice(0, 60);
-    const probados = new Set([modelo]);
-    for (const otro of ordenModelos(vistos).filter(n => !probados.has(n)).slice(0, 3)) {
-      if (Date.now() - desde > 30000) break; // el usuario está esperando
-      probados.add(otro); modelo = otro; r = await pedir(otro);
-      if (!otroModelo(r)) break;
-    }
-  }
+  // El usuario está esperando: se empieza por el modelo elegido y, si falla (no existe, saturado) o a los 4 s
+  // todavía no contestó, sale en paralelo el siguiente más parecido. Vale la primera respuesta buena.
+  const candidatos = [modeloElegido || MODELO_GEMINI()];
+  let listados = null;
+  const listar = () => (listados ||= (async () => {
+    const vistos = modelosVistos?.length ? modelosVistos : await modelosDisponibles(apiKey, fetchFn);
+    if (!modelosVistos?.length) modelosVistos = vistos.filter(n => /^gemini-/.test(n)).slice(0, 60);
+    candidatos.push(...ordenModelos(vistos).filter(n => !candidatos.includes(n)).slice(0, 3));
+  })());
+  const { r, modelo } = await new Promise((resolver) => {
+    let i = 0, enVuelo = 0, ultimo = null, listo = false, reloj = null;
+    const fin = (x) => { if (listo) return; listo = true; clearTimeout(reloj); clearTimeout(tope); resolver(x); };
+    const tope = setTimeout(() => fin(ultimo || { modelo: candidatos[0], r: { ok: false, status: 0, fallo: error(`Gemini tardó demasiado (modelo ${candidatos[0]}).`, 502) } }), 16000);
+    const lanzar = async () => {
+      clearTimeout(reloj);
+      if (i > 0) await listar();
+      if (listo) return;
+      const m = candidatos[i];
+      if (!m) { if (!enVuelo) fin(ultimo); return; }
+      i++; enVuelo++;
+      reloj = setTimeout(lanzar, 4000);
+      const x = await pedir(m);
+      enVuelo--;
+      if (!otroModelo(x)) return fin({ r: x, modelo: m });
+      ultimo = { r: x, modelo: m };
+      lanzar();
+    };
+    lanzar();
+  });
   if (r.fallo) throw r.fallo;
   if (!r.ok) {
     const detalle = await r.json?.().then(d => String(d?.error?.message || '').slice(0, 160), () => '').catch(() => '') || '';

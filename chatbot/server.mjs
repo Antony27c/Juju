@@ -65,13 +65,14 @@ const vozClasica = (pedida) => pedida === 'clasica' || (pedida !== 'tiempo-real'
 let preparacion = null, errorAgente = '';
 // Con qué nivel de configuración aceptó ElevenLabs cada agente (3 = con detección de idioma, o sea inglés por voz).
 const niveles = { texto: null, voz: null };
+let vozEspanol = null; // la voz con la que quedó hablando juju en español (crear-agente.mjs la elige)
 function prepararAgente() {
   if (!clave() || /^(off|no|0|false)$/i.test(process.env.ELEVENLABS_SINCRONIZAR || '')) return;
   const archivo = path.join(AQUI, 'agente.json');
   const tarea = (async () => {
     let ids = {};
     try {
-      const { prepararAgentes } = await import('./crear-agente.mjs');
+      const { prepararAgentes, vozDeJuju } = await import('./crear-agente.mjs');
       try { if (existsSync(archivo)) ids = JSON.parse(await readFile(archivo, 'utf8')); } catch {}
       if (agente()) ids.agente = agente();
       if (voiceAgent()) ids.voice_agent = voiceAgent();
@@ -80,7 +81,7 @@ function prepararAgente() {
       process.env.ELEVENLABS_AGENT_ID = text.id;
       if (voice) process.env.ELEVENLABS_VOICE_AGENT_ID = voice.id;
       errorAgente = '';
-      niveles.texto = text.level; niveles.voz = voice ? voice.level : null;
+      niveles.texto = text.level; niveles.voz = voice ? voice.level : null; vozEspanol = vozDeJuju();
       console.log(`ElevenLabs: agente ${text.id} ${text.action === 'created' ? 'creado' : 'actualizado'} · voz: ${voice ? `tiempo real, agente ${voice.id}` : 'con el agente de texto'}`);
     } catch (e) {
       errorAgente = String(e.message || e).slice(0, 400);
@@ -217,7 +218,7 @@ const servidor = http.createServer(async (req, res) => {
         agente_configurado: Boolean(clave() && (agente() || preparacion)), clave_cargada: Boolean(clave()), ...(errorAgente ? { error_agente: errorAgente } : {}),
         datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
         // tiempo_real: el que atiende la voz por defecto; tiempo_real_disponible: se puede pedir con ?voz=tiempo-real
-        voz: { tiempo_real: Boolean(voiceAgent()) && realtimePorDefecto(), tiempo_real_disponible: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
+        voz: { tiempo_real: Boolean(voiceAgent()) && realtimePorDefecto(), tiempo_real_disponible: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null, voz_es: vozEspanol },
         estilo: { aviso: AVISO_ESTILO(), con_imagenes: Boolean(claveGemini()), analiza: claveGemini() ? 'Google AI Studio (Gemini) + palabras clave' : 'palabras clave', ...(modeloGeminiEnUso() ? { modelo: modeloGeminiEnUso() } : {}), ...(errorGemini ? { error_gemini: errorGemini, modelos_disponibles: modelosGeminiVistos() } : {}) },
         // null = todavía no se sabe (el agente se está preparando, o no se sincronizó en este arranque)
         ingles_por_voz: { chat: niveles.texto == null ? null : niveles.texto >= 3, tiempo_real: niveles.voz == null ? null : niveles.voz >= 3 },

@@ -34,7 +34,7 @@ const PROMPT = `Sos "juju", asistente turístico de la provincia de Jujuy, Argen
 
 # Reglas que no se rompen
 1. Solo podés nombrar lugares que figuren en un bloque DATOS DEL DIRECTORIO o en la respuesta de una herramienta de esta charla. Si el usuario pide un lugar y no tenés esos datos para su localidad, no respondas de memoria: llamá primero a buscar_lugares o a plan_rapido y respondé con lo que devuelvan. Nombrar un restaurante, hotel o excursión que no salió de ahí está prohibido, aunque lo conozcas. (Never name a place that is not in DIRECTORY DATA or in a tool result from this conversation: call a tool first.)
-2. Nunca elijas vos el método de pago ni confirmes una reserva por tu cuenta: las dos cosas las dice el usuario, y hasta que no las diga no llamás a reservar con metodo_pago ni con confirmado.
+2. Nunca elijas vos el método de pago de una reserva: lo dice el usuario. Apenas lo elige, la reserva se confirma. Nunca le digas que no podés confirmarla.
 3. En cada charla le pedís una vez al usuario su usuario de Instagram (sección "Estilo de viaje"). Por chat va siempre al final de tu primera respuesta, sea cual sea su primer mensaje, incluso si solo saluda o dice dónde está. La única excepción es que ya te haya llegado un bloque ESTILO DE VIAJE DEL USUARIO.
 
 # Idioma
@@ -84,14 +84,14 @@ Al empezar cada charla le pedís al usuario su usuario de Instagram, para ver si
 - Este paso nunca frena lo que pidió: si pidió algo, respondelo igual.
 
 # Reservas y pagos
-Reservar va siempre en este orden: disponibilidad, método de pago, confirmación y recién ahí el pago. Nunca se paga sin un sí explícito del usuario.
+Reservar va siempre en este orden: disponibilidad, método de pago y confirmación. Apenas el usuario elige el método de pago, la reserva queda confirmada: no hace falta ningún otro paso.
 Paso 1, ver disponibilidad: apenas el usuario pide reservar un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo, llamá a reservar con lo que ya sabés (el nombre exacto del lugar, o producto_id si es una experiencia; fecha, hora, personas, noches; metodo_pago si ya lo dijo) y sin confirmado. No preguntes nada antes: si no dijo la fecha es hoy y si no dijo cuántos son es una persona. En esa misma respuesta, antes de llamar, avisale que estás chequeando la disponibilidad, con esta frase: "Dame un segundo, estoy chequeando la disponibilidad." (en inglés: "Give me a second, I'm checking availability."). Esa frase es solo para reservar: no la digas antes de buscar lugares ni de armar un plan. Esa llamada no reserva ni cobra: devuelve si hay disponibilidad y el monto. Nunca elijas el método vos ni inventes el monto: usá el que devuelve la herramienta.
-Método de pago: si el usuario todavía no eligió cómo pagar, decile que hay disponibilidad y preguntáselo con esta frase, tal cual: "Hay disponibilidad. Tenés 2 métodos de pago disponibles: dinero en tu cuenta del Wells Fargo, o pagar con USDC a través de Cosmos Pay. ¿Con cuál querés pagar?" En inglés: "There is availability. You have 2 payment methods available: money in your Wells Fargo account, or paying with USDC through Cosmos Pay. Which one do you want to pay with?" Son los únicos dos métodos. Cuando elige, llamá de nuevo a reservar con los mismos datos y metodo_pago ("banco" si elige la cuenta de Wells Fargo, "usdc" si elige USDC), todavía sin confirmado.
-Confirmación: con el método ya elegido, pedile la confirmación en una sola frase, con la actividad, el monto y la hora, así: "Para conectar la reserva y pagar, confirmame por favor que querés pagar [actividad] por USD [monto] con [método], [fecha] a las [hora]."
+Método de pago: si el usuario todavía no eligió cómo pagar, decile que hay disponibilidad y preguntáselo con esta frase, tal cual: "Hay disponibilidad. Tenés 2 métodos de pago disponibles: dinero en tu cuenta del Wells Fargo, o pagar con USDC. ¿Con cuál querés pagar?" En inglés: "There is availability. You have 2 payment methods available: money in your Wells Fargo account, or paying with USDC. Which one do you want to pay with?" Son los únicos dos métodos. Si responde "la primera", "el primero", "la cuenta" o "Wells Fargo", es "banco"; si responde "la segunda", "el segundo" o "USDC", es "usdc". Apenas elige, llamá de nuevo a reservar con los mismos datos, con metodo_pago y con confirmado en true: no le pidas otra confirmación.
+Si el usuario ya había dicho el método al pedir la reserva, la herramienta te da una pregunta corta ("¿Te confirmo ...?"): hacésela y, cuando diga que sí, llamá de nuevo a reservar con confirmado en true.
 Si pregunta si tiene que pagar en efectivo o en pesos argentinos (por ejemplo "do I have to pay in cash or in Argentine pesos?"), respondé que no y nada más que esto: "No, pagás en tu moneda local y el vendedor recibe en pesos argentinos." En inglés: "No, you pay in your local money and the seller receives it in Argentine pesos." Después seguí con el paso de la reserva en el que estaban.
 Todas estas frases van en el idioma del último mensaje del usuario: si preguntó en inglés, en inglés; si preguntó en español, en español.
-Paso 2, pagar: solo cuando el usuario responde que sí a la confirmación (sí, dale, confirmo, yes, go ahead), llamá de nuevo a reservar con los mismos datos, con metodo_pago "usdc" o "banco" y con confirmado en true. Si dice que no, duda o cambia algo (fecha, hora, personas), no pagues: si cambió algo, volvé al paso 1 con los datos nuevos.
-Después hacé lo que indique la respuesta de la herramienta. Si devuelve la reserva confirmada, decile que el pago se acreditó y que la reserva quedó confirmada, con el lugar, la fecha y el código, y cerrá avisando que también le añadiste la reserva a Google Calendar (tiene que tocar el botón para guardarla) y que en pantalla tiene el mapa de cómo llegar. Si avisa que la reserva quedó abierta en pantalla, pedile que la revise y pague ahí, y no la des por confirmada hasta que el sistema te informe que el pago se acreditó.
+Paso 2, confirmar: esa llamada con metodo_pago y confirmado en true devuelve la reserva confirmada con su código. Si el usuario cambia algo (fecha, hora, personas), volvé al paso 1 con los datos nuevos.
+Después decile con seguridad que ya quedó confirmada ("Listo, ya te la confirmé"), con el lugar, la fecha y el código, y cerrá avisando que también le añadiste la reserva a Google Calendar (tiene que tocar el botón para guardarla) y que en pantalla tiene el mapa de cómo llegar. Nunca digas que no podés confirmar una reserva, que no tenés forma de hacerlo ni que tiene que confirmarla por otro lado: la herramienta reservar la confirma siempre.
 No pidas datos de tarjeta, claves, CBU ni frases semilla: no hacen falta.
 Si pregunta qué excursiones o experiencias puede reservar o comprar, llamá a ver_experiencias (con la localidad si la dijo): quedan en pantalla y puede tocar una. Nombrá una o dos con su precio por persona. Solo existen las experiencias del catálogo, con esos precios: no inventes otras ni descuentos.
 Experiencias del catálogo: {{catalogo_pagos}}
@@ -182,7 +182,7 @@ const HERRAMIENTAS = [
   },
   {
     type: 'client', name: 'reservar', expects_response: true, response_timeout_secs: 20,
-    description: 'Reserva un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo. Sin confirmado: no reserva ni cobra, devuelve si hay disponibilidad y el monto y dice qué preguntarle al usuario (primero el método de pago, después la confirmación). Con confirmado en true, solo después de que el usuario dijo que sí a ese monto: registra el pago con el método que eligió y devuelve la reserva confirmada con su código, o avisa que quedó abierta en pantalla para que pague ahí.',
+    description: 'Reserva un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo. Primera llamada, sin confirmado: devuelve si hay disponibilidad y el monto, y dice qué preguntarle al usuario (el método de pago). Segunda llamada, con metodo_pago y confirmado en true, apenas el usuario eligió el método: devuelve la reserva confirmada con su código.',
     parameters: {
       type: 'object',
       properties: {
@@ -193,17 +193,56 @@ const HERRAMIENTAS = [
         hora: { type: 'string', description: 'Hora HH:MM (24 h) para restaurantes o excursiones. Opcional.' },
         personas: { type: 'integer', description: 'Cantidad de personas.' },
         noches: { type: 'integer', description: 'Cantidad de noches, solo alojamiento.' },
-        metodo_pago: { type: 'string', enum: ['usdc', 'banco'], description: '"banco" si paga con el dinero de su cuenta de Wells Fargo; "usdc" si paga con USDC a través de Cosmos Pay. Lo elige el usuario; hace falta para confirmar.' },
-        confirmado: { type: 'boolean', description: 'true solo cuando el usuario ya dijo que sí a pagar esa actividad por ese monto. Omitir en la primera llamada, que solo consulta disponibilidad y monto.' },
+        metodo_pago: { type: 'string', enum: ['usdc', 'banco'], description: '"banco" si elige la primera opción o su cuenta de Wells Fargo; "usdc" si elige la segunda opción o USDC. Lo elige el usuario.' },
+        confirmado: { type: 'boolean', description: 'true apenas el usuario eligió el método de pago (o dijo que sí a la reserva). Omitir en la primera llamada, que solo consulta disponibilidad y monto.' },
       },
     },
   },
 ];
 
 const LLM = process.env.ELEVENLABS_LLM || 'claude-haiku-5-5';
-// La voz de juju va fija acá, no por variable de entorno: "Sarah", voz femenina que viene con toda cuenta de
-// ElevenLabs y está verificada para español. Para cambiarla, reemplazá el id por el de otra voz de la cuenta.
-const VOZ = 'EXAVITQu4vr4xnSDxMaL';
+// La voz de juju en español es una voz nativa argentina de la biblioteca de ElevenLabs: al preparar los agentes se
+// busca una (español, acento argentino) y se agrega a la cuenta con el nombre de abajo; la vez siguiente se reusa.
+// ELEVENLABS_VOICE_ID fija otra. Si no se consigue ninguna queda "Sarah", que viene con toda cuenta pero habla
+// español con acento de Estados Unidos. En inglés habla siempre Sarah.
+const VOZ_INGLES = 'EXAVITQu4vr4xnSDxMaL';
+const NOMBRE_VOZ = 'juju (voz argentina)';
+let VOZ = VOZ_INGLES;
+let vozElegida = { id: VOZ, nombre: 'Sarah', origen: 'por defecto' };
+export const vozDeJuju = () => vozElegida;
+
+const esArgentina = (v) => /es[-_]ar/i.test(v.locale || '') || /argentin/i.test(`${v.accent || ''} ${v.name || ''} ${v.description || ''}`)
+  || (v.verified_languages || []).some((l) => /es[-_]ar/i.test(l.locale || '') || /argentin/i.test(l.accent || ''));
+const puntosVoz = (v) => (/^female$/i.test(v.gender || '') ? 3 : 0) + (/conversational/i.test(v.use_case || '') ? 3 : 0)
+  + ({ professional: 2, high_quality: 1 }[v.category] || 0) + (Number(v.rate) > 1 ? -5 : 0) + Math.log10(1 + (v.usage_character_count_1y || 0)) / 2;
+async function elegirVoz(warn) {
+  const fija = (process.env.ELEVENLABS_VOICE_ID || '').trim();
+  if (fija) { VOZ = fija; vozElegida = { id: fija, origen: 'ELEVENLABS_VOICE_ID' }; return; }
+  try {
+    const mias = (await api('GET', `/v2/voices?search=juju&page_size=50`)).voices || [];
+    const ya = mias.find((v) => v.name === NOMBRE_VOZ);
+    if (ya) { VOZ = ya.voice_id; vozElegida = { id: VOZ, nombre: ya.name, origen: 'cuenta', descripcion: String(ya.description || '').slice(0, 160) }; return; }
+    const vistas = new Map();
+    let fallo = '';
+    for (const q of ['language=es&locale=es-AR', 'language=es&accent=argentinian', 'language=es&accent=argentine', 'language=es&search=argentina']) {
+      try { for (const v of (await api('GET', `/v1/shared-voices?${q}&page_size=100`)).voices || []) if (esArgentina(v)) vistas.set(v.voice_id, v); } catch (e) { fallo = e.message; }
+    }
+    const orden = [...vistas.values()].sort((x, y) => puntosVoz(y) - puntosVoz(x));
+    for (const v of orden.slice(0, 5)) {
+      try {
+        const d = await api('POST', `/v1/voices/add/${v.public_owner_id}/${v.voice_id}`, { new_name: NOMBRE_VOZ });
+        VOZ = d.voice_id;
+        vozElegida = { id: VOZ, nombre: v.name, origen: 'biblioteca', acento: v.accent, locale: v.locale || null, genero: v.gender, uso: v.use_case, descripcion: String(v.description || '').slice(0, 160) };
+        return;
+      } catch (e) { fallo = e.message; }
+    }
+    vozElegida = { ...vozElegida, encontradas: orden.length, error: String(fallo || 'No encontré voces argentinas en la biblioteca.').slice(0, 300) };
+    warn(`No pude poner una voz argentina (${vozElegida.error}); queda Sarah.`);
+  } catch (e) {
+    vozElegida = { ...vozElegida, error: String(e.message || e).slice(0, 300) };
+    warn(`No pude buscar una voz argentina (${vozElegida.error}); queda Sarah.`);
+  }
+}
 // "Turbo": eleven_turbo_v2_5 es el modelo Turbo multilingüe (el turbo_v2 a secas es solo inglés).
 const TTS = process.env.ELEVENLABS_TTS_MODEL || 'eleven_turbo_v2_5';
 
@@ -218,7 +257,7 @@ if (!REALTIME && realtimeSetting !== 'off') console.warn(`Unknown ELEVENLABS_REA
 // 3 = everything plus English (language detection); 2 = eager turn taking; 1 = time zone, variables, events,
 // session length; 0 = minimal. Without level 3 the agent still answers in English when the prompt tells it to,
 // but it keeps listening and speaking with the Spanish voice settings.
-const NIVELES = ['time zone, variables, events and session length', 'turn eagerness', 'English (language detection)'];
+const NIVELES = ['time zone, variables, events and session length', 'turn eagerness', 'English (language detection)', 'a separate voice for English'];
 const SALUDO_EN = "Hi! I'm juju, your guide to Jujuy. To tailor my tips, tell me your Instagram username or type it on screen, and I'll see whether you travel low cost or fancy. Or skip it and just tell me which town you're in.";
 const NOMBRES = { text: 'juju', voice: 'juju (voz en tiempo real)' };
 function config(kind, level, toolIds) {
@@ -253,6 +292,8 @@ function config(kind, level, toolIds) {
     // La página abre la sesión de voz en inglés con overrides.agent.language cuando el usuario habla inglés.
     c.platform_settings.overrides.conversation_config_override.agent.language = true;
   }
+  // La voz argentina es para el español; en inglés sigue hablando Sarah.
+  if (level >= 4 && VOZ !== VOZ_INGLES) c.conversation_config.language_presets.en.overrides.tts = { voice_id: VOZ_INGLES };
   return c;
 }
 
@@ -326,6 +367,7 @@ export async function prepararAgentes({ ids = {}, guardar = () => {}, log = cons
     } catch (e) { warn(`No pude listar los agentes de la cuenta (${e.message}); creo los que falten.`); }
   }
 
+  await elegirVoz(warn);
   const text = await saveAgent('text', ids.agente, toolIds);
   ids.agente = text.id;
   guardar(ids);
