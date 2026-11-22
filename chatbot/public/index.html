@@ -89,7 +89,7 @@
   .app[data-vista="voz"] .franjas, .app[data-vista="voz"] .estado { display: none; }
   .app[data-vista="chat"] .escena { display: none; }
   .escena { --nivel: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .dicho { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-block: 16px 14px; }
+  .dicho { flex: 1; min-height: 78px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-block: 16px 14px; }
   .dicho::before { content: ""; margin-top: auto; } /* empuja el texto contra el paisaje sin cortar el scroll */
   .dicho p { margin: 0; overflow-wrap: anywhere; }
   .vos { max-width: 44ch; font-size: 15px; color: var(--tenue); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -128,7 +128,7 @@
   .ficha .precio { margin-top: 2px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
   /* el paisaje: cada "pixel" lo dibuja el script en la grilla; acá solo va el tamaño */
-  .faja { flex: none; display: block; width: 100%; height: clamp(132px, 29vh, 264px); image-rendering: pixelated; }
+  .faja { flex: 0 1 auto; min-height: 92px; display: block; width: 100%; height: clamp(132px, 29vh, 264px); image-rendering: pixelated; }
   .pie { flex: none; position: relative; margin-top: -18px; background: var(--papel); border-radius: 26px 26px 0 0; box-shadow: 0 -1px 0 var(--linea), 0 -14px 30px rgb(21 23 43 / .06); padding-top: 12px; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); }
   .aviso-fase { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; }
   .fase { margin: 0; display: inline-flex; align-items: center; gap: 9px; min-width: 0; padding: 7px 13px; background: var(--hueco); border-radius: 999px; font: 500 15px/1 var(--pixel); letter-spacing: .03em; color: var(--tenue); }
@@ -222,6 +222,15 @@
   .pago .monto small { margin-right: 6px; font-size: 14px; font-weight: 650; letter-spacing: 0; color: var(--tenue); }
   .reserva .codigo { margin: 6px 0 0; padding-top: 12px; border-top: 2px dashed var(--linea); font-size: 14px; color: var(--tenue); }
   .reserva .codigo b { font: 600 18px/1 var(--pixel); letter-spacing: .08em; color: var(--tinta); user-select: all; }
+
+  /* después de reservar: el mapita de cómo llegar y los dos botones (ir y guardar en el calendario) */
+  .despues { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .mapita { display: block; width: 100%; height: 156px; border: 0; border-radius: 14px; background: var(--hueco); }
+  .acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+  .acciones .boton.chico { margin-top: 0; padding: 7px 13px; font-size: 13.5px; color: inherit; text-decoration: none; }
+  .ficha.confirmada { width: min(88vw, 330px); }
+  .ficha.confirmada .mapita { height: 104px; }
+  .ficha.confirmada .despues { margin-top: 6px; gap: 8px; }
 
   /* cómo llegar: el lugar y un solo botón que abre el camino en Google Maps */
   .guia { align-self: flex-start; width: min(100%, 380px); display: flex; flex-direction: column; gap: 4px; }
@@ -670,7 +679,7 @@ const herramientas = {
     p = { ...(p || {}) };
     const confirmado = p.confirmado === true || p.confirmado === 'true';
     delete p.confirmado; delete p.cotizar;
-    pensar(confirmado ? 'Procesando la reserva' : 'Viendo si hay lugar');
+    pensar(confirmado ? 'Procesando la reserva' : 'Chequeando la disponibilidad');
     try {
       const cot = await post('/api/reservas', { ...p, cotizar: true });
       const firma = firmaDe(cot);
@@ -707,10 +716,12 @@ const montoReserva = (r) => String(r.amount_usd).replace('.', ',');
 // Paso 1 en pantalla: hay lugar y esto es lo que se va a pagar. Todavía no se pagó nada.
 function tarjetaCotizacion(r) {
   const paga = r.amount_usd > 0;
-  const c = nodo('section', 'pago reserva');
+  const c = nodo('section', 'pago reserva procesando');
   c.append(nodo('span', 'prueba', 'Demo · pago simulado'));
   const paso = nodo('p', 'paso'); const ok = nodo('span', '', '✓'); ok.setAttribute('aria-hidden', 'true');
-  paso.append(ok, nodo('span', '', 'Hay disponibilidad')); c.append(paso);
+  const mini = nodo('span', 'mini'); mini.append(nodo('i'), nodo('i'), nodo('i'));
+  paso.append(mini, nodo('span', '', 'Chequeando la disponibilidad')); c.append(paso);
+  setTimeout(() => { paso.replaceChildren(ok, nodo('span', '', 'Hay disponibilidad')); c.classList.remove('procesando'); abajo(); }, 900);
   const fin = nodo('div', 'fin');
   fin.append(nodo('p', 'que', paga ? 'Por confirmar · todavía no se pagó' : 'Por confirmar'), nodo('h4', '', r.item.name), nodo('p', 'meta', detalleReserva(r)));
   if (paga) { const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), montoReserva(r)); fin.append(monto); }
@@ -722,6 +733,36 @@ function tarjetaCotizacion(r) {
 }
 
 const PROCESSING_MS = 900; // short "processing" beat so the payment step reads before the confirmation
+// Después de pagar: el mapita de cómo llegar (desde donde está el usuario, si compartió su ubicación) y el evento
+// listo para guardar en Google Calendar. Sin iniciar sesión en Google no se puede guardar solo: falta un toque.
+function destinoDe(r) {
+  try { const q = r.item.map && new URL(r.item.map).searchParams.get('query'); if (/^-?[\d.]+,-?[\d.]+$/.test(q || '')) return q; } catch {}
+  return [r.kind === 'place' ? r.item.name : '', r.item.locality, 'Jujuy, Argentina'].filter(Boolean).join(', ');
+}
+function enlacesReserva(r) {
+  const destino = encodeURIComponent(destinoDe(r)), origen = ubicacion ? `${ubicacion.lat},${ubicacion.lon}` : '';
+  const mapa = origen ? `https://www.google.com/maps?saddr=${origen}&daddr=${destino}&output=embed` : `https://www.google.com/maps?q=${destino}&z=13&output=embed`;
+  const ruta = `https://www.google.com/maps/dir/?api=1&destination=${destino}` + (origen ? `&origin=${origen}` : '');
+  const dia = (r.date_iso || '').replace(/-/g, ''), dos = (n) => String(n).padStart(2, '0');
+  let fechas = '';
+  if (dia && r.time) { const [h, m] = r.time.split(':').map(Number), fin = Math.min(h * 60 + m + 120, 23 * 60 + 59); fechas = `${dia}T${dos(h)}${dos(m)}00/${dia}T${dos(Math.floor(fin / 60))}${dos(fin % 60)}00`; }
+  else if (dia) { const d = new Date(r.date_iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); fechas = `${dia}/${d.toISOString().slice(0, 10).replace(/-/g, '')}`; }
+  const detalle = [`Código de reserva ${r.code}`, detalleReserva(r), r.amount_usd > 0 ? `USD ${montoReserva(r)} con ${r.method_label}` : '', 'Reserva de demostración hecha con juju.'].filter(Boolean).join('\n');
+  const lugar = [r.kind === 'place' ? r.item.name : '', r.item.address, r.item.locality, 'Jujuy, Argentina'].filter(Boolean).join(', ');
+  const cal = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent('Reserva: ' + r.item.name)
+    + (fechas ? `&dates=${fechas}&ctz=America/Argentina/Jujuy` : '') + '&details=' + encodeURIComponent(detalle) + '&location=' + encodeURIComponent(lugar);
+  return { mapa, ruta, cal };
+}
+function extrasReserva(r) {
+  const { mapa, ruta, cal } = enlacesReserva(r), caja = nodo('div', 'despues');
+  const marco = document.createElement('iframe'); marco.className = 'mapita'; marco.src = mapa; marco.loading = 'lazy'; marco.title = 'Mapa de cómo llegar';
+  marco.referrerPolicy = 'no-referrer-when-downgrade';
+  const ir = enlace('Cómo llegar', ruta), agenda = enlace('+ Google Calendar', cal);
+  ir.setAttribute('aria-label', ubicacion ? 'Cómo llegar desde donde estás, en Google Maps' : 'Cómo llegar, en Google Maps'); agenda.setAttribute('aria-label', 'Guardar la reserva en Google Calendar');
+  ir.className = 'boton chico'; agenda.className = 'boton chico';
+  const fila = nodo('div', 'acciones'); fila.append(ir, agenda); caja.append(marco, fila);
+  return caja;
+}
 function tarjetaReserva(r) {
   const paga = r.amount_usd > 0;
   const c = nodo('section', 'pago reserva procesando');
@@ -733,11 +774,12 @@ function tarjetaReserva(r) {
   const detalle = detalleReserva(r);
   fin.append(nodo('p', 'meta', detalle));
   if (paga) { const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), String(r.amount_usd).replace('.', ',')); fin.append(monto); }
-  const codigo = nodo('p', 'codigo'); codigo.append('Código de reserva ', nodo('b', '', r.code)); fin.append(codigo);
+  const codigo = nodo('p', 'codigo'); codigo.append('Código de reserva ', nodo('b', '', r.code)); fin.append(codigo, extrasReserva(r));
   c.append(paso, fin); dejarDePensar(); agregar(c);
   // en la vista de voz la misma reserva queda como ficha, con la marca de demo a la vista
   const f = nodo('div', 'ficha');
-  f.append(nodo('span', 'prueba', 'Demo · pago simulado'), nodo('b', '', r.item.name), nodo('span', 'meta', detalle), nodo('span', 'precio', `Código ${r.code}` + (paga ? ` · USD ${String(r.amount_usd).replace('.', ',')}` : '')));
+  f.append(nodo('span', 'prueba', 'Demo · pago simulado'), nodo('b', '', r.item.name), nodo('span', 'meta', detalle), nodo('span', 'precio', `Código ${r.code}` + (paga ? ` · USD ${String(r.amount_usd).replace('.', ',')}` : '')), extrasReserva(r));
+  f.classList.add('confirmada');
   $('tira').replaceChildren(f); tiraDe = 'reserva'; $('tira').hidden = false; $('verExp').setAttribute('aria-pressed', 'false');
   setTimeout(() => {
     const ok = nodo('span', '', '✓'); ok.setAttribute('aria-hidden', 'true');
