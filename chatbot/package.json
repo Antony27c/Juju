@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node server.mjs",
     "crear-agente": "node crear-agente.mjs",
-    "verificar": "node verificar.mjs"
+    "verificar": "node verificar.mjs",
+    "estilo-viaje": "node estilo-viaje.mjs",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=21.7"
