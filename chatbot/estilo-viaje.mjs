@@ -275,7 +275,9 @@ function leerJSONGemini(texto) {
 // clave y se elige el Flash estable más nuevo (rápido y barato, alcanza para esto). El elegido queda para los pedidos siguientes.
 const API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
 let modeloElegido = null;
+let modelosVistos = null; // lo que devolvió la lista de modelos la última vez que hizo falta consultarla
 export const modeloGeminiEnUso = () => modeloElegido;
+export const modelosGeminiVistos = () => modelosVistos;
 async function modelosDisponibles(apiKey, fetchFn) {
   try {
     const r = await fetchFn(`${API_GEMINI}/models?pageSize=200`, { headers: { 'x-goog-api-key': apiKey }, signal: AbortSignal.timeout(ESPERA_MS) });
@@ -311,14 +313,16 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
   const pedir = async (modelo) => {
     try {
       return await fetchFn(`${API_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(cuerpo), signal: AbortSignal.timeout(30000) });
-    } catch {
-      throw error('No se pudo conectar con Gemini.', 502);
+    } catch (e) {
+      throw error(`No se pudo conectar con Gemini (modelo ${modelo}: ${e?.name || 'error'}${e?.cause?.code ? ' ' + e.cause.code : ''}).`, 502);
     }
   };
   let modelo = modeloElegido || MODELO_GEMINI();
   let r = await pedir(modelo);
   if (r.status === 404) { // ese modelo ya no existe para esta clave: se elige uno de los que sí están
-    const otro = mejorModelo(await modelosDisponibles(apiKey, fetchFn));
+    const vistos = await modelosDisponibles(apiKey, fetchFn);
+    modelosVistos = vistos.filter(n => /^gemini-/.test(n)).slice(0, 60);
+    const otro = mejorModelo(vistos);
     if (otro && otro !== modelo) { modelo = otro; r = await pedir(modelo); }
   }
   if (!r.ok) {
