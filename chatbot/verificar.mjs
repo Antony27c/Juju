@@ -42,10 +42,10 @@ try {
   const texto = {
     cosmospay: `Cosmos Pay en red ${e.red === 'public' ? 'real' : 'de prueba (no es dinero real)'}, monedas ${e.monedas.map((m) => m.id).join(', ')}`,
     simulado: 'modo de prueba: se recorre todo el flujo y no se cobra',
-    ninguno: 'sin cobro. Poné PAGOS_PROVEEDOR=simulado en .env para probar, o configurá Cosmos Pay',
+    ninguno: 'sin proveedor de cobro: las reservas usan la demostración (pago simulado, no se cobra). Para cobrar de verdad configurá Cosmos Pay',
     sin_configurar: e.falta,
   }[e.proveedor];
-  anotar(e.proveedor === 'cosmospay' ? 'OK' : e.proveedor === 'simulado' ? 'AVISO' : 'FALTA', 'Pagos', texto);
+  anotar(e.proveedor === 'cosmospay' ? 'OK' : e.proveedor === 'sin_configurar' ? 'FALTA' : 'AVISO', 'Pagos', texto);
 } catch (e) { anotar('FALLA', 'Pagos', e.message); }
 
 // --- ElevenLabs ---
@@ -60,6 +60,9 @@ else {
     if (r.ok) { const d = await r.json(); anotar('OK', 'ElevenLabs', `agente "${d.name || agente}" encontrado`); }
     else anotar('FALLA', 'ElevenLabs', r.status === 401 ? 'la clave fue rechazada (401)' : r.status === 404 ? 'el agente no existe: volvé a correr node crear-agente.mjs' : `respondió ${r.status}`);
   } catch (e) { anotar('FALLA', 'ElevenLabs', `no se pudo consultar: ${e.message}`); }
+  // La voz en vivo usa un segundo agente en Eleven Realtime; sin él funciona igual, con el agente de texto.
+  const voz = process.env.ELEVENLABS_VOICE_AGENT_ID;
+  anotar(voz ? 'OK' : 'AVISO', 'Voz en tiempo real', voz ? `agente de voz ${voz}` : 'sin agente de voz: la voz usa el agente de texto (más lenta). Lo crea node crear-agente.mjs si la cuenta tiene Eleven Realtime');
 }
 
 const ancho = Math.max(...filas.map((f) => f[1].length));

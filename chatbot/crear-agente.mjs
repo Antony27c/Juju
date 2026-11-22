@@ -30,7 +30,7 @@ const regiones = Object.entries(estructura.regiones).map(([r, d]) => `${r} (${d.
 const precios = Object.entries(estructura.rangos_precio).map(([k, v]) => `${k} = ${v}`).join('\n');
 const r = resumen();
 
-const PROMPT = `Sos "juju", asistente turístico de la provincia de Jujuy, Argentina. Hablás en español argentino, cálido y directo. Respuestas cortas, de 2 a 5 oraciones: es una conversación en vivo y muchas veces por voz. Texto plano: sin markdown, sin viñetas, sin emojis, sin leer links ni coordenadas en voz alta (la pantalla ya muestra tarjetas con mapa y teléfono).
+const PROMPT = `Sos "juju", asistente turístico de la provincia de Jujuy, Argentina. Hablás en español argentino, cálido y directo. Respuestas cortas, de 1 a 3 oraciones: es una conversación en vivo y muchas veces por voz, y cuanto más corta la respuesta, más rápido llega. Texto plano: sin markdown, sin viñetas, sin emojis, sin leer links ni coordenadas en voz alta (la pantalla ya muestra tarjetas con mapa y teléfono).
 
 Fecha y hora local al empezar la charla: {{fecha_hora_local}} (Jujuy, UTC-3). Si el usuario dice otra hora ("son las 6 de la tarde"), usá la que diga y pasala a las herramientas.
 Ubicación conocida del usuario: {{ubicacion_usuario}}.
@@ -45,7 +45,7 @@ ${precios}
 Cuando el precio dice "(estimado)" es una estimación por tipo de lugar: decilo como "aproximadamente".
 
 # Datos que ya te llegan
-Muchas veces, justo antes del mensaje del usuario, el sistema te pasa un bloque que empieza con "DATOS DEL DIRECTORIO": son lugares ya filtrados por localidad, hora y tipo para ese mensaje. Si alcanza para responder, respondé directo con eso y no llames a ninguna herramienta: es más rápido. Llamá a una herramienta solo si el bloque no cubre lo pedido (otra localidad, otro horario, otro tipo de lugar, más opciones) o si no llegó ningún bloque.
+Muchas veces el sistema te pasa un bloque que empieza con "DATOS DEL DIRECTORIO": son lugares ya filtrados por localidad, hora y tipo. Llega justo antes de un mensaje escrito o apenas el usuario termina de hablar, y al empezar una charla por voz llega uno con lo que hay cerca. Si alcanza para responder, respondé directo con eso y no llames a ninguna herramienta: es más rápido. Llamá a una herramienta solo si el bloque no cubre lo pedido (otra localidad, otro horario, otro tipo de lugar, más opciones) o si no llegó ningún bloque.
 
 # Cómo ayudar
 - Si no sabés en qué localidad está, preguntalo en una frase antes de buscar. "Jujuy" a secas suele ser San Salvador de Jujuy: asumilo y decilo.
@@ -54,16 +54,15 @@ Muchas veces, justo antes del mensaje del usuario, el sistema te pasa un bloque 
 - Horarios: cada resultado trae "abierto" con "si", "no" o "sin_dato". La mayoría de los lugares no tiene horario cargado: en ese caso avisá que no tenés el horario y que conviene llamar o pasar; si hay teléfono, ofrecelo. Nunca digas que algo está abierto si dice sin_dato.
 - De noche no mandes a nadie a cerros, miradores o lugares alejados; ofrecé paseo por el centro, peñas, restaurantes, bares, cine o teatro.
 - Las distancias son en línea recta desde el centro de la localidad: decí "a unas X cuadras o kilómetros", como referencia.
-- Nombrá como mucho 3 o 4 lugares por respuesta y preguntá si quiere más opciones o más detalle de alguno.
+- Nombrá como mucho 3 lugares por respuesta y preguntá si quiere más opciones o más detalle de alguno.
 - Si preguntan algo general de Jujuy (clima, altura, cómo llegar entre pueblos) respondé breve con lo que sepas y aclaralo como orientativo.
 
-# Experiencias y reservas
-Catálogo de experiencias que se pueden reservar y pagar desde acá: {{catalogo_pagos}}
-- Si pregunta qué excursiones o experiencias puede reservar o comprar, llamá a ver_experiencias (con la localidad si la dijo): quedan en pantalla. Nombrá dos o tres con su precio por persona y preguntá cuál le interesa.
-- Para reservar necesitás tres datos: cuál experiencia, cuántas personas y para qué fecha. Si falta alguno, preguntalo en una frase. Con los tres, llamá a reservar_experiencia con el id exacto, la cantidad de personas y la fecha en formato AAAA-MM-DD (calculala a partir de la fecha de hoy que figura en el catálogo). Se abre la reserva en pantalla con el total; el usuario la revisa y toca el botón de pago. Vos no cobrás ni confirmás nada.
-- La reserva está confirmada solo cuando el sistema te informa que el pago se acreditó. Recién ahí decile que quedó confirmada y el código de reserva.
-- Solo existen las experiencias de ese catálogo, con esos precios. No inventes otras, ni precios, descuentos, cupos u horarios de salida. Los lugares del directorio (restaurantes, hoteles, museos) no se reservan desde acá: para esos ofrecé el teléfono.
-- Nunca pidas ni aceptes por voz o por chat datos de tarjeta, claves, frases semilla ni claves privadas.`;
+# Reservas y pagos
+Si el usuario quiere reservar un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo, preguntale en una sola frase lo que falte: para cuándo, cuántas personas (y cuántas noches si es alojamiento) y si quiere pagar con USDC o con dinero de su cuenta bancaria por transferencia. Siempre preguntá el método de pago y esperá a que elija: nunca lo elijas vos. Apenas elige, llamá a reservar con metodo_pago "usdc" o "banco" y con el nombre exacto del lugar, o con producto_id si es una experiencia del catálogo.
+Después hacé lo que indique la respuesta de la herramienta. Si devuelve la reserva confirmada, decile que el pago se acreditó y que la reserva quedó confirmada, con el lugar, la fecha y el código. Si avisa que la reserva quedó abierta en pantalla, pedile que la revise y pague ahí, y no la des por confirmada hasta que el sistema te informe que el pago se acreditó.
+No pidas datos de tarjeta, claves, CBU ni frases semilla: no hacen falta.
+Si pregunta qué excursiones o experiencias puede reservar o comprar, llamá a ver_experiencias (con la localidad si la dijo): quedan en pantalla y puede tocar una. Nombrá dos o tres con su precio por persona y preguntá cuál le interesa. Solo existen las experiencias del catálogo, con esos precios: no inventes otras ni descuentos.
+Experiencias del catálogo: {{catalogo_pagos}}`;
 
 const HERRAMIENTAS = [
   {
@@ -107,16 +106,21 @@ const HERRAMIENTAS = [
     },
   },
   {
-    type: 'client', name: 'reservar_experiencia', expects_response: true, response_timeout_secs: 20,
-    description: 'Abre en pantalla la reserva de una experiencia del catálogo, con personas, fecha y total, para que el usuario la revise y pague. No cobra ni confirma: eso lo hace el usuario en pantalla. Usala solo cuando el usuario pide reservar o comprar una experiencia y ya dijo cuántas personas y qué fecha.',
+    type: 'client', name: 'reservar', expects_response: true, response_timeout_secs: 20,
+    description: 'Reserva un lugar del directorio (alojamiento, restaurante, excursión) o una experiencia del catálogo y registra el pago con el método que eligió el usuario. Devuelve la reserva confirmada con su código, o avisa que quedó abierta en pantalla para que el usuario pague ahí. Llamala solo después de que el usuario eligió pagar con USDC o con transferencia bancaria.',
     parameters: {
       type: 'object',
       properties: {
-        experiencia_id: { type: 'string', description: 'Id exacto de la experiencia en el catálogo.' },
-        personas: { type: 'integer', description: 'Cantidad de personas, de 1 a 20.' },
-        fecha: { type: 'string', description: 'Fecha de la experiencia en formato AAAA-MM-DD, de hoy en adelante.' },
+        lugar: { type: 'string', description: 'Nombre exacto del lugar tal como figura en el directorio. Omitir si se reserva una experiencia del catálogo.' },
+        localidad: { type: 'string', description: 'Localidad del lugar.' },
+        producto_id: { type: 'string', description: 'Id de la experiencia del catálogo, solo si se reserva una experiencia en vez de un lugar.' },
+        fecha: { type: 'string', description: 'Para cuándo es la reserva, como lo dijo el usuario: "hoy", "mañana", "sábado 28".' },
+        hora: { type: 'string', description: 'Hora HH:MM (24 h) para restaurantes o excursiones. Opcional.' },
+        personas: { type: 'integer', description: 'Cantidad de personas.' },
+        noches: { type: 'integer', description: 'Cantidad de noches, solo alojamiento.' },
+        metodo_pago: { type: 'string', enum: ['usdc', 'banco'], description: '"usdc" si paga con USDC; "banco" si paga con dinero de su cuenta bancaria por transferencia. Preguntarlo siempre antes.' },
       },
-      required: ['experiencia_id', 'personas', 'fecha'],
+      required: ['metodo_pago'],
     },
   },
 ];
@@ -134,54 +138,102 @@ for (const h of HERRAMIENTAS) {
   writeFileSync(IDS, JSON.stringify(ids, null, 1));
   console.log(`Herramienta creada: ${h.name} (${d.id})`);
 }
+// Only the current tools get attached; a tool dropped from HERRAMIENTAS stays in the account, detached.
+const toolIds = HERRAMIENTAS.map((h) => ids.herramientas[h.name]);
 
 const LLM = process.env.ELEVENLABS_LLM || 'claude-haiku-5-5';
 const VOZ = process.env.ELEVENLABS_VOICE_ID;
-function config(completo) {
+// "Turbo": eleven_turbo_v2_5 es el modelo Turbo multilingüe (el turbo_v2 a secas es solo inglés).
+const TTS = process.env.ELEVENLABS_TTS_MODEL || 'eleven_turbo_v2_5';
+
+// Live voice runs on a second agent in Eleven Realtime mode (speech to speech, the lowest latency).
+// Realtime agents are voice only, so text chat keeps its own agent. ELEVENLABS_REALTIME_MODEL=off disables it.
+const REALTIME_MODELS = ['eleven_realtime_v1_mini', 'eleven_realtime_v1_max'];
+const realtimeSetting = (process.env.ELEVENLABS_REALTIME_MODEL || REALTIME_MODELS[0]).trim().toLowerCase();
+const REALTIME = REALTIME_MODELS.includes(realtimeSetting) ? realtimeSetting : null;
+if (!REALTIME && realtimeSetting !== 'off') console.warn(`Unknown ELEVENLABS_REALTIME_MODEL "${realtimeSetting}" (valid: ${REALTIME_MODELS.join(', ')}, off). Live voice will use the text agent.`);
+
+// Config levels, tried from 2 down to 0 when the API rejects optional fields:
+// 2 = everything plus eager turn taking; 1 = time zone, variables, events, session length; 0 = minimal.
+function config(kind, level) {
+  const voice = kind === 'voice';
   const c = {
-    name: 'juju',
+    name: voice ? 'juju (voz en tiempo real)' : 'juju',
     conversation_config: {
       agent: {
         first_message: '¡Hola! Soy juju, tu guía de Jujuy. Contame en qué localidad estás y cuánto tiempo tenés, y te armo un plan para hacer algo y comer rico. Si querés, también te reservo una excursión.',
         language: 'es',
-        prompt: { prompt: PROMPT, llm: LLM, temperature: 0.3, tool_ids: HERRAMIENTAS.map((h) => ids.herramientas[h.name]) },
+        prompt: { prompt: PROMPT, llm: LLM, temperature: 0.3, tool_ids: toolIds },
       },
-      // "Turbo": eleven_turbo_v2_5 es el modelo Turbo multilingüe (el turbo_v2 a secas es solo inglés).
-      tts: { model_id: process.env.ELEVENLABS_TTS_MODEL || 'eleven_turbo_v2_5', ...(VOZ ? { voice_id: VOZ } : {}) },
+      tts: { model_id: TTS, ...(VOZ ? { voice_id: VOZ } : {}) },
       conversation: { text_only: false },
     },
-    // Permite que la página abra sesiones de solo texto y cambie el saludo al pasar de texto a voz.
-    platform_settings: { overrides: { conversation_config_override: { agent: { first_message: true }, conversation: { text_only: true } } } },
+    // Permite cambiar el saludo al reconectar; el agente de texto además admite sesiones de solo texto.
+    platform_settings: { overrides: { conversation_config_override: { agent: { first_message: true }, ...(voice ? {} : { conversation: { text_only: true } }) } } },
   };
-  if (completo) {
+  // In Realtime mode ElevenLabs manages the LLM and the TTS model, so prompt.llm and tts.model_id are ignored.
+  if (voice) c.conversation_config.realtime_model = REALTIME;
+  if (level >= 1) {
     c.conversation_config.agent.prompt.timezone = 'America/Argentina/Jujuy';
     c.conversation_config.agent.dynamic_variables = { dynamic_variable_placeholders: { fecha_hora_local: 'sin dato', ubicacion_usuario: 'desconocida', catalogo_pagos: 'No hay experiencias cargadas para reservar.' } };
     c.conversation_config.conversation.max_duration_seconds = 1800;
     c.conversation_config.conversation.client_events = ['conversation_initiation_metadata', 'ping', 'audio', 'interruption', 'user_transcript', 'agent_response', 'agent_response_correction', 'client_tool_call'];
   }
+  if (level >= 2) c.conversation_config.turn = { turn_eagerness: 'eager' };
   return c;
 }
 
-async function guardarAgente(completo) {
-  if (ids.agente) { await api('PATCH', `/v1/convai/agents/${ids.agente}`, config(completo)); return 'actualizado'; }
-  const d = await api('POST', '/v1/convai/agents/create', config(completo));
-  ids.agente = d.agent_id;
-  return 'creado';
+async function saveAgent(kind, id) {
+  let lastError;
+  for (let level = 2; level >= 0; level--) {
+    const body = config(kind, level);
+    try {
+      if (id) {
+        try { await api('PATCH', `/v1/convai/agents/${id}`, body); return { id, action: 'updated', level }; } catch (e) {
+          if (e.status !== 404) throw e;
+          console.warn(`Agent ${id} no longer exists; creating a new one.`);
+          id = null;
+        }
+      }
+      const d = await api('POST', '/v1/convai/agents/create', body);
+      return { id: d.agent_id, action: 'created', level };
+    } catch (e) {
+      if (e.status !== 400 && e.status !== 422) throw e;
+      if (kind === 'voice' && /realtime/i.test(e.message)) throw e; // Realtime itself was rejected: no point in retrying
+      lastError = e;
+      if (level > 0) console.warn(`The API rejected the ${kind} agent config:\n  ${e.message}\nRetrying without ${level === 2 ? 'turn eagerness' : 'time zone, variables, events and session length'}...`);
+    }
+  }
+  throw lastError;
 }
 
-let hecho;
-try { hecho = await guardarAgente(true); } catch (e) {
-  if (e.status !== 400 && e.status !== 422) throw e;
-  console.warn(`La API rechazó la configuración completa:\n  ${e.message}\nReintento sin los ajustes opcionales (zona horaria, eventos, duración)...`);
-  hecho = await guardarAgente(false);
-  console.warn('Agente guardado con la configuración mínima. Revisá en el panel de ElevenLabs que estén activos los eventos "agent_response" y "client_tool_call".');
+function setEnv(key, value) {
+  let env = existsSync(ENV) ? readFileSync(ENV, 'utf8') : '';
+  const line = new RegExp(`^${key}=.*$`, 'm');
+  env = line.test(env) ? env.replace(line, `${key}=${value}`) : `${env.replace(/\s*$/, '')}\n${key}=${value}\n`;
+  writeFileSync(ENV, env);
 }
+
+const text = await saveAgent('text', ids.agente);
+ids.agente = text.id;
 writeFileSync(IDS, JSON.stringify(ids, null, 1));
+if (text.level === 0) console.warn('Text agent saved with the minimal config. Check in the ElevenLabs dashboard that the "agent_response" and "client_tool_call" events are enabled.');
 
-// guarda el id en .env para el servidor
-let env = existsSync(ENV) ? readFileSync(ENV, 'utf8') : '';
-env = /^ELEVENLABS_AGENT_ID=.*$/m.test(env) ? env.replace(/^ELEVENLABS_AGENT_ID=.*$/m, `ELEVENLABS_AGENT_ID=${ids.agente}`) : `${env.replace(/\s*$/, '')}\nELEVENLABS_AGENT_ID=${ids.agente}\n`;
-writeFileSync(ENV, env);
+let voice = null;
+if (REALTIME) {
+  try {
+    voice = await saveAgent('voice', ids.voice_agent);
+    ids.voice_agent = voice.id;
+    writeFileSync(IDS, JSON.stringify(ids, null, 1));
+  } catch (e) {
+    console.warn(`Could not set up the Eleven Realtime voice agent:\n  ${e.message}\nLive voice will use the text agent.`);
+  }
+}
 
-console.log(`\nAgente ${hecho}: ${ids.agente}  (modelo ${LLM}, voz ${process.env.ELEVENLABS_TTS_MODEL || 'eleven_turbo_v2_5'})`);
-console.log('Listo. Ahora: node server.mjs  y abrí http://localhost:3000');
+// ids for the server
+setEnv('ELEVENLABS_AGENT_ID', ids.agente);
+setEnv('ELEVENLABS_VOICE_AGENT_ID', voice ? voice.id : '');
+
+console.log(`\nText agent ${text.action}: ${ids.agente} (LLM ${LLM}, TTS ${TTS})`);
+console.log(voice ? `Voice agent ${voice.action}: ${voice.id} (Eleven Realtime ${REALTIME})` : 'Live voice: text agent (no Eleven Realtime agent)');
+console.log('Done. Now run: node server.mjs and open http://localhost:3000');

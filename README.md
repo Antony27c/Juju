@@ -4,11 +4,12 @@ Guía de la provincia de Jujuy que se usa hablando. Le contás dónde estás y c
 
 ## Qué hace
 
-- **Voz en vivo.** La pantalla principal es un círculo con un resplandor de siete colores: lo tocás y conversás. Usa ElevenLabs Agents con la voz Turbo.
+- **Voz en vivo.** La pantalla principal es un círculo con un resplandor de siete colores: lo tocás y conversás. Usa ElevenLabs Agents: un agente de voz en tiempo real (Eleven Realtime) y, si la cuenta no lo tiene, el agente de texto con la voz Turbo.
 - **Chat escrito.** La misma charla, por texto, con las listas de lugares completas.
 - **Directorio.** 2.755 lugares de Jujuy (comida, alojamiento, atractivos, servicios), con distancia, precio aproximado, teléfono, mapa y, cuando está cargado, horario.
 - **Respuesta rápida.** Antes de que el mensaje llegue al modelo, el servidor ya buscó los lugares para esa localidad y esa hora (tarda milisegundos).
-- **Reservas.** Elegís una experiencia, cuántas personas y la fecha; ves el total y pagás. Al acreditarse queda un código de reserva.
+- **Reservas por voz.** Pedís reservar un lugar o una experiencia, juju pregunta si pagás con USDC o por transferencia y te da un código. Es una demostración: el pago es simulado, no se cobra ni se reserva nada.
+- **Reservas en pantalla.** Elegís una experiencia, cuántas personas y la fecha, y ves el total. Con Cosmos Pay configurado se paga de verdad; sin eso usa la misma demostración.
 - **Pagos.** En dólares digitales (USDC o USDT) con Cosmos Pay, o en modo de prueba sin mover dinero.
 
 ## Cómo se usa
@@ -42,7 +43,7 @@ Sin ninguna clave ya funcionan el directorio, la búsqueda y las reservas en mod
 
 El repo ya trae `Dockerfile` y `railway.json`. No hay que configurar comandos ni carpeta raíz.
 
-1. En tu máquina, con la clave de ElevenLabs en `chatbot/.env`, corré `node crear-agente.mjs`. Anotá el `ELEVENLABS_AGENT_ID` que escribe en `.env`.
+1. En tu máquina, con la clave de ElevenLabs en `chatbot/.env`, corré `node crear-agente.mjs`. Anotá el `ELEVENLABS_AGENT_ID` y el `ELEVENLABS_VOICE_AGENT_ID` que escribe en `.env`.
 2. En Railway: New Project, Deploy from GitHub repo, elegí este repo y la rama `main`.
 3. En Variables, cargá las de la tabla.
 4. En Settings, Networking, generá el dominio público. Railway lo sirve con HTTPS, que es lo que el micrófono necesita.
@@ -50,7 +51,8 @@ El repo ya trae `Dockerfile` y `railway.json`. No hay que configurar comandos ni
 | Variable | Obligatoria | Valor |
 |---|---|---|
 | `ELEVENLABS_API_KEY` | Sí | Tu clave de ElevenLabs |
-| `ELEVENLABS_AGENT_ID` | Sí | El id que dejó `crear-agente.mjs` |
+| `ELEVENLABS_AGENT_ID` | Sí | El id del agente de texto que dejó `crear-agente.mjs` |
+| `ELEVENLABS_VOICE_AGENT_ID` | Para voz en tiempo real | El id del agente de voz que dejó `crear-agente.mjs`. Vacío: la voz usa el agente de texto |
 | `PAGOS_PROVEEDOR` | Sí | `simulado` para probar o `cosmospay` para cobrar |
 | `COSMOSPAY_API_KEY` | Solo con `cosmospay` | `dv_…` red de prueba, `prod_…` red real |
 | `COSMOSPAY_WEBHOOK_SECRET` | No | Lo entrega `node registrar-webhook.mjs` |
@@ -70,7 +72,8 @@ Para tener en cuenta:
 
 - La conversación con ElevenLabs (voz y texto) está programada pero no se probó: todavía no hay clave cargada.
 - Las experiencias y sus precios son de ejemplo, sin acuerdo con ningún operador.
-- La reserva registra el pedido, cobra y da un código. No controla cupos ni avisa al operador.
+- La reserva por voz es una demostración: dice "pago acreditado" y "reserva confirmada" sin cobrar ni avisar a ningún hotel, restaurante u operador. En pantalla aparece marcada como "Demo · pago simulado".
+- La reserva con pago real registra el pedido, cobra y da un código. No controla cupos ni avisa al operador.
 - Fuera de `localhost` el micrófono necesita HTTPS.
 
 ## Dónde está cada cosa

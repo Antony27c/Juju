@@ -68,11 +68,16 @@ export function comoTexto(d) {
   return partes.filter(Boolean).join('\n');
 }
 
+// Places per group: the assistant names at most three, so a short block keeps every turn fast.
+const PER_GROUP = 4;
+
 /**
  * Datos para adjuntar al próximo mensaje. Devuelve { localidad, texto_modelo, grupos } o
  * { localidad } sin texto cuando el mensaje no pide lugares (un "gracias", una charla general).
+ * `nearby: true` builds a "what to do and where to eat nearby" block with no message at all:
+ * live voice sends it when the session opens, so the first spoken answer needs no tool call.
  */
-export function contexto({ texto, lat, lon, ultima } = {}) {
+export function contexto({ texto, lat, lon, ultima, nearby = false } = {}) {
   const t = sinAcentos(texto);
   const mencionada = localidadEn(t);
   const porGps = typeof lat === 'number' && typeof lon === 'number' ? localidadMasCercana(lat, lon) : null;
@@ -80,32 +85,34 @@ export function contexto({ texto, lat, lon, ultima } = {}) {
   const pide = Object.keys(INTENCION).filter((k) => INTENCION[k].test(t));
   const concreto = CONCRETOS.find((c) => new RegExp(`\\b${c}`).test(t));
   if (!localidad) return { localidad: null };
-  if (!pide.length && !concreto && !mencionada) return { localidad }; // nada que buscar en este mensaje
+  if (!pide.length && !concreto && !mencionada && !nearby) return { localidad }; // nada que buscar en este mensaje
   const hora = horaEn(t);
   const base = { localidad, hora };
   const grupos = [];
   const barato = /\b(barat|economic|low cost|gasolero)/.test(t) ? '$' : undefined;
 
   if (concreto) {
-    const r = buscar({ ...base, texto: concreto, limite: 5, precio_max: barato });
+    const r = buscar({ ...base, texto: concreto, limite: PER_GROUP, precio_max: barato });
     if (r.resultados.length) grupos.push({ titulo: `"${concreto}" en ${localidad}`, lugares: r.resultados });
   }
-  if (pide.includes('dormir')) grupos.push({ titulo: 'Para dormir', lugares: buscar({ ...base, categoria: 'alojamiento', precio_max: barato, limite: 5 }).resultados });
-  if (pide.includes('servicios')) grupos.push({ titulo: 'Servicios', lugares: buscar({ ...base, categoria: 'servicios_al_viajero', limite: 5 }).resultados });
-  if (pide.includes('compras')) grupos.push({ titulo: 'Compras', lugares: buscar({ ...base, categoria: 'compras', limite: 5 }).resultados });
-  if (pide.includes('salir')) grupos.push({ titulo: 'Salir', lugares: buscar({ ...base, categoria: 'vida_nocturna_ocio', limite: 5 }).resultados });
+  if (pide.includes('dormir')) grupos.push({ titulo: 'Para dormir', lugares: buscar({ ...base, categoria: 'alojamiento', precio_max: barato, limite: PER_GROUP }).resultados });
+  if (pide.includes('servicios')) grupos.push({ titulo: 'Servicios', lugares: buscar({ ...base, categoria: 'servicios_al_viajero', limite: PER_GROUP }).resultados });
+  if (pide.includes('compras')) grupos.push({ titulo: 'Compras', lugares: buscar({ ...base, categoria: 'compras', limite: PER_GROUP }).resultados });
+  if (pide.includes('salir')) grupos.push({ titulo: 'Salir', lugares: buscar({ ...base, categoria: 'vida_nocturna_ocio', limite: PER_GROUP }).resultados });
   const general = !pide.length || pide.includes('hacer') || pide.includes('comer');
   let plan = null;
   if (general && !(concreto && grupos.length && pide.length <= 1 && !pide.includes('hacer') && !/\by\b.*\b(comer|hacer)/.test(t))) {
     plan = planRapido(base);
-    if (!pide.length || pide.includes('hacer')) grupos.push({ titulo: 'Para hacer', lugares: plan.para_hacer.slice(0, 5) });
-    if (!pide.length || pide.includes('comer')) grupos.push({ titulo: 'Para comer', lugares: plan.para_comer.slice(0, 5) });
+    if (!pide.length || pide.includes('hacer')) grupos.push({ titulo: 'Para hacer', lugares: plan.para_hacer.slice(0, PER_GROUP) });
+    if (!pide.length || pide.includes('comer')) grupos.push({ titulo: 'Para comer', lugares: plan.para_comer.slice(0, PER_GROUP) });
   }
   const utiles = grupos.filter((g) => g.lugares?.length);
   if (!utiles.length) return { localidad };
   const mom = momento({ hora });
   const texto_modelo = [
-    'DATOS DEL DIRECTORIO (ya filtrados para el próximo mensaje del usuario; respondé con esto sin llamar herramientas, salvo que pida otra zona, otro horario u otro tipo de lugar):',
+    nearby && !texto
+      ? 'DATOS DEL DIRECTORIO (lugares cerca del usuario en este momento; si pregunta qué hacer o dónde comer, respondé con esto sin llamar herramientas):'
+      : 'DATOS DEL DIRECTORIO (ya filtrados para lo que pide el usuario; respondé con esto sin llamar herramientas, salvo que pida otra zona, otro horario u otro tipo de lugar):',
     `Zona: ${localidad}, distancias en línea recta. Momento: ${mom.etiqueta}${mom.es_de_noche ? ' (de noche)' : ''}.`,
     ...utiles.map((g) => lineas(g.titulo.toUpperCase(), g.lugares)),
     plan ? 'En PARA HACER y PARA COMER ya se excluyó lo que figura cerrado a esa hora.' : '',
