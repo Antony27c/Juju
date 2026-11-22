@@ -107,7 +107,42 @@ async function pedirJSON(url, opciones, fetchFn, nombreRed) {
 const textoDe = v => (typeof v === 'string' ? v.trim() : '');
 const urlDe = v => (typeof v === 'string' && v ? v : null);
 
+// Respaldo: cuando Instagram bloquea el pedido completo (pasa seguido, sobre todo desde servidores), la página pública
+// del perfil igual trae, en sus etiquetas de vista previa, el nombre y los números (seguidores, publicaciones). No trae
+// la bio ni las publicaciones, así que el estilo solo sale si el nombre o el usuario lo dicen ("mochilera", "luxury").
+const ENTIDADES = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>' };
+const sinEntidades = t => t.replace(/&#x([0-9a-f]+);|&#(\d+);|&([a-z]+);/gi, (m, h, d, n) => (h ? String.fromCodePoint(parseInt(h, 16)) : d ? String.fromCodePoint(Number(d)) : ENTIDADES[n.toLowerCase()] ?? m));
+
+async function perfilInstagramPublico(usuario, fetchFn) {
+  const r = await fetchFn(`https://www.instagram.com/${encodeURIComponent(usuario)}/`, { headers: { accept: 'text/html' }, signal: AbortSignal.timeout(ESPERA_MS) });
+  if (!r.ok) return null;
+  const html = (await r.text()).slice(0, 2_000_000);
+  const meta = p => { const m = html.match(new RegExp(`<meta property="og:${p}" content="([^"]*)"`)); return m ? sinEntidades(m[1]) : ''; };
+  const m = meta('title').match(/^(.*?)\s*\(@([A-Za-z0-9._]+)\)/);
+  if (!m || m[2].toLowerCase() !== usuario.toLowerCase()) return null; // no es la página de ese perfil
+  const nombre = m[1].trim() || usuario;
+  // palabras del usuario pegadas ("mochilerosxelmundo"): se buscan las señales largas adentro
+  const pegado = normalizar(usuario + ' ' + nombre).replace(/[^a-z0-9]+/g, '');
+  const dentro = Object.values(SENALES).flatMap(s => s.palabras).filter(p => p.length >= 6 && pegado.includes(p));
+  return {
+    red: 'instagram', usuario, nombre, bio: '', imagenes: [], parcial: true,
+    resumen: meta('description').split(' - ')[0].trim().slice(0, 80) || null,
+    textos: [nombre, usuario.replace(/[._]+/g, ' '), [...new Set(dentro)].join(' ')].filter(Boolean),
+  };
+}
+
 async function perfilInstagram(usuario, fetchFn) {
+  try {
+    return await perfilInstagramCompleto(usuario, fetchFn);
+  } catch (e) {
+    if (e.status !== 502) throw e;
+    const publico = await perfilInstagramPublico(usuario, fetchFn).catch(() => null);
+    if (publico) return publico;
+    throw e;
+  }
+}
+
+async function perfilInstagramCompleto(usuario, fetchFn) {
   const url = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(usuario)}`;
   const d = await pedirJSON(url, { headers: { 'x-ig-app-id': IG_APP_ID, accept: 'application/json' } }, fetchFn, 'Instagram');
   const u = d?.data?.user;

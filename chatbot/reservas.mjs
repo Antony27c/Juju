@@ -106,8 +106,16 @@ export function confirmDemoReservation(request = {}, place = null, product = nul
   const quote = Boolean(request.cotizar);
   const method = paymentMethod(request.metodo_pago);
   if (!method && !quote) throw new Error('metodo_pago must be "usdc" or "banco"');
-  const name = product?.nombre || place?.nombre || String(request.lugar || '').trim().slice(0, 120);
-  if (!name) throw new Error('lugar or producto_id is required');
+  const pedido = String(request.lugar || '').trim().slice(0, 120);
+  if (!product && !place) {
+    // Nunca se reserva algo que no está en el directorio ni en el catálogo: el agente tiene que preguntar o buscar.
+    throw new Error(pedido
+      ? `No encontré "${pedido}" en el directorio de Jujuy ni en las experiencias. No reserves: pedile al usuario el nombre exacto o buscalo con buscar_lugares.`
+      : 'Falta el lugar o la experiencia (lugar o producto_id).');
+  }
+  const name = product?.nombre || place.nombre;
+  const date = String(request.fecha || 'hoy').trim().slice(0, 60);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date < today) throw new Error(`La fecha ${date} ya pasó. Preguntale al usuario para qué día quiere reservar.`);
 
   const lodging = !product && (place ? place.categoria === 'alojamiento' : Number(request.noches) > 0);
   const people = clampInt(request.personas, 1, 20, 1);
@@ -128,7 +136,7 @@ export function confirmDemoReservation(request = {}, place = null, product = nul
       name, type: product ? null : place?.tipo || null, locality: place?.localidad || product?.localidad || request.localidad || null,
       address: place?.direccion || null, phone: place?.telefono || null, map: place?.mapa || null,
     },
-    date: String(request.fecha || 'hoy').trim().slice(0, 60),
+    date,
     date_iso: resolveDate(request.fecha, today), // for the calendar event
     time: /^\d{1,2}:\d{2}$/.test(String(request.hora || '')) ? request.hora : null,
     people,

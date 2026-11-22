@@ -4,9 +4,10 @@ Guía de la provincia de Jujuy que se usa hablando. Le contás dónde estás y c
 
 ## Qué hace
 
-- **Voz en vivo.** En la pantalla principal tocás el micrófono y conversás: lo que dice juju se lee en grande y un paisaje de cerritos en pixel art se mueve con la voz de quien habla. Usa ElevenLabs Agents: un agente de voz en tiempo real (Eleven Realtime) y, si la cuenta no lo tiene, el agente de texto con la voz Turbo.
+- **Voz en vivo.** En la pantalla principal tocás el micrófono y conversás: lo que dice juju se lee en grande y un paisaje de cerritos en pixel art se mueve con la voz de quien habla. Usa ElevenLabs Agents. La voz la atiende por defecto el mismo agente del chat (escucha, modelo de texto y voz Turbo), que en las pruebas con audio real siguió las reglas y nombró solo lugares del directorio. El agente de tiempo real (Eleven Realtime) conecta y responde más rápido, pero con las mismas grabaciones inventó lugares y precios: queda a pedido, con `?voz=tiempo-real` en la dirección de la página o `VOZ_TIEMPO_REAL=si` en el servidor.
 - **Chat escrito.** La misma charla, por texto, con las listas de lugares completas.
 - **Directorio.** 2.755 lugares de Jujuy (comida, alojamiento, atractivos, servicios), con distancia, precio aproximado, teléfono, mapa y, cuando está cargado, horario.
+- **Mapa.** Cuando juju sugiere lugares, aparecen en un mapa (mosaicos de OpenStreetMap, sin librerías) con pines numerados igual que la lista; tocar un pin abre el lugar en Google Maps. Está en el chat y en la vista de voz.
 - **Cómo llegar.** Cuando elegís un lugar, juju pregunta si querés que te guíe. Si decís que sí, abre Google Maps con el camino desde donde estás y deja el botón en pantalla. Cada lugar de las listas tiene además su link "Cómo llegar".
 - **Respuesta rápida.** Antes de que el mensaje llegue al modelo, el servidor ya buscó los lugares para esa localidad y esa hora (tarda milisegundos).
 - **Español e inglés.** Por chat, juju responde en el idioma en que le escribís. Por voz, la sesión escucha y habla en un idioma por vez: se elige con el botón ES/EN (la primera vez toma el idioma del navegador) y se reconecta sola si saludás o hablás en el otro idioma.
@@ -30,7 +31,14 @@ node server.mjs             y abrir http://localhost:3000
 
 Sin ninguna clave ya funcionan el directorio, la búsqueda y las reservas en modo de prueba.
 
-### Estilo de viaje (experimental)
+### Estilo de viaje: low cost o fancy
+
+Al empezar cada charla juju pide el usuario de Instagram (por voz en el saludo; por chat en la primera respuesta, y hay un cuadro en pantalla para escribirlo). El servidor lee el perfil público (`POST /api/estilo`), estima el estilo y, desde ahí, todas las búsquedas vuelven ordenadas: con low cost van primero hostels, campings y lo más barato; con fancy, hoteles y posadas de más categoría y restaurantes. El estilo no deja lugares afuera, solo cambia el orden.
+
+Qué se puede leer de verdad: Instagram suele bloquear el pedido completo (bio y publicaciones), sobre todo desde servidores. En ese caso queda la página pública del perfil, que trae solo el nombre y los números de seguidores: el estilo sale únicamente si el nombre o el usuario lo dicen ("mochilera", "luxury"). Si no alcanza, juju lo dice y pregunta "¿Preferís viajar low cost o más fancy?" (también están los dos botones en pantalla). Nunca inventa el estilo. Para leer siempre bio y publicaciones haría falta la API oficial de Instagram con inicio de sesión del usuario.
+
+El clasificador:
+
 
 `chatbot/estilo-viaje.mjs` lee un perfil público de Instagram o X y estima si la persona viaja más "hippie" (mochila, camping, naturaleza) o "luxury" (resorts, spa, lujo). Sin clave usa palabras clave y emojis; con `GEMINI_API_KEY` en `chatbot/.env` también le pasa a Gemini el texto y hasta 6 imágenes.
 
@@ -43,7 +51,7 @@ npm test
 - Solo con el perfil propio y con permiso: sin `--es-mi-perfil` no analiza nada. Quien lo integre a la página o al agente tiene que mostrar `AVISO_CONSENTIMIENTO` antes. No se guarda nada.
 - Las imágenes solo se bajan por HTTPS desde los CDN de Instagram y X, con tope de 4 MB y 10 segundos.
 - Instagram no tiene API pública para esto: se usa el pedido de su sitio web, que suele bloquear servidores como Railway. Para X se usa FxTwitter, un servicio de terceros.
-- Todavía no está conectado al servidor, la página ni el agente.
+- En la página el permiso es que el propio usuario escribe o dice su usuario, con el aviso a la vista; la ruta `/api/estilo` no analiza nada sin `es_mi_perfil: true` y tiene un tope de 15 pedidos cada 10 minutos por visitante.
 
 ### Para activar la voz
 
@@ -87,6 +95,7 @@ El agente se prepara solo en cada arranque, en segundo plano. Si ElevenLabs lo r
 | `ELEVENLABS_API_KEY` | Sí | Tu clave de ElevenLabs |
 | `ELEVENLABS_AGENT_ID` | No | Id de un agente de texto ya creado. Vacío: el servidor lo busca por nombre o lo crea |
 | `ELEVENLABS_VOICE_AGENT_ID` | No | Id del agente de voz en tiempo real. Vacío: el servidor lo busca o lo crea; si la cuenta no lo admite, la voz usa el agente de texto |
+| `VOZ_TIEMPO_REAL` | No | `si` para que la voz la atienda el agente de tiempo real. Vacío: la atiende el agente del chat |
 | `ELEVENLABS_SINCRONIZAR` | No | `off` para que el servidor no toque los agentes al arrancar |
 | `PAGOS_PROVEEDOR` | No | `simulado` para probar o `cosmospay` para cobrar |
 | `COSMOSPAY_API_KEY` | Solo con `cosmospay` | `dv_…` red de prueba, `prod_…` red real |
@@ -100,6 +109,8 @@ Para tener en cuenta:
 
 - La cuenta Stellar de cobro no es una variable: va en `chatbot/cosmospay.config.json`, dentro del repo. Es la cuenta pública (empieza con `G`).
 - El disco de Railway se borra en cada deploy. Sin un volumen y `PAGOS_ARCHIVO`, el registro de reservas se pierde al redesplegar; los pagos de Cosmos Pay igual quedan en su panel.
+- El contenedor corre sin permisos de administrador (usuario `node`). Si montás un volumen para `PAGOS_ARCHIVO` y Railway lo deja solo con permisos de root, agregá la variable `RAILWAY_RUN_UID=0`; si no, el registro no se puede escribir.
+- Para no depender de jsDelivr ni unpkg en la voz: `cd chatbot && npm run vendor-sdk` guarda el SDK de ElevenLabs en `public/vendor/`. Subí ese archivo al repo.
 - El sitio queda abierto a cualquiera con el link, y cada charla gasta crédito de ElevenLabs. Los topes por visitante frenan el abuso más simple, no reemplazan un login.
 - `GET /api/estado` es la ruta de salud que usa Railway.
 

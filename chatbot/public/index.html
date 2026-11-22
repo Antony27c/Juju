@@ -27,6 +27,7 @@
     --titular: var(--texto); --habla: var(--texto);
     --pixel: "Pixelify Sans", ui-monospace, "Cascadia Mono", Consolas, monospace;
     --radio: 16px; --radio-s: 12px;
+    --filtro-mapa: none;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -37,6 +38,7 @@
       --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
       --cerro-frente: #2b3060; --cerro-fondo: #1a1e3a; --astro: #f3f4ff; --nube: #232846; --de-noche: 1;
       --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .38);
+      --filtro-mapa: invert(1) hue-rotate(180deg) brightness(.9) contrast(.85);
       color-scheme: dark;
     }
   }
@@ -47,6 +49,7 @@
     --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
     --cerro-frente: #2b3060; --cerro-fondo: #1a1e3a; --astro: #f3f4ff; --nube: #232846; --de-noche: 1;
     --sombra: 0 1px 2px rgb(0 0 0 / .3), 0 12px 32px rgb(0 0 0 / .38);
+    --filtro-mapa: invert(1) hue-rotate(180deg) brightness(.9) contrast(.85);
     color-scheme: dark;
   }
 
@@ -110,6 +113,48 @@
   .ideas button:hover::after { transform: translateX(3px); color: var(--acento); }
   .ideas button:active { transform: scale(.985); }
 
+  /* estilo de viaje: el Instagram del usuario o, si no, low cost / fancy */
+  .gusto { display: flex; flex-direction: column; gap: 8px; }
+  .gusto:empty { display: none; }
+  .gusto-fila { display: flex; gap: 8px; align-items: center; margin: 0; }
+  .gusto-campo { flex: 1; min-width: 0; display: flex; align-items: center; gap: 1px; min-height: 44px; padding: 0 14px; background: var(--hueco); border: 1px solid transparent; border-radius: 22px; transition: border-color .15s, background-color .15s; }
+  .gusto-campo:focus-within { border-color: var(--tenue); background: var(--papel); }
+  .gusto-campo span { color: var(--tenue); font-weight: 700; }
+  .gusto-campo input { flex: 1; min-width: 0; padding: 10px 0; border: 0; outline: none; background: none; color: inherit; font: inherit; font-size: 16px; }
+  .gusto-campo input::placeholder { color: var(--tenue); }
+  .gusto .boton.chico { align-self: auto; margin-top: 0; white-space: nowrap; }
+  .gusto-fila .boton { min-height: 44px; padding-inline: 18px; border-radius: 22px; }
+  .gusto-opciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: var(--tenue); }
+  .gusto-opciones .boton { color: var(--tinta); }
+  .gusto-nota { margin: 0; max-width: 54ch; font-size: 12.5px; line-height: 1.35; color: var(--tenue); }
+  .gusto-texto { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; line-height: 1.35; }
+  .gusto-sello { align-self: flex-start; max-width: 100%; display: inline-flex; align-items: center; gap: 10px; padding: 5px 5px 5px 14px; background: var(--papel); border: 1px solid var(--linea); border-radius: 999px; font-size: 14px; }
+  .gusto-sello b { flex: none; font: 600 15px/1.1 var(--pixel); letter-spacing: .04em; text-transform: uppercase; color: var(--acento); }
+  .gusto-sello span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tenue); }
+  .gusto-sello .boton { flex: none; }
+  .gusto-abrir { align-self: flex-start; }
+  .gusto.en-chat { align-self: stretch; padding: 14px 16px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .gusto.en-chat[data-paso="listo"] { align-self: flex-start; padding: 0; background: none; border: 0; }
+  .inicio .gusto { padding: 14px 16px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .inicio .gusto[data-paso="listo"] { padding: 0; background: none; border: 0; }
+  .inicio:has(.gusto[data-paso="pedir"]) .ideas li:nth-child(n+4) { display: none; }
+  .dicho .gusto { margin-top: 8px; }
+  /* en la vista de voz el lugar es poco: al arrancar se ven dos frases de ejemplo, y con la charla en marcha queda solo el campo */
+  .dicho:has(.gusto[data-paso="pedir"]) .ideas li:nth-child(n+3) { display: none; }
+  .dicho .gusto[data-paso="pedir"]:has(+ .probar[hidden]) > :not(.gusto-fila) { display: none; }
+
+  /* mapa de los lugares sugeridos: mosaicos de OpenStreetMap y pines numerados como la lista */
+  .mapa { position: relative; overflow: hidden; height: 200px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--suelo); box-shadow: var(--sombra); }
+  .mapa .teselas { position: absolute; inset: 0; filter: var(--filtro-mapa); }
+  .mapa .teselas img { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; pointer-events: none; }
+  .mapa .pin { position: absolute; z-index: 1; transform: translate(-50%, -50%); width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--tinta); color: var(--papel); border: 2px solid var(--papel); box-shadow: 0 1px 4px rgb(0 0 0 / .35); font: 700 13px/1 var(--texto); text-decoration: none; }
+  .mapa .pin:hover, .mapa .pin:focus-visible { z-index: 2; background: var(--acento); color: var(--sobre-acento); }
+  .mapa .vos-pin { position: absolute; z-index: 1; width: 14px; height: 14px; transform: translate(-50%, -50%); border-radius: 50%; background: #1a73e8; border: 3px solid #fff; box-shadow: 0 0 0 5px rgb(26 115 232 / .22); }
+  .mapa .credito { position: absolute; z-index: 3; right: 0; bottom: 0; padding: 1px 6px; font-size: 10px; color: var(--tenue); background: color-mix(in srgb, var(--papel) 85%, transparent); border-top-left-radius: 6px; text-decoration: none; }
+  .grupo .mapa { margin-bottom: 10px; }
+  .ficha.ficha-mapa { width: 260px; padding: 0; overflow: hidden; }
+  .ficha.ficha-mapa .mapa { flex: 1; height: auto; min-height: 108px; border: 0; border-radius: 0; box-shadow: none; }
+  .num-mapa { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 7px; border-radius: 50%; background: var(--tinta); color: var(--papel); font: 700 11px/1 var(--texto); vertical-align: 2px; }
   .tira { flex: none; display: flex; gap: 10px; overflow-x: auto; padding-block: 2px 12px; scroll-snap-type: x proximity; scroll-padding-inline: 18px; scrollbar-width: none; }
   .ficha { flex: none; width: 216px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 13px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); color: inherit; text-decoration: none; transition: border-color .15s; }
   button.ficha { cursor: pointer; text-align: left; }
@@ -309,6 +354,7 @@
     <div class="dicho borde">
       <p class="vos" id="dijiste" aria-live="polite"></p>
       <p class="dice" id="dijo" data-largo="poco" aria-live="polite">Contame dónde estás y qué tenés ganas de hacer.</p>
+      <div class="gusto" data-gusto></div>
       <div class="probar" id="probar">
         <p class="rotulo">Probá con</p>
         <ul class="ideas" id="frases">
@@ -347,6 +393,7 @@
       <p class="sobre" id="sobre">Guía de la provincia de Jujuy</p>
       <h1>¿Qué hacemos ahora?</h1>
       <p class="bajada">Decime dónde estás y cuánto tiempo te queda. Te armo un plan con algo para hacer y un lugar para comer que esté abierto a esta hora.</p>
+      <div class="gusto" data-gusto></div>
       <ul class="ideas" id="ideas">
         <li><button type="button">Estoy en San Salvador, mañana me voy. ¿Qué hago ahora y dónde como?</button></li>
         <li><button type="button">Dónde comer comida regional esta noche en Tilcara</button></li>
@@ -410,11 +457,17 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const chat = $('chat');
-const SDK = ['/vendor/elevenlabs-client.js', 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.37.1/dist/lib.iife.js', 'https://unpkg.com/@elevenlabs/client@1.37.1/dist/lib.iife.js'];
+const SDK = ['/vendor/elevenlabs-client-1.37.1.js', 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.37.1/dist/lib.iife.js', 'https://unpkg.com/@elevenlabs/client@1.37.1/dist/lib.iife.js'];
 
 let serie = 0; // cada sesión tiene su número: los avisos de una sesión ya reemplazada se ignoran
 let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false, ultimaLocalidad = null;
 const historial = []; // { rol, texto }: sirve para retomar el hilo al reconectar o pasar de texto a voz
+// Lo que dijo el usuario, numerado. Una reserva solo avanza con cosas que dijo él (cómo paga y el sí), no con lo que
+// decida el modelo: en las pruebas, el modelo de voz eligió el método y confirmó sin que nadie se lo pidiera.
+const dichos = []; let nDicho = 0;
+const METODO_DICHO = { usdc: /usdc|u\.?\s?s\.?\s?d\.?\s?c|cosmos|cripto|crypto|stable/i, banco: /wells|fargo|banco|bank|cuenta|account|transfer/i };
+const DICE_SI = /(^|[^a-záéíóúñ])(s[ií]|sip|dale|confirmo|confirmado|confirm|de una|ok|okay|okey|listo|adelante|hacelo|pagalo|pag[aá]|claro|por supuesto|obvio|yes|yeah|yep|sure|go ahead|do it|correct|please do)([^a-záéíóúñ]|$)/i;
+const DICE_NO = /(^|[^a-záéíóúñ])(no|todav[ií]a no|esper[aá]|cancel[aá]?|wait|not yet|don'?t|stop)([^a-záéíóúñ]|$)/i;
 // ¿El último mensaje del usuario está en inglés? Cuenta palabras muy comunes de cada idioma; alcanza para elegir un saludo.
 const EN = /\b(the|is|are|what|where|how|can|you|want|would|like|please|and|for|with|my|me|to|do|i|in|it|book|pay|yes|tonight|tomorrow|hello|hi|thanks|english|have|there|this|that|am)\b/g;
 const ES = /\b(el|la|los|las|es|son|que|qu[eé]|d[oó]nde|c[oó]mo|puedo|quiero|por|favor|para|con|mi|me|en|un|una|hay|reservar|pagar|s[ií]|hoy|ma[nñ]ana|y|de)\b/g;
@@ -431,8 +484,8 @@ let idioma = 'es';
 try { idioma = localStorage.getItem('juju-idioma') || (/^en\b/i.test(navigator.language || '') ? 'en' : 'es'); } catch {}
 if (idioma !== 'en') idioma = 'es';
 const TEXTOS = {
-  es: { escribir: 'Escribir', experiencias: 'Experiencias', terminar: 'Terminar', probar: 'Probá con', frases: ['Estoy en Tilcara, ¿dónde como ahora?', '¿Qué hago esta tarde en Purmamarca?', 'Quiero reservar una excursión'], saludo: undefined, retoma: 'Dale, te escucho.', sigo: 'Dale, sigo en español. ¿Qué necesitás?', titular: 'Contame dónde estás y qué tenés ganas de hacer.', boton: 'ES', nombre: 'Idioma de la voz: español. Tocá para pasar a inglés.' },
-  en: { escribir: 'Type', experiencias: 'Experiences', terminar: 'End', probar: 'Try', frases: ["I'm in Tilcara, where can I eat now?", 'What can I do this afternoon in Purmamarca?', 'I want to book a tour'], saludo: "Hi! I'm juju, your guide to Jujuy. Tell me which town you're in and what you feel like doing.", retoma: "Go ahead, I'm listening.", sigo: "Sure, let's continue in English. What do you need?", titular: 'Tell me where you are and what you feel like doing.', boton: 'EN', nombre: 'Voice language: English. Tap to switch to Spanish.' },
+  es: { escribir: 'Escribir', experiencias: 'Experiencias', terminar: 'Terminar', probar: 'Probá con', frases: ['Estoy en Tilcara, ¿dónde como ahora?', '¿Qué hago esta tarde en Purmamarca?', 'Quiero reservar una excursión'], saludo: undefined, saludoCorto: '¡Hola! Soy juju, tu guía de Jujuy. Contame en qué localidad estás y qué tenés ganas de hacer.', retoma: 'Dale, te escucho.', sigo: 'Dale, sigo en español. ¿Qué necesitás?', titular: 'Contame dónde estás y qué tenés ganas de hacer.', boton: 'ES', nombre: 'Idioma de la voz: español. Tocá para pasar a inglés.' },
+  en: { escribir: 'Type', experiencias: 'Experiences', terminar: 'End', probar: 'Try', frases: ["I'm in Tilcara, where can I eat now?", 'What can I do this afternoon in Purmamarca?', 'I want to book a tour'], saludo: "Hi! I'm juju, your guide to Jujuy. To tailor my tips, tell me your Instagram username or type it on screen, and I'll see whether you travel low cost or fancy. Or skip it and just tell me which town you're in.", saludoCorto: "Hi! I'm juju, your guide to Jujuy. Tell me which town you're in and what you feel like doing.", retoma: "Go ahead, I'm listening.", sigo: "Sure, let's continue in English. What do you need?", titular: 'Tell me where you are and what you feel like doing.', boton: 'EN', nombre: 'Voice language: English. Tap to switch to Spanish.' },
 };
 function idiomaDe(texto) { // 'en', 'es' o null si no alcanza para saberlo
   const u = String(texto || '').toLowerCase(), en = (u.match(EN) || []).length, es = (u.match(ES) || []).length;
@@ -449,6 +502,7 @@ function pintarIdioma() {
   $('probar').querySelector('.rotulo').textContent = T.probar; [...$('frases').querySelectorAll('button')].forEach((b, i) => { b.textContent = T.frases[i] || b.textContent; });
   $('idioma').textContent = TEXTOS[idioma].boton; $('idioma').setAttribute('aria-label', TEXTOS[idioma].nombre); $('idioma').title = TEXTOS[idioma].nombre;
   if (!historial.length && Object.values(TEXTOS).some((t) => t.titular === $('dijo').textContent)) subtitulo(TEXTOS[idioma].titular);
+  if (gusto.paso !== 'leyendo') pintarGusto();
 }
 // pendiente: lo último que dijo el usuario, para que juju lo responda apenas reconecta en el idioma nuevo
 async function cambiarIdioma(nuevo, pendiente) {
@@ -467,8 +521,9 @@ async function cambiarIdioma(nuevo, pendiente) {
 function nodo(tag, clase, texto) { const n = document.createElement(tag); if (clase) n.className = clase; if (texto != null) n.textContent = texto; return n; }
 // Un turno = la pregunta, la respuesta de juju y, debajo, las listas de lugares.
 // Las listas llegan antes que la respuesta, así que la respuesta se inserta arriba de ellas.
-let turno = { ancla: null, grupo: null, vistos: new Set() };
+let turno = { ancla: null, grupo: null, vistos: new Set(), n: 0, puntos: [] };
 function abajo() { // deja a la vista el comienzo del turno; si todo entra, va al final
+  if (!$('inicio').hidden) return void (chat.scrollTop = 0); // la pantalla de inicio se lee desde arriba
   const a = turno.ancla;
   if (a?.isConnected && chat.scrollHeight - a.offsetTop > chat.clientHeight) chat.scrollTop = a.offsetTop - 10;
   else chat.scrollTop = chat.scrollHeight;
@@ -480,9 +535,13 @@ function agregar(n, arriba) {
 }
 function burbuja(rol, texto) {
   const n = nodo('div', 'msg ' + (rol === 'user' ? 'yo' : 'bot'), texto);
-  if (rol === 'user') { turno = { ancla: n, grupo: null, vistos: new Set() }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
+  if (rol === 'user') { turno = { ancla: n, grupo: null, vistos: new Set(), n: 0, puntos: [] }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
   $('probar').hidden = true; // las frases de ejemplo solo acompañan el arranque
   historial.push({ rol, texto }); if (historial.length > 30) historial.shift();
+  if (rol === 'user') { dichos.push({ n: ++nDicho, texto }); if (dichos.length > 30) dichos.shift(); }
+  // la primera respuesta de cada charla trae el cuadro de Instagram, lo pida o no el modelo
+  if (rol !== 'user' && !gustoPedido && !estilo && gusto.paso === 'pedir') { gustoPedido = true; gustoEnChat(); }
+  if (rol === 'user' && nDicho >= 4 && gusto.paso === 'pedir' && !document.activeElement?.closest?.('.gusto')) { gusto = { paso: 'guardado' }; pintarGusto(); }
 }
 function aviso(texto, error, arriba) { agregar(nodo('div', 'aviso' + (error ? ' error' : ''), texto), arriba); }
 function pensar(texto = 'juju está pensando') {
@@ -539,11 +598,14 @@ function lista(titulo, lugares) {
     turno.vistos.add(key); return true;
   });
   if (!lugares.length) return;
+  for (const l of lugares) if (conCoords(l)) { l._n = ++turno.n; turno.puntos.push(l); } // mismo número en la lista, la tira y el mapa
   const g = nodo('section', 'grupo'); g.append(nodo('h3', '', titulo));
+  const mapa = lugares.some((l) => l._n) && nodo('div', 'mapa');
+  if (mapa) { mapa.setAttribute('role', 'img'); mapa.setAttribute('aria-label', 'Mapa de ' + titulo); g.append(mapa); }
   const cont = nodo('div', 'lista');
   for (const l of lugares) {
     const fila = nodo('article', 'lugar');
-    const cab = nodo('div', 'cab'); cab.append(nodo('h4', '', l.nombre));
+    const cab = nodo('div', 'cab'); const h = nodo('h4', '', l.nombre); if (l._n) h.prepend(nodo('span', 'num-mapa', l._n)); cab.append(h);
     const txt = l.abierto === 'si' ? (l.cierra && l.cierra !== 'no cierra' ? `Abierto hasta ${l.cierra}` : 'Abierto')
       : l.abierto === 'no' ? (l.abre ? `Cerrado · abre ${l.abre}` : 'Cerrado') : 'Sin horario';
     cab.append(nodo('span', 'pill ' + l.abierto, txt)); fila.append(cab);
@@ -566,6 +628,7 @@ function lista(titulo, lugares) {
     cont.append(fila);
   }
   g.append(cont); agregar(g);
+  if (mapa) pintarMapa(mapa, lugares.filter((l) => l._n));
   if (!turno.grupo?.isConnected) turno.grupo = g;
   enTira(lugares);
 }
@@ -573,8 +636,8 @@ function lista(titulo, lugares) {
 const post = (ruta, body) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
   .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'No se pudo completar el pedido'); return d; });
 // al modelo le va la versión en texto compacto (menos tokens = respuesta más rápida)
-const paraModelo = (d) => d.texto_modelo || JSON.stringify(d, (k, v) => (k === 'mapa' || k === 'categoria' ? undefined : v));
-const contextFor = (texto, extra) => post('/api/contexto', { texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon, ...extra });
+const paraModelo = (d) => d.texto_modelo || JSON.stringify(d, (k, v) => (k === 'mapa' || k === 'categoria' || k === 'lat' || k === 'lon' ? undefined : v));
+const contextFor = (texto, extra) => post('/api/contexto', conEstilo({ texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon, ...extra }));
 // Búsqueda previa: adjunta al mensaje los lugares ya filtrados, así el modelo responde en una sola pasada.
 // Shows the places as soon as the search returns and resolves to the block for the model (or nothing).
 async function adjuntarDatos(pedido) {
@@ -601,7 +664,106 @@ async function voiceTurn(texto) {
   const bloque = await adjuntarDatos(contextFor(texto));
   if (bloque && modo === 'voz') conv?.sendContextualUpdate(bloque);
 }
-const conUbicacion = (p) => (!p.localidad && ubicacion ? { ...p, lat: ubicacion.lat, lon: ubicacion.lon } : p);
+const conUbicacion = (p) => conEstilo(!p.localidad && ubicacion ? { ...p, lat: ubicacion.lat, lon: ubicacion.lon } : p);
+
+// ---------- estilo de viaje: el Instagram del usuario o, si no, low cost / fancy ----------
+// juju pide el usuario de Instagram al empezar cada charla. El servidor lee el perfil público y estima si la persona
+// viaja más low cost o más fancy; si lo leído no alcanza (Instagram muestra poco sin iniciar sesión), se le pregunta.
+// Con el estilo definido, todas las búsquedas vuelven ordenadas para ese estilo.
+let estilo = null; // { tipo: 'low_cost' | 'fancy', de: 'instagram' | 'dicho', usuario, nombre, razones }
+let gusto = { paso: 'pedir' }; // 'pedir' | 'leyendo' | 'elegir' | 'listo' | 'guardado'
+let avisoEstilo = ''; // el aviso del servidor cuando además se analizan imágenes
+let gustoPedido = false; // el cuadro ya se mostró dentro de esta charla
+const GUSTO = {
+  es: { rotulo: 'Tu estilo de viaje', campo: 'tu_instagram', nombreCampo: 'Tu usuario de Instagram', analizar: 'Analizar', o: 'o elegí', low_cost: 'Low cost', fancy: 'Fancy', leyendo: 'Leyendo', viajas: 'Viajás', segun: 'según', vos: 'lo elegiste vos', cambiar: 'Cambiar', abrir: 'Estilo de viaje',
+    nota: 'Leo solo tu perfil público, para recomendarte a tu medida. No se guarda nada.', falta: (n) => `Vi tu perfil${n ? ` (${n})` : ''}, pero no alcanza para saber tu estilo. ¿Cómo viajás?`, fallo: 'No pude leer ese perfil ahora. ¿Cómo viajás?',
+    pase: (u) => `Mi Instagram es @${u}.`, prefiero: (t) => `Prefiero viajar ${t}.` },
+  en: { rotulo: 'Your travel style', campo: 'your_instagram', nombreCampo: 'Your Instagram username', analizar: 'Analyze', o: 'or pick', low_cost: 'Low cost', fancy: 'Fancy', leyendo: 'Reading', viajas: 'You travel', segun: 'based on', vos: 'your choice', cambiar: 'Change', abrir: 'Travel style',
+    nota: 'I only read your public profile, to tailor my tips. Nothing is stored.', falta: (n) => `I found your profile${n ? ` (${n})` : ''}, but it is not enough to tell your style. How do you travel?`, fallo: "I couldn't read that profile right now. How do you travel?",
+    pase: (u) => `My Instagram is @${u}.`, prefiero: (t) => `I prefer to travel ${t}.` },
+};
+const textoEstilo = () => `ESTILO DE VIAJE DEL USUARIO: ${estilo.tipo === 'fancy' ? 'FANCY' : 'LOW COST'} (${estilo.de === 'instagram' ? `según su Instagram @${estilo.usuario}${estilo.razones?.length ? ': ' + estilo.razones.join('; ') : ''}` : 'lo dijo el usuario'}). `
+  + (estilo.tipo === 'fancy' ? 'Priorizá lo mejor: hoteles y posadas de más categoría, buenos restaurantes, experiencias privadas.' : 'Priorizá lo económico: hostels, campings, comida al paso y lo gratis.')
+  + ' Las búsquedas ya vienen ordenadas para ese estilo. No le vuelvas a pedir el Instagram.';
+const conEstilo = (p) => (estilo ? { ...p, estilo: estilo.tipo } : p);
+
+function fijarEstilo(nuevo, avisar = true) {
+  estilo = nuevo; gusto = { paso: 'listo' }; pintarGusto();
+  if (avisar && conv) conv.sendContextualUpdate(textoEstilo() + ' Ya quedó registrado en pantalla: no llames a estilo_viaje por esto.');
+  if (modo === 'voz') primeVoice(); // los lugares de cerca, ahora en el orden de su estilo
+}
+// Lee el perfil y deja el resultado en pantalla. Devuelve el texto para el modelo.
+async function analizarInstagram(entrada) {
+  const usuario = String(entrada || '').trim().replace(/\s+/g, '');
+  gusto = { paso: 'leyendo', usuario: usuario.replace(/^@/, '').replace(/^https?:\/\/[^/]+\//i, '').replace(/[/?].*$/, '') }; pintarGusto();
+  try {
+    const d = await post('/api/estilo', { perfil: usuario, es_mi_perfil: true });
+    try { localStorage.setItem('juju-instagram', d.usuario); } catch {}
+    if (d.estilo) {
+      fijarEstilo({ tipo: d.estilo, de: 'instagram', usuario: d.usuario, nombre: d.nombre, razones: d.razones }, false);
+      return textoEstilo() + ' Contale en una frase corta qué estilo le viste y seguí con lo que estaban.';
+    }
+    gusto = { paso: 'elegir', usuario: d.usuario, nombre: d.nombre }; pintarGusto();
+    return `Se encontró el perfil de Instagram @${d.usuario} (${d.nombre}), pero lo que Instagram deja leer no alcanza para saber su estilo de viaje. No lo inventes. Decíselo en una frase y preguntale: "¿Preferís viajar low cost o más fancy?" (en inglés: "Do you prefer to travel low cost or fancy?"). En pantalla tiene los dos botones. Cuando responda, llamá a estilo_viaje con preferencia.`;
+  } catch (e) {
+    gusto = { paso: 'elegir', usuario: gusto.usuario, fallo: e.message }; pintarGusto();
+    return `No se pudo leer ese perfil de Instagram (${e.message}). No inventes su estilo. Decile en una frase que no pudiste verlo y preguntale: "¿Preferís viajar low cost o más fancy?" (en inglés: "Do you prefer to travel low cost or fancy?"). En pantalla tiene los dos botones. Cuando responda, llamá a estilo_viaje con preferencia.`;
+  }
+}
+// Lo que el usuario hace en el cuadro: si hay una charla abierta, juju se entera y responde.
+async function gustoPorInstagram(usuario) {
+  if (!usuario.trim() || gusto.paso === 'leyendo') return;
+  const t = await analizarInstagram(usuario);
+  if (!conv) return;
+  conv.sendContextualUpdate('El usuario escribió su Instagram en pantalla y ya se analizó: no llames a estilo_viaje con ese usuario. ' + t);
+  enviar(GUSTO[idioma].pase(gusto.usuario || estilo?.usuario || usuario.replace(/^@/, '')));
+  gustoEnChat();
+}
+function gustoPorBoton(tipo) {
+  fijarEstilo({ tipo, de: 'dicho' });
+  if (conv) { enviar(GUSTO[idioma].prefiero(GUSTO[idioma][tipo].toLowerCase())); gustoEnChat(); }
+}
+function cajaGusto(caja) {
+  const T = GUSTO[idioma];
+  caja.dataset.paso = gusto.paso; caja.replaceChildren();
+  const boton = (texto, clase, hacer) => { const b = nodo('button', 'boton chico' + (clase ? ' ' + clase : ''), texto); b.type = 'button'; b.onclick = hacer; return b; };
+  if (gusto.paso === 'guardado') return void caja.append(boton(T.abrir, 'gusto-abrir', () => { gusto = { paso: 'pedir' }; pintarGusto(); }));
+  if (gusto.paso === 'listo' && estilo) {
+    const sello = nodo('div', 'gusto-sello');
+    sello.append(nodo('b', '', `${T.viajas} ${T[estilo.tipo]}`), nodo('span', '', estilo.de === 'instagram' ? `${T.segun} @${estilo.usuario}` : T.vos), boton(T.cambiar, '', () => { gusto = { paso: 'pedir' }; pintarGusto(); }));
+    return void caja.append(sello);
+  }
+  caja.append(nodo('p', 'rotulo', T.rotulo));
+  if (gusto.paso === 'leyendo') {
+    const l = nodo('p', 'gusto-texto'), m = nodo('span', 'mini'); m.append(nodo('i'), nodo('i'), nodo('i'));
+    l.append(m, `${T.leyendo} @${gusto.usuario}`);
+    return void caja.append(l);
+  }
+  if (gusto.paso === 'elegir') caja.append(nodo('p', 'gusto-texto', gusto.fallo ? T.fallo : T.falta(gusto.nombre)));
+  else {
+    const fila = nodo('form', 'gusto-fila'), campo = nodo('label', 'gusto-campo'), entrada = document.createElement('input');
+    entrada.type = 'text'; entrada.placeholder = T.campo; entrada.setAttribute('aria-label', T.nombreCampo); entrada.maxLength = 80;
+    entrada.autocapitalize = 'none'; entrada.autocomplete = 'off'; entrada.spellcheck = false; entrada.setAttribute('autocorrect', 'off');
+    try { entrada.value = localStorage.getItem('juju-instagram') || ''; } catch {}
+    campo.append(nodo('span', '', '@'), entrada);
+    const analizar = nodo('button', 'boton chico lleno', T.analizar); analizar.type = 'submit';
+    fila.append(campo, analizar);
+    fila.onsubmit = (ev) => { ev.preventDefault(); gustoPorInstagram(entrada.value); };
+    caja.append(fila);
+  }
+  const opciones = nodo('div', 'gusto-opciones');
+  if (gusto.paso === 'pedir') opciones.append(nodo('span', '', T.o));
+  opciones.append(boton(T.low_cost, '', () => gustoPorBoton('low_cost')), boton(T.fancy, '', () => gustoPorBoton('fancy')));
+  caja.append(opciones);
+  if (gusto.paso === 'pedir') caja.append(nodo('p', 'gusto-nota', avisoEstilo || T.nota));
+}
+function pintarGusto() { for (const c of document.querySelectorAll('[data-gusto]')) cajaGusto(c); }
+// En el chat, el cuadro va dentro de la charla (la pantalla de inicio se oculta con el primer mensaje).
+function gustoEnChat() {
+  let c = chat.querySelector('.gusto.en-chat');
+  if (!c) { c = nodo('div', 'gusto en-chat'); c.dataset.gusto = ''; }
+  agregar(c, true); cajaGusto(c);
+}
 
 // Pasaporte de Jujuy: the stamps live on this device (pasaporte.html keeps them); the server orders what is left.
 function mostrarPasaporte(d) { // card in the chat and, in the voice view, as the only card
@@ -633,6 +795,16 @@ const herramientas = {
     if (nuevo === idioma) return `La sesión ya está en ${nuevo === 'en' ? 'inglés' : 'español'}. Seguí en ese idioma.`;
     setTimeout(() => cambiarIdioma(nuevo), 200);
     return 'Listo: la sesión se reconecta en ese idioma. No digas nada más.';
+  },
+  // El usuario dio su Instagram o dijo cómo le gusta viajar: queda el estilo que ordena las recomendaciones.
+  async estilo_viaje(p = {}) {
+    const dicho = String(p?.preferencia || '');
+    const pref = /fancy|luj|lux|premium/i.test(dicho) ? 'fancy' : /low|cost|barat|econ|mochil/i.test(dicho) ? 'low_cost' : null;
+    if (pref) { fijarEstilo({ tipo: pref, de: 'dicho' }, false); gustoEnChat(); return textoEstilo() + ' Confirmáselo en una frase corta y seguí con lo que estaban.'; }
+    const usuario = String(p?.instagram || '').trim();
+    if (!usuario) return 'Falta el dato: llamá con "instagram" (el usuario) o con "preferencia" (low_cost o fancy).';
+    const t = await analizarInstagram(usuario); gustoEnChat();
+    return t;
   },
   async plan_rapido(p) {
     pensar('Buscando qué hay cerca');
@@ -683,40 +855,71 @@ const herramientas = {
   // Si el agente manda confirmado sin haber cotizado eso mismo, se cotiza igual: nunca se paga un monto que
   // el usuario no vio. Única excepción al pago simulado: una experiencia del catálogo pagada con USDC cuando
   // Cosmos Pay está configurado se paga de verdad, en la hoja de reserva.
-  async reservar(p = {}) {
-    p = { ...(p || {}) };
-    const confirmado = p.confirmado === true || p.confirmado === 'true';
-    delete p.confirmado; delete p.cotizar;
-    pensar(confirmado ? 'Procesando la reserva' : 'Chequeando la disponibilidad');
-    try {
-      const cot = await post('/api/reservas', { ...p, cotizar: true });
-      const firma = firmaDe(cot);
-      if (!confirmado || firma !== cotizada) {
-        cotizada = firma; tarjetaCotizacion(cot);
-        return (confirmado ? 'El usuario todavía no confirmó esta reserva con este monto, así que no se pagó nada. ' : '') + cot.texto_modelo;
-      }
-      if (!cot.method) { dejarDePensar(); return FALTA_METODO; }
-      const cat = await cargarCatalogo().catch(() => null);
-      const prod = p.producto_id && cat?.lista.find((x) => x.id === p.producto_id);
-      if (prod && cat.proveedor === 'cosmospay' && cot.method === 'usdc') {
-        dejarDePensar(); cotizada = null;
-        const r = abrirReserva(prod, { personas: p.personas, fecha: p.fecha });
-        return `La reserva de "${prod.nombre}" para ${cuantas(r.personas)} el ${r.fecha}, total ${usd(totalDe(r))}, quedó abierta en pantalla. Todavía NO está paga ni confirmada: el usuario tiene que revisar la fecha y tocar el botón de pago. Decíselo en una frase. Va a estar confirmada cuando el sistema te avise que el pago se acreditó.`;
-      }
-      const r = await post('/api/reservas', p);
-      cotizada = null; tarjetaReserva(r);
-      return r.texto_modelo;
-    } catch (e) {
-      dejarDePensar();
-      if (/metodo_pago/.test(e.message)) return FALTA_METODO;
-      return `No se pudo hacer la reserva (${e.message}). Pedile al usuario el nombre del lugar o de la experiencia y probá de nuevo.`;
-    }
-  },
+  // Las llamadas van de a una: por voz, un "sí" partido en dos ("Sí." … "Confirmo.") dispara dos llamadas casi juntas.
+  reservar(p = {}) { const turno = colaReservas.then(() => reservarUna(p)); colaReservas = turno.catch(() => {}); return turno; },
 };
+
+let colaReservas = Promise.resolve(), hecha = null; // hecha: la última reserva pagada { clave, texto, en, t }
+const soloSi = (t) => DICE_SI.test(t) && !DICE_NO.test(t) && t.trim().split(/\s+/).length <= 5;
+async function reservarUna(p) {
+  p = { ...(p || {}) };
+  const confirmado = p.confirmado === true || p.confirmado === 'true';
+  delete p.confirmado; delete p.cotizar;
+  pensar(confirmado ? 'Procesando la reserva' : 'Chequeando la disponibilidad');
+  // una reserva nueva empieza a contar desde el último mensaje del usuario (el que la pidió)
+  const item = llano(p.producto_id || p.lugar || '');
+  // la misma reserva, recién pagada, y el usuario no pidió nada nuevo (a lo sumo repitió el sí): no se cobra otra vez
+  const clave = [item, llano(p.fecha || ''), p.hora || '', p.personas || '', p.noches || ''].join('|');
+  if (hecha && hecha.clave === clave && Date.now() - hecha.t < 120000 && !dichos.some((d) => d.n > hecha.en && !soloSi(d.texto))) {
+    dejarDePensar();
+    return 'Esta reserva ya quedó pagada y confirmada recién, y no se cobró de nuevo. No vuelvas a pedir la confirmación. ' + hecha.texto;
+  }
+  if (item !== itemReserva) { itemReserva = item; reservaDesde = nDicho; cotizada = null; }
+  // el método de pago vale solo si lo dijo el usuario en esta reserva
+  let eligioSolo = false;
+  if (p.metodo_pago) {
+    const tipo = /usdc|usd_coin|cripto|crypto|cosmos/i.test(String(p.metodo_pago)) ? 'usdc' : 'banco';
+    if (!dichos.some((d) => d.n >= reservaDesde && METODO_DICHO[tipo].test(d.texto))) { delete p.metodo_pago; eligioSolo = true; }
+  }
+  try {
+    const cot = await post('/api/reservas', { ...p, cotizar: true });
+    const firma = firmaDe(cot), nueva = firma !== cotizada;
+    // y se paga solo si, después de ver esta cotización, lo último que dijo el usuario es un sí
+    let sinSi = false;
+    if (confirmado && !nueva) {
+      const ultimo = () => dichos.findLast((d) => d.n > cotizadaEn);
+      if (!ultimo()) await new Promise((ok) => setTimeout(ok, 1200)); // por voz, la transcripción puede llegar un instante después
+      const u = ultimo();
+      sinSi = !u || !DICE_SI.test(u.texto) || DICE_NO.test(u.texto);
+    }
+    if (!confirmado || nueva || sinSi) {
+      if (nueva) { cotizada = firma; cotizadaEn = nDicho; tarjetaCotizacion(cot); } else dejarDePensar();
+      const antes = eligioSolo ? 'El usuario todavía no eligió cómo pagar, así que no se tomó ningún método: no lo elijas vos. '
+        : sinSi ? 'El usuario todavía no dijo que sí a esta reserva, así que no se pagó nada. Pedile la confirmación y esperá a que responda antes de volver a llamar. '
+        : confirmado ? 'El usuario todavía no confirmó esta reserva con este monto, así que no se pagó nada. ' : '';
+      return antes + cot.texto_modelo;
+    }
+    if (!cot.method) { dejarDePensar(); return FALTA_METODO; }
+    const cat = await cargarCatalogo().catch(() => null);
+    const prod = p.producto_id && cat?.lista.find((x) => x.id === p.producto_id);
+    if (prod && cat.proveedor === 'cosmospay' && cot.method === 'usdc') {
+      dejarDePensar(); cotizada = null;
+      const r = abrirReserva(prod, { personas: p.personas, fecha: p.fecha });
+      return `La reserva de "${prod.nombre}" para ${cuantas(r.personas)} el ${r.fecha}, total ${usd(totalDe(r))}, quedó abierta en pantalla. Todavía NO está paga ni confirmada: el usuario tiene que revisar la fecha y tocar el botón de pago. Decíselo en una frase. Va a estar confirmada cuando el sistema te avise que el pago se acreditó.`;
+    }
+    const r = await post('/api/reservas', p);
+    cotizada = null; itemReserva = ''; hecha = { clave, texto: r.texto_modelo, en: nDicho, t: Date.now() }; tarjetaReserva(r);
+    return r.texto_modelo;
+  } catch (e) {
+    dejarDePensar();
+    if (/metodo_pago/.test(e.message)) return FALTA_METODO;
+    return `No se pudo consultar la reserva (${e.message}). No le digas que hay disponibilidad. Si el lugar no figura en el directorio, buscalo con buscar_lugares y usá el nombre exacto, o pedile al usuario que repita el nombre del lugar o de la experiencia.`;
+  }
+}
 
 const FALTA_METODO = "Falta el método de pago y todavía no se pagó nada. Preguntáselo al usuario así, en su idioma: \"Tenés 2 métodos de pago disponibles: dinero en tu cuenta del Wells Fargo, o pagar con USDC a través de Cosmos Pay. ¿Con cuál querés pagar?\" (en inglés: \"You have 2 payment methods available: money in your Wells Fargo account, or paying with USDC through Cosmos Pay. Which one do you want to pay with?\"). Cuando elija, llamá de nuevo a reservar con metodo_pago y sin confirmado.";
 // Lo último que se cotizó, método de pago incluido. Para pagar, la llamada confirmada tiene que coincidir con esto.
-let cotizada = null;
+let cotizada = null, cotizadaEn = 0, itemReserva = '', reservaDesde = 0;
 const firmaDe = (r) => [r.item.name, llano(r.date), r.time, r.people, r.nights, r.amount_usd, r.method].join('|');
 const detalleReserva = (r) => [r.item.locality, r.date, r.time && `${r.time} hs`, `${r.people} ${r.people === 1 ? 'persona' : 'personas'}`, r.nights && `${r.nights} ${r.nights === 1 ? 'noche' : 'noches'}`].filter(Boolean).join(' · ');
 const montoReserva = (r) => String(r.amount_usd).replace('.', ',');
@@ -935,20 +1138,34 @@ $('hoja').addEventListener('click', (e) => { if (e.target === $('hoja')) $('hoja
 $('verExp').onclick = alternarExperiencias;
 
 // ---------- conexión con ElevenLabs ----------
-function cargarSDK(i = 0) {
+// La librería de voz sale primero de nuestro propio servidor; las CDN quedan de respaldo. Si una fuente falla o tarda
+// más de 10 segundos se pasa a la siguiente (una CDN llegó a tardar 41 s). Se baja una sola vez, la pida quien la pida.
+let sdkEnCurso = null;
+function cargarSDK() {
   if (window.ElevenLabsClient) return Promise.resolve();
-  if (i >= SDK.length) return Promise.reject(new Error('No se pudo cargar el SDK de ElevenLabs. Revisá la conexión a internet.'));
-  return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = SDK[i]; s.onload = ok; s.onerror = () => { s.remove(); cargarSDK(i + 1).then(ok, mal); }; document.head.append(s); });
+  const desde = (i) => new Promise((ok, mal) => {
+    if (i >= SDK.length) return mal(new Error(idioma === 'en' ? 'The voice library could not be loaded. Check your internet connection.' : 'No se pudo cargar la librería de voz. Revisá la conexión a internet.'));
+    const s = document.createElement('script'); let listo = false;
+    const otra = () => { if (listo) return; listo = true; clearTimeout(reloj); s.remove(); desde(i + 1).then(ok, mal); };
+    const reloj = setTimeout(otra, 10000);
+    s.src = SDK[i]; s.onerror = otra;
+    s.onload = () => { if (listo) return; if (!window.ElevenLabsClient) return otra(); listo = true; clearTimeout(reloj); ok(); };
+    document.head.append(s);
+  });
+  return sdkEnCurso ||= desde(0).finally(() => { sdkEnCurso = null; });
 }
 
 // Session credentials are fetched ahead of time (while typing, or when the pointer reaches the mic)
 // so connecting never waits on the ElevenLabs round trip. Each signed URL or token is used once.
 const SESSION_TTL_MS = 60_000;
 const sessionCache = {};
+// ?voz=tiempo-real o ?voz=clasica en la dirección de la página elige qué agente atiende la voz; sin eso decide el servidor
+// (por defecto el del chat, que sigue las reglas; el de tiempo real es más rápido pero inventó lugares en las pruebas).
+const VOZ_PEDIDA = new URLSearchParams(location.search).get('voz');
 function prefetchSession(m) {
   const hit = sessionCache[m];
   if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.promise;
-  const promise = fetch('/api/sesion?modo=' + m).then(async (r) => {
+  const promise = fetch('/api/sesion?modo=' + m + (m === 'voz' && VOZ_PEDIDA ? '&voz=' + encodeURIComponent(VOZ_PEDIDA) : ''), { signal: AbortSignal.timeout(35000) }).then(async (r) => {
     const s = await r.json();
     if (!r.ok) throw new Error(s.error || 'No se pudo abrir la sesión');
     return s;
@@ -999,19 +1216,69 @@ function verVoz() { // pone botones, barra y textos de acuerdo con el estado de 
 }
 function enTira(lugares) { // lugares del turno actual, como fichas para deslizar
   if (tiraDe !== turno) { $('tira').replaceChildren(); tiraDe = turno; }
+  if (turno.puntos.length) { // en la vista de voz el mapa es la primera ficha de la tira: no le quita alto al texto
+    let fm = $('tira').querySelector('.ficha-mapa');
+    if (!fm) { fm = nodo('div', 'ficha ficha-mapa'); fm.append(nodo('div', 'mapa')); fm.firstChild.setAttribute('role', 'img'); fm.firstChild.setAttribute('aria-label', 'Mapa de los lugares sugeridos'); $('tira').prepend(fm); }
+    requestAnimationFrame(() => pintarMapa(fm.firstChild, turno.puntos));
+  }
   for (const l of lugares) {
     const f = (l.mapa && enlace('', l.mapa)) || nodo('div'); f.className = 'ficha';
     const txt = l.abierto === 'si' ? (l.cierra && l.cierra !== 'no cierra' ? 'Abierto hasta ' + l.cierra : 'Abierto') : l.abierto === 'no' ? 'Cerrado' : 'Sin horario';
-    f.append(nodo('b', '', l.nombre), nodo('span', 'meta', [legible(l.tipo), l.distancia_km != null ? km(l.distancia_km) : null].filter(Boolean).join(' · ')), nodo('span', 'pill ' + l.abierto, txt));
+    const nom = nodo('b', '', l.nombre); if (l._n) nom.prepend(nodo('span', 'num-mapa', l._n));
+    f.append(nom, nodo('span', 'meta', [legible(l.tipo), l.distancia_km != null ? km(l.distancia_km) : null].filter(Boolean).join(' · ')), nodo('span', 'pill ' + l.abierto, txt));
     $('tira').append(f);
   }
   $('tira').hidden = !$('tira').childElementCount;
 }
+// ---------- mapa: mosaicos de OpenStreetMap ajustados para que entren todos los lugares ----------
+// Sin librerías: se calcula el zoom y qué mosaicos van, y se ponen los pines encima (proyección Web Mercator).
+const TESELA = (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+const conCoords = (l) => Number.isFinite(l?.lat) && Number.isFinite(l?.lon);
+const mx = (lon, z) => ((lon + 180) / 360) * 256 * 2 ** z;
+const my = (lat, z) => { const s = Math.sin((lat * Math.PI) / 180); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * 256 * 2 ** z; };
+const mapasVivos = new ResizeObserver((es) => { for (const e of es) if (e.target._puntos && Math.round(e.contentRect.width) !== e.target._ancho) pintarMapa(e.target, e.target._puntos); });
+function pintarMapa(el, puntos) {
+  el._puntos = puntos; mapasVivos.observe(el);
+  const W = el.clientWidth, H = el.clientHeight;
+  el._ancho = Math.round(W);
+  if (!W || !H || !puntos.length) return; // oculto: se dibuja cuando aparezca (ResizeObserver)
+  const borde = 30;
+  let z = 17; // OpenStreetMap llega a 19; 17 alcanza para separar lugares de una misma cuadra
+  for (; z > 3; z--) {
+    const xs = puntos.map((p) => mx(p.lon, z)), ys = puntos.map((p) => my(p.lat, z));
+    if (Math.max(...xs) - Math.min(...xs) <= W - 2 * borde && Math.max(...ys) - Math.min(...ys) <= H - 2 * borde) break;
+  }
+  const xs = puntos.map((p) => mx(p.lon, z)), ys = puntos.map((p) => my(p.lat, z));
+  const izq = (Math.min(...xs) + Math.max(...xs)) / 2 - W / 2, arr = (Math.min(...ys) + Math.max(...ys)) / 2 - H / 2;
+  const capa = nodo('div', 'teselas'), n = 2 ** z;
+  for (let tx = Math.floor(izq / 256); tx <= Math.floor((izq + W) / 256); tx++) {
+    for (let ty = Math.max(0, Math.floor(arr / 256)); ty <= Math.min(n - 1, Math.floor((arr + H) / 256)); ty++) {
+      const img = nodo('img'); img.alt = ''; img.decoding = 'async'; img.referrerPolicy = 'strict-origin-when-cross-origin';
+      img.src = TESELA(z, ((tx % n) + n) % n, ty);
+      img.style.left = `${tx * 256 - izq}px`; img.style.top = `${ty * 256 - arr}px`;
+      capa.append(img);
+    }
+  }
+  const hijos = [capa];
+  if (conCoords(ubicacion)) { // el punto azul de "estás acá", solo si cae dentro del mapa
+    const x = mx(ubicacion.lon, z) - izq, y = my(ubicacion.lat, z) - arr;
+    if (x > 0 && x < W && y > 0 && y < H) { const v = nodo('span', 'vos-pin'); v.style.left = `${x}px`; v.style.top = `${y}px`; v.title = 'Estás acá'; hijos.push(v); }
+  }
+  for (const p of puntos) {
+    const pin = (p.mapa && enlace(String(p._n), p.mapa)) || nodo('span', '', String(p._n));
+    pin.className = 'pin'; pin.title = p.nombre; pin.setAttribute('aria-label', `${p._n}. ${p.nombre}`);
+    pin.style.left = `${mx(p.lon, z) - izq}px`; pin.style.top = `${my(p.lat, z) - arr}px`;
+    hijos.push(pin);
+  }
+  const credito = enlace('© OpenStreetMap', 'https://www.openstreetmap.org/copyright'); credito.className = 'credito'; hijos.push(credito);
+  el.replaceChildren(...hijos);
+}
+
 async function iniciarVoz(saludo) {
   if (sinAgente) { subtitulo('Para hablar falta conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.'); return; }
   if (modo === 'voz' || conectandoVoz) return;
   conectandoVoz = true; silenciado = false; verVoz();
-  try { await conectar('voz', saludo ?? (historial.length ? TEXTOS[idioma].retoma : TEXTOS[idioma].saludo)); }
+  try { await conectar('voz', saludo ?? (historial.length ? TEXTOS[idioma].retoma : estilo ? TEXTOS[idioma].saludoCorto : TEXTOS[idioma].saludo)); }
   catch (e) {
     const m = (e.name === 'NotAllowedError' ? 'Para hablar necesito permiso de micrófono. Habilitalo en el navegador y tocá de nuevo. ' : 'No pude conectar. ') + (e.message || '');
     subtitulo(m); aviso(m, true); estado('listo');
@@ -1191,7 +1458,12 @@ function conectar(nuevoModo, saludo) {
     const mia = ++serie;
     if (conv) { const v = conv; conv = null; try { await v.endSession(); } catch {} }
     estado('conectando');
-    const [s] = await Promise.all([takeSession(nuevoModo), cargarSDK()]);
+    let vencio = false, reloj;
+    const tope = new Promise((_, mal) => { reloj = setTimeout(() => { vencio = true; mal(new Error(idioma === 'en' ? 'The connection is taking too long. Tap the microphone to try again.' : 'La conexión está tardando demasiado. Tocá el micrófono para probar de nuevo.')); }, 30000); });
+    tope.catch(() => {});
+    const aTiempo = (p) => Promise.race([p, tope]);
+    let s;
+    try { [s] = await aTiempo(Promise.all([takeSession(nuevoModo), cargarSDK()])); } catch (e) { clearTimeout(reloj); throw e; }
     const retoma = historial.length > 0;
     const overrides = {};
     if (nuevoModo === 'texto') overrides.conversation = { textOnly: true };
@@ -1213,12 +1485,15 @@ function conectar(nuevoModo, saludo) {
     };
     if (nuevoModo === 'voz') Object.assign(opciones, { conversationToken: s.conversationToken, connectionType: 'webrtc' });
     else Object.assign(opciones, { signedUrl: s.signedUrl, connectionType: 'websocket' });
-    const nueva = await window.ElevenLabsClient.Conversation.startSession(opciones);
+    const inicio = window.ElevenLabsClient.Conversation.startSession(opciones);
+    const nueva = await aTiempo(inicio).finally(() => clearTimeout(reloj));
+    inicio.then((c) => { if (vencio) c.endSession().catch(() => {}); }, () => {}); // si conecta tarde, se cierra
     if (mia !== serie) { try { await nueva.endSession(); } catch {} return; } // se canceló mientras conectaba
     conv = nueva; modo = nuevoModo;
     if (nuevoModo === 'voz') primeVoice(); // lugares cercanos apenas abre la voz: la primera respuesta no espera una búsqueda
     estado(nuevoModo === 'voz' ? 'escuchando' : 'en línea', nuevoModo === 'voz' ? 'voz' : 'on');
     verVoz();
+    if (estilo) conv.sendContextualUpdate(textoEstilo());
     if (retoma) conv.sendContextualUpdate('Esta sesión continúa una charla anterior con el mismo usuario. Últimos mensajes:\n' + historial.slice(-12).map((h) => `${h.rol === 'user' ? 'Usuario' : 'juju'}: ${h.texto}`).join('\n'));
   })().finally(() => { conectando = null; });
   return conectando;
@@ -1232,7 +1507,7 @@ async function soloDirectorio(texto) { // sin asistente conectado: resultados de
   }
   pensar('Buscando en el directorio');
   try {
-    const c = await post('/api/contexto', { texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon });
+    const c = await post('/api/contexto', conEstilo({ texto, ultima: ultimaLocalidad, lat: ubicacion?.lat, lon: ubicacion?.lon }));
     if (c.localidad) ultimaLocalidad = c.localidad;
     dejarDePensar();
     if (c.grupos?.length) { for (const g of c.grupos) lista(g.titulo, g.lugares); aviso('Estos son los lugares del directorio para tu consulta. Para que juju converse y arme el plan falta conectar ElevenLabs.', false, true); }
@@ -1358,6 +1633,7 @@ reloj(); setInterval(reloj, 20000);
       ? 'La clave de ElevenLabs está cargada, pero no se pudo preparar el agente. ElevenLabs respondió: ' + e.error_agente
       : 'Para conversar por texto y por voz falta cargar la clave de ElevenLabs en el servidor, en la variable ELEVENLABS_API_KEY. El agente se crea solo al arrancar.');
   }
+  if (e?.estilo?.con_imagenes) { avisoEstilo = e.estilo.aviso; pintarGusto(); }
   const q = new URLSearchParams(location.search).get('q'); // link directo a una consulta: /?q=que hacer en tilcara
   if (q) { verVista('chat'); enviar(q.slice(0, 300)); }
   const cat = await cargarCatalogo().catch(() => null);

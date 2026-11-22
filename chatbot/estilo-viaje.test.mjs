@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { obtenerPerfil, clasificar } from './estilo-viaje.mjs';
 
 const respuesta = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: { 'content-type': 'application/json' } });
@@ -107,7 +108,7 @@ test('consentimiento: el aviso existe y la consola no analiza sin --es-mi-perfil
   const { AVISO_CONSENTIMIENTO } = await import('./estilo-viaje.mjs');
   assert.match(AVISO_CONSENTIMIENTO, /propio perfil/);
   const { spawnSync } = await import('node:child_process');
-  const r = spawnSync(process.execPath, [new URL('./estilo-viaje.mjs', import.meta.url).pathname, '@viajera'], { encoding: 'utf8', env: { ...process.env, GEMINI_API_KEY: '' } });
+  const r = spawnSync(process.execPath, [fileURLToPath(new URL('./estilo-viaje.mjs', import.meta.url)), '@viajera'], { encoding: 'utf8', env: { ...process.env, GEMINI_API_KEY: '' } });
   assert.equal(r.status, 1);
   assert.match(r.stderr, /--es-mi-perfil/);
 });
