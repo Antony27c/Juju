@@ -663,56 +663,67 @@ const herramientas = {
   // Si el agente manda confirmado sin haber cotizado eso mismo, se cotiza igual: nunca se paga un monto que
   // el usuario no vio. Única excepción al pago simulado: una experiencia del catálogo pagada con USDC cuando
   // Cosmos Pay está configurado se paga de verdad, en la hoja de reserva.
-  async reservar(p = {}) {
-    p = { ...(p || {}) };
-    const confirmado = p.confirmado === true || p.confirmado === 'true';
-    delete p.confirmado; delete p.cotizar;
-    pensar(confirmado ? 'Procesando la reserva' : 'Chequeando la disponibilidad');
-    // una reserva nueva empieza a contar desde el último mensaje del usuario (el que la pidió)
-    const item = llano(p.producto_id || p.lugar || '');
-    if (item !== itemReserva) { itemReserva = item; reservaDesde = nDicho; cotizada = null; }
-    // el método de pago vale solo si lo dijo el usuario en esta reserva
-    let eligioSolo = false;
-    if (p.metodo_pago) {
-      const tipo = /usdc|usd_coin|cripto|crypto|cosmos/i.test(String(p.metodo_pago)) ? 'usdc' : 'banco';
-      if (!dichos.some((d) => d.n >= reservaDesde && METODO_DICHO[tipo].test(d.texto))) { delete p.metodo_pago; eligioSolo = true; }
-    }
-    try {
-      const cot = await post('/api/reservas', { ...p, cotizar: true });
-      const firma = firmaDe(cot), nueva = firma !== cotizada;
-      // y se paga solo si, después de ver esta cotización, lo último que dijo el usuario es un sí
-      let sinSi = false;
-      if (confirmado && !nueva) {
-        const ultimo = () => dichos.findLast((d) => d.n > cotizadaEn);
-        if (!ultimo()) await new Promise((ok) => setTimeout(ok, 1200)); // por voz, la transcripción puede llegar un instante después
-        const u = ultimo();
-        sinSi = !u || !DICE_SI.test(u.texto) || DICE_NO.test(u.texto);
-      }
-      if (!confirmado || nueva || sinSi) {
-        if (nueva) { cotizada = firma; cotizadaEn = nDicho; tarjetaCotizacion(cot); } else dejarDePensar();
-        const antes = eligioSolo ? 'El usuario todavía no eligió cómo pagar, así que no se tomó ningún método: no lo elijas vos. '
-          : sinSi ? 'El usuario todavía no dijo que sí a esta reserva, así que no se pagó nada. Pedile la confirmación y esperá a que responda antes de volver a llamar. '
-          : confirmado ? 'El usuario todavía no confirmó esta reserva con este monto, así que no se pagó nada. ' : '';
-        return antes + cot.texto_modelo;
-      }
-      if (!cot.method) { dejarDePensar(); return FALTA_METODO; }
-      const cat = await cargarCatalogo().catch(() => null);
-      const prod = p.producto_id && cat?.lista.find((x) => x.id === p.producto_id);
-      if (prod && cat.proveedor === 'cosmospay' && cot.method === 'usdc') {
-        dejarDePensar(); cotizada = null;
-        const r = abrirReserva(prod, { personas: p.personas, fecha: p.fecha });
-        return `La reserva de "${prod.nombre}" para ${cuantas(r.personas)} el ${r.fecha}, total ${usd(totalDe(r))}, quedó abierta en pantalla. Todavía NO está paga ni confirmada: el usuario tiene que revisar la fecha y tocar el botón de pago. Decíselo en una frase. Va a estar confirmada cuando el sistema te avise que el pago se acreditó.`;
-      }
-      const r = await post('/api/reservas', p);
-      cotizada = null; itemReserva = ''; tarjetaReserva(r);
-      return r.texto_modelo;
-    } catch (e) {
-      dejarDePensar();
-      if (/metodo_pago/.test(e.message)) return FALTA_METODO;
-      return `No se pudo consultar la reserva (${e.message}). No le digas que hay disponibilidad. Si el lugar no figura en el directorio, buscalo con buscar_lugares y usá el nombre exacto, o pedile al usuario que repita el nombre del lugar o de la experiencia.`;
-    }
-  },
+  // Las llamadas van de a una: por voz, un "sí" partido en dos ("Sí." … "Confirmo.") dispara dos llamadas casi juntas.
+  reservar(p = {}) { const turno = colaReservas.then(() => reservarUna(p)); colaReservas = turno.catch(() => {}); return turno; },
 };
+
+let colaReservas = Promise.resolve(), hecha = null; // hecha: la última reserva pagada { clave, texto, en, t }
+const soloSi = (t) => DICE_SI.test(t) && !DICE_NO.test(t) && t.trim().split(/\s+/).length <= 5;
+async function reservarUna(p) {
+  p = { ...(p || {}) };
+  const confirmado = p.confirmado === true || p.confirmado === 'true';
+  delete p.confirmado; delete p.cotizar;
+  pensar(confirmado ? 'Procesando la reserva' : 'Chequeando la disponibilidad');
+  // una reserva nueva empieza a contar desde el último mensaje del usuario (el que la pidió)
+  const item = llano(p.producto_id || p.lugar || '');
+  // la misma reserva, recién pagada, y el usuario no pidió nada nuevo (a lo sumo repitió el sí): no se cobra otra vez
+  const clave = [item, llano(p.fecha || ''), p.hora || '', p.personas || '', p.noches || ''].join('|');
+  if (hecha && hecha.clave === clave && Date.now() - hecha.t < 120000 && !dichos.some((d) => d.n > hecha.en && !soloSi(d.texto))) {
+    dejarDePensar();
+    return 'Esta reserva ya quedó pagada y confirmada recién, y no se cobró de nuevo. No vuelvas a pedir la confirmación. ' + hecha.texto;
+  }
+  if (item !== itemReserva) { itemReserva = item; reservaDesde = nDicho; cotizada = null; }
+  // el método de pago vale solo si lo dijo el usuario en esta reserva
+  let eligioSolo = false;
+  if (p.metodo_pago) {
+    const tipo = /usdc|usd_coin|cripto|crypto|cosmos/i.test(String(p.metodo_pago)) ? 'usdc' : 'banco';
+    if (!dichos.some((d) => d.n >= reservaDesde && METODO_DICHO[tipo].test(d.texto))) { delete p.metodo_pago; eligioSolo = true; }
+  }
+  try {
+    const cot = await post('/api/reservas', { ...p, cotizar: true });
+    const firma = firmaDe(cot), nueva = firma !== cotizada;
+    // y se paga solo si, después de ver esta cotización, lo último que dijo el usuario es un sí
+    let sinSi = false;
+    if (confirmado && !nueva) {
+      const ultimo = () => dichos.findLast((d) => d.n > cotizadaEn);
+      if (!ultimo()) await new Promise((ok) => setTimeout(ok, 1200)); // por voz, la transcripción puede llegar un instante después
+      const u = ultimo();
+      sinSi = !u || !DICE_SI.test(u.texto) || DICE_NO.test(u.texto);
+    }
+    if (!confirmado || nueva || sinSi) {
+      if (nueva) { cotizada = firma; cotizadaEn = nDicho; tarjetaCotizacion(cot); } else dejarDePensar();
+      const antes = eligioSolo ? 'El usuario todavía no eligió cómo pagar, así que no se tomó ningún método: no lo elijas vos. '
+        : sinSi ? 'El usuario todavía no dijo que sí a esta reserva, así que no se pagó nada. Pedile la confirmación y esperá a que responda antes de volver a llamar. '
+        : confirmado ? 'El usuario todavía no confirmó esta reserva con este monto, así que no se pagó nada. ' : '';
+      return antes + cot.texto_modelo;
+    }
+    if (!cot.method) { dejarDePensar(); return FALTA_METODO; }
+    const cat = await cargarCatalogo().catch(() => null);
+    const prod = p.producto_id && cat?.lista.find((x) => x.id === p.producto_id);
+    if (prod && cat.proveedor === 'cosmospay' && cot.method === 'usdc') {
+      dejarDePensar(); cotizada = null;
+      const r = abrirReserva(prod, { personas: p.personas, fecha: p.fecha });
+      return `La reserva de "${prod.nombre}" para ${cuantas(r.personas)} el ${r.fecha}, total ${usd(totalDe(r))}, quedó abierta en pantalla. Todavía NO está paga ni confirmada: el usuario tiene que revisar la fecha y tocar el botón de pago. Decíselo en una frase. Va a estar confirmada cuando el sistema te avise que el pago se acreditó.`;
+    }
+    const r = await post('/api/reservas', p);
+    cotizada = null; itemReserva = ''; hecha = { clave, texto: r.texto_modelo, en: nDicho, t: Date.now() }; tarjetaReserva(r);
+    return r.texto_modelo;
+  } catch (e) {
+    dejarDePensar();
+    if (/metodo_pago/.test(e.message)) return FALTA_METODO;
+    return `No se pudo consultar la reserva (${e.message}). No le digas que hay disponibilidad. Si el lugar no figura en el directorio, buscalo con buscar_lugares y usá el nombre exacto, o pedile al usuario que repita el nombre del lugar o de la experiencia.`;
+  }
+}
 
 const FALTA_METODO = "Falta el método de pago y todavía no se pagó nada. Preguntáselo al usuario así, en su idioma: \"Tenés 2 métodos de pago disponibles: dinero en tu cuenta del Wells Fargo, o pagar con USDC a través de Cosmos Pay. ¿Con cuál querés pagar?\" (en inglés: \"You have 2 payment methods available: money in your Wells Fargo account, or paying with USDC through Cosmos Pay. Which one do you want to pay with?\"). Cuando elija, llamá de nuevo a reservar con metodo_pago y sin confirmado.";
 // Lo último que se cotizó, método de pago incluido. Para pagar, la llamada confirmada tiene que coincidir con esto.
