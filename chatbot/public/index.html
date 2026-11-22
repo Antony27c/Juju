@@ -94,14 +94,18 @@
   .app[data-vista="voz"] .franjas, .app[data-vista="voz"] .estado { display: none; }
   .app[data-vista="chat"] .escena { display: none; }
   .escena { --nivel: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .dicho { flex: 1; min-height: 78px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-block: 16px 14px; }
+  /* El texto manda: ocupa lo que necesita y el paisaje de abajo se achica para hacerle lugar. Si ni así entra,
+     se desplaza adentro y el borde de abajo se desvanece: nunca queda una línea cortada contra el paisaje. */
+  .dicho { flex: 1 1 auto; min-height: 78px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; --fundido: 18px; padding-block: 16px var(--fundido);
+    -webkit-mask-image: linear-gradient(#000 calc(100% - var(--fundido)), transparent); mask-image: linear-gradient(#000 calc(100% - var(--fundido)), transparent); }
+  .dicho > * { flex: none; } /* nada se aplasta: lo que no entra, se desplaza */
   .dicho::before { content: ""; margin-top: auto; } /* empuja el texto contra el paisaje sin cortar el scroll */
   .dicho p { margin: 0; overflow-wrap: anywhere; }
   .vos { max-width: 44ch; font-size: 15px; color: var(--tenue); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .vos:empty { display: none; }
   .dice { max-width: 32em; font: 500 18px/1.45 var(--habla); text-wrap: pretty; }
   .dice[data-largo="medio"] { font: 650 clamp(22px, 6vw, 28px)/1.2 var(--habla); letter-spacing: -.02em; text-wrap: balance; }
-  .dice[data-largo="poco"] { font: 700 clamp(30px, 8.4vw, 44px)/1.08 var(--habla); letter-spacing: -.035em; text-wrap: balance; }
+  .dice[data-largo="poco"] { font: 700 clamp(27px, 7.8vw, 44px)/1.08 var(--habla); letter-spacing: -.035em; text-wrap: balance; }
   .probar { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
   .rotulo { margin: 0; font: 500 14px/1 var(--pixel); letter-spacing: .06em; text-transform: uppercase; color: var(--tenue); }
 
@@ -142,6 +146,9 @@
   /* en la vista de voz el lugar es poco: al arrancar se ven dos frases de ejemplo, y con la charla en marcha queda solo el campo */
   .dicho:has(.gusto[data-paso="pedir"]) .ideas li:nth-child(n+3) { display: none; }
   .dicho .gusto[data-paso="pedir"]:has(+ .probar[hidden]) > :not(.gusto-fila) { display: none; }
+  /* con poco alto (casi todos los celulares, con la barra del navegador) las frases de ejemplo esperan a que el estilo esté elegido */
+  @media (max-height: 780px) { .dicho:has(.gusto:not([data-paso="listo"]):not(:empty)) .probar { display: none; } }
+  @media (max-width: 340px) { .gusto-opciones > span { display: none; } }
 
   /* mapa de los lugares sugeridos: mosaicos de OpenStreetMap y pines numerados como la lista */
   .mapa { position: relative; overflow: hidden; height: 200px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--suelo); box-shadow: var(--sombra); }
@@ -163,7 +170,7 @@
   .ficha .precio { margin-top: 2px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
   /* el paisaje: cada "pixel" lo dibuja el script en la grilla; acá solo va el tamaño */
-  .faja { flex: 0 1 auto; min-height: 92px; display: block; width: 100%; height: clamp(132px, 29vh, 264px); image-rendering: pixelated; }
+  .faja { flex: 0 1000000 auto; min-height: 56px; display: block; width: 100%; height: clamp(132px, 29vh, 264px); image-rendering: pixelated; }
   .pie { flex: none; position: relative; margin-top: -18px; background: var(--papel); border-radius: 26px 26px 0 0; box-shadow: 0 -1px 0 var(--linea), 0 -14px 30px rgb(21 23 43 / .06); padding-top: 12px; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); }
   .aviso-fase { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; }
   .fase { margin: 0; display: inline-flex; align-items: center; gap: 9px; min-width: 0; padding: 7px 13px; background: var(--hueco); border-radius: 999px; font: 500 15px/1 var(--pixel); letter-spacing: .03em; color: var(--tenue); }
@@ -196,7 +203,17 @@
   .escena[data-estado="sin"] .boca { background: var(--hueco); color: var(--tenue); box-shadow: none; }
   .escena[data-estado="conectando"] .boca { animation: late 1.1s ease-in-out infinite; }
   @keyframes late { 50% { opacity: .5; } }
-  @media (max-height: 640px) { .boca { width: 64px; height: 64px; } .dicho { padding-block: 10px; } .faja { height: 104px; } .mando svg { padding: 11px; } }
+  @media (max-height: 640px) { .boca { width: 64px; height: 64px; } .dicho { --fundido: 14px; padding-top: 10px; } .faja { height: 104px; } .mando svg { padding: 11px; } }
+  /* muy poco alto (celular acostado, o el teclado abierto): sin paisaje y con los mandos compactos */
+  @media (max-height: 480px) {
+    .tapa { padding-block: 6px; }
+    .faja { display: none; }
+    .pie { margin-top: 0; padding-top: 6px; border-radius: 0; padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
+    .aviso-fase { min-height: 0; } .fase { padding: 4px 10px; font-size: 13px; }
+    .mandos { padding-top: 4px; } .mando, .hablar { gap: 3px; }
+    .boca { width: 46px; height: 46px; } .boca svg { width: 22px; height: 22px; } .mando svg { padding: 7px; }
+    .dice[data-largo="poco"] { font-size: 24px; } .dice[data-largo="medio"] { font-size: 19px; }
+  }
 
   /* --- chat --- */
   main { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding-block: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
