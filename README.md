@@ -30,7 +30,14 @@ node server.mjs             y abrir http://localhost:3000
 
 Sin ninguna clave ya funcionan el directorio, la búsqueda y las reservas en modo de prueba.
 
-### Estilo de viaje (experimental)
+### Estilo de viaje: low cost o fancy
+
+Al empezar cada charla juju pide el usuario de Instagram (por voz en el saludo; por chat en la primera respuesta, y hay un cuadro en pantalla para escribirlo). El servidor lee el perfil público (`POST /api/estilo`), estima el estilo y, desde ahí, todas las búsquedas vuelven ordenadas: con low cost van primero hostels, campings y lo más barato; con fancy, hoteles y posadas de más categoría y restaurantes. El estilo no deja lugares afuera, solo cambia el orden.
+
+Qué se puede leer de verdad: Instagram suele bloquear el pedido completo (bio y publicaciones), sobre todo desde servidores. En ese caso queda la página pública del perfil, que trae solo el nombre y los números de seguidores: el estilo sale únicamente si el nombre o el usuario lo dicen ("mochilera", "luxury"). Si no alcanza, juju lo dice y pregunta "¿Preferís viajar low cost o más fancy?" (también están los dos botones en pantalla). Nunca inventa el estilo. Para leer siempre bio y publicaciones haría falta la API oficial de Instagram con inicio de sesión del usuario.
+
+El clasificador:
+
 
 `chatbot/estilo-viaje.mjs` lee un perfil público de Instagram o X y estima si la persona viaja más "hippie" (mochila, camping, naturaleza) o "luxury" (resorts, spa, lujo). Sin clave usa palabras clave y emojis; con `GEMINI_API_KEY` en `chatbot/.env` también le pasa a Gemini el texto y hasta 6 imágenes.
 
@@ -43,7 +50,7 @@ npm test
 - Solo con el perfil propio y con permiso: sin `--es-mi-perfil` no analiza nada. Quien lo integre a la página o al agente tiene que mostrar `AVISO_CONSENTIMIENTO` antes. No se guarda nada.
 - Las imágenes solo se bajan por HTTPS desde los CDN de Instagram y X, con tope de 4 MB y 10 segundos.
 - Instagram no tiene API pública para esto: se usa el pedido de su sitio web, que suele bloquear servidores como Railway. Para X se usa FxTwitter, un servicio de terceros.
-- Todavía no está conectado al servidor, la página ni el agente.
+- En la página el permiso es que el propio usuario escribe o dice su usuario, con el aviso a la vista; la ruta `/api/estilo` no analiza nada sin `es_mi_perfil: true` y tiene un tope de 15 pedidos cada 10 minutos por visitante.
 
 ### Para activar la voz
 

@@ -244,6 +244,23 @@ function compacto(r, mom, centro) {
 
 const PUNTOS_ABIERTO = { si: 3, sin_dato: 0, no: -6 };
 
+// Estilo de viaje del usuario ('low_cost' o 'fancy'): no deja nada afuera, cambia el orden. Pesa más que la distancia
+// dentro de una misma localidad, y menos que estar cerrado.
+const SENCILLOS = new Set(['hostel', 'camping', 'refugio', 'comida_rapida', 'panaderia', 'patio_de_comidas', 'mercado_feria']);
+const CUIDADOS = new Set(['hotel', 'hosteria_posada', 'cabana', 'restaurante', 'vinoteca_bodega', 'termas']);
+export const ESTILOS = { low_cost: 'low cost', fancy: 'fancy' };
+export function puntosEstilo(r, estilo) {
+  if (!ESTILOS[estilo]) return 0;
+  const nivel = ORDEN_PRECIO.indexOf(r.rango_precio); // gratis, $, $$, $$$, $$$$ (-1 = sin dato)
+  const paga = r.categoria === 'alojamiento' || r.categoria === 'gastronomia' || r.categoria === 'vida_nocturna_ocio';
+  if (estilo === 'low_cost') {
+    return (nivel === 0 || nivel === 1 ? 2 : nivel >= 3 ? -2.5 : 0) + (SENCILLOS.has(r.subcategoria) ? 1.5 : 0) + (r.subcategoria === 'hotel' ? -1 : 0) - (r.estrellas >= 4 ? 1.5 : 0);
+  }
+  return (nivel >= 3 ? 3 : nivel === 2 ? 1.5 : paga && nivel === 1 ? -1.5 : 0) + (CUIDADOS.has(r.subcategoria) ? 1 : 0)
+    + (SENCILLOS.has(r.subcategoria) ? -3 : 0) + (r.estrellas >= 4 ? 2 : r.estrellas === 3 ? 0.5 : 0);
+}
+const estiloDe = (p) => (ESTILOS[p?.estilo] ? p.estilo : undefined);
+
 function filtrar(p, mom, centro, radio) {
   const tokens = sinAcentos(p.texto).split(/[^a-z0-9ñ]+/).filter((w) => w.length > 2 && !VACIAS.has(w));
   const cat = sinAcentos(p.categoria).replace(/ /g, '_');
@@ -263,7 +280,7 @@ function filtrar(p, mom, centro, radio) {
     if (centro && d > radio) continue;
     const ab = estadoHorario(r.horario, mom).abierto;
     if (p.solo_abiertos && ab !== 'si') continue;
-    res.push({ r, d, ab, pts: PUNTOS_ABIERTO[ab] + r._info - d * 0.15 });
+    res.push({ r, d, ab, pts: PUNTOS_ABIERTO[ab] + r._info - d * 0.15 + puntosEstilo(r, p.estilo) });
   }
   return res.sort((a, b) => b.pts - a.pts);
 }
@@ -279,7 +296,7 @@ export function buscar(p = {}) {
   const lista = res.slice(0, limite).map((x) => compacto(x.r, mom, centro));
   return {
     momento: mom.etiqueta, zona: centro ? `${centro.nombre} (radio ${radio} km)` : p.region || 'toda la provincia',
-    total_encontrados: res.length, mostrados: lista.length,
+    total_encontrados: res.length, mostrados: lista.length, estilo: estiloDe(p),
     sin_horario_cargado: lista.filter((x) => x.abierto === 'sin_dato').length,
     aviso: !centro && p.localidad ? `No reconozco la localidad "${p.localidad}"; busqué por coincidencia de texto.` : undefined,
     resultados: lista,
@@ -310,7 +327,7 @@ export function planRapido(p = {}) {
       if (d > radio) continue;
       const ab = estadoHorario(r.horario, mom).abierto;
       if (ab === 'no') continue;
-      res.push({ r, pts: PUNTOS_ABIERTO[ab] + r._info + peso(r) - d * 0.25 });
+      res.push({ r, pts: PUNTOS_ABIERTO[ab] + r._info + peso(r) - d * 0.25 + puntosEstilo(r, p.estilo) });
     }
     return res.sort((a, b) => b.pts - a.pts).slice(0, n).map((x) => compacto(x.r, mom, centro));
   };
@@ -333,7 +350,7 @@ export function planRapido(p = {}) {
     if (comer.length < 2) comer = elegir((r) => r.categoria === 'gastronomia', pesoComida, radio, 6);
   }
   return {
-    momento: mom.etiqueta, es_de_noche: mom.es_de_noche, zona: `${centro.nombre} (hasta ${radio} km, distancias en línea recta)`,
+    momento: mom.etiqueta, es_de_noche: mom.es_de_noche, zona: `${centro.nombre} (hasta ${radio} km, distancias en línea recta)`, estilo: estiloDe(p),
     nota: 'Se excluyeron los lugares que figuran cerrados a esa hora. "abierto: sin_dato" significa que no hay horario cargado: avisar y sugerir confirmar.'
       + (mom.es_de_noche ? ' Es de noche: se dejaron afuera cerros, miradores y salidas al aire libre alejadas.' : ''),
     para_hacer: hacer, para_comer: comer,

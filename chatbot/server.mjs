@@ -12,6 +12,7 @@ import zlib from 'node:zlib';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { obtenerPerfil, clasificar, AVISO_CONSENTIMIENTO } from './estilo-viaje.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 if (existsSync(path.join(AQUI, '.env'))) process.loadEnvFile(path.join(AQUI, '.env'));
@@ -112,7 +113,7 @@ const comoJson = (s) => { try { return JSON.parse(s || '{}'); } catch { return {
 
 // Tope por visitante para las rutas que gastan crédito de ElevenLabs o crean pagos: en un deploy público cualquiera puede llamarlas.
 const cupos = new Map();
-const TOPES = { sesion: Number(process.env.LIMITE_SESIONES) || 30, pago: Number(process.env.LIMITE_PAGOS) || 20 }; // por visitante cada 10 minutos
+const TOPES = { sesion: Number(process.env.LIMITE_SESIONES) || 30, pago: Number(process.env.LIMITE_PAGOS) || 20, estilo: 15 }; // por visitante cada 10 minutos
 function excedido(req, clase) {
   const ip = String(req.headers['x-real-ip'] || String(req.headers['x-forwarded-for'] || '').split(',').pop() || req.socket.remoteAddress || '').trim();
   const k = `${clase}|${ip}`, ahora = Date.now(), c = cupos.get(k);
@@ -123,6 +124,26 @@ function excedido(req, clase) {
   return ++c.n > TOPES[clase];
 }
 const DEMASIADO = { error: 'Demasiados pedidos seguidos. Esperá unos minutos y probá de nuevo.' };
+
+// Estilo de viaje: lee el perfil público de Instagram (o X) que el usuario dio como propio y estima si viaja más
+// low cost o más fancy. No guarda nada. Si lo leído no alcanza, estilo va en null y la página se lo pregunta.
+const AVISO_ESTILO = () => (process.env.GEMINI_API_KEY ? AVISO_CONSENTIMIENTO
+  : 'juju lee tu perfil público de Instagram para sugerirte un estilo de viaje. No se guarda nada. Usalo solo con tu propio perfil.');
+async function estiloDePerfil({ perfil, es_mi_perfil } = {}) {
+  if (es_mi_perfil !== true) return [400, { error: AVISO_ESTILO(), falta: 'consentimiento' }];
+  try {
+    const p = await obtenerPerfil(String(perfil || '').trim().slice(0, 200));
+    let c;
+    try { c = await clasificar(p); } catch (e) { console.warn('estilo: sin Gemini,', e.message); c = await clasificar(p, { apiKey: '' }); }
+    const estilo = { hippie: 'low_cost', luxury: 'fancy' }[c.estilo] || null;
+    return [200, {
+      red: p.red, usuario: p.usuario, nombre: p.nombre, resumen: p.resumen || null, parcial: Boolean(p.parcial), estilo,
+      confianza: Math.round(Math.max(c.probabilidades.hippie, c.probabilidades.luxury) * 100), fuente: c.fuente, razones: c.razones.slice(0, 3).map((r) => String(r).slice(0, 160)),
+    }];
+  } catch (e) {
+    return [e.status >= 400 && e.status < 600 ? e.status : 502, { error: e.message }];
+  }
+}
 
 // Catalog experiences the assistant books through the `reservar` tool (the payment is a demo unless Cosmos Pay is set up).
 function catalogoTexto() {
@@ -184,9 +205,14 @@ const servidor = http.createServer(async (req, res) => {
         agente_configurado: Boolean(clave() && (agente() || preparacion)), clave_cargada: Boolean(clave()), ...(errorAgente ? { error_agente: errorAgente } : {}),
         datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
         voz: { tiempo_real: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
+        estilo: { aviso: AVISO_ESTILO(), con_imagenes: Boolean(process.env.GEMINI_API_KEY) },
         // null = todavía no se sabe (el agente se está preparando, o no se sincronizó en este arranque)
         ingles_por_voz: { chat: niveles.texto == null ? null : niveles.texto >= 3, tiempo_real: niveles.voz == null ? null : niveles.voz >= 3 },
       });
+    }
+    if (ruta === '/api/estilo' && req.method === 'POST') {
+      if (excedido(req, 'estilo')) return json(res, 429, DEMASIADO);
+      const [c, o] = await estiloDePerfil(comoJson(await cuerpo(req))); return json(res, c, o);
     }
     if (ruta === '/api/reservas' && req.method === 'POST') {
       if (excedido(req, 'pago')) return json(res, 429, DEMASIADO);

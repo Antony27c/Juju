@@ -4,7 +4,7 @@
 // Todo corre en memoria sobre el directorio: tarda milisegundos y respeta horarios y distancias,
 // cosa que una búsqueda semántica sobre texto no puede hacer.
 
-import { buscar, planRapido, clavesLocalidades, localidadMasCercana } from './datos.mjs';
+import { buscar, planRapido, clavesLocalidades, localidadMasCercana, ESTILOS } from './datos.mjs';
 import { momento, sinAcentos } from './horarios.mjs';
 
 const CLAVES = clavesLocalidades();
@@ -57,12 +57,15 @@ export function linea(l) {
 export const lineas = (titulo, lista) => (lista?.length ? `${titulo}:\n${lista.map(linea).join('\n')}` : '');
 
 /** Texto para el modelo a partir de la respuesta de buscar() o planRapido(). */
+const notaEstilo = (estilo) => `Orden: el usuario viaja ${ESTILOS[estilo]}, así que ${estilo === 'fancy' ? 'van primero los lugares de más categoría' : 'van primero los lugares más económicos'}. Recomendá los primeros que encajen.`;
+
 export function comoTexto(d) {
   if (d.falta) return d.mensaje;
   const partes = [`Zona: ${d.zona}. Momento: ${d.momento}${d.es_de_noche ? ' (de noche)' : ''}.`];
   if (d.resultados) partes.push(d.resultados.length ? lineas(`RESULTADOS (${d.mostrados} de ${d.total_encontrados})`, d.resultados) : 'Sin resultados para esos filtros.');
   if (d.para_hacer) partes.push(lineas('PARA HACER', d.para_hacer) || 'PARA HACER: nada encontrado cerca.');
   if (d.para_comer) partes.push(lineas('PARA COMER', d.para_comer) || 'PARA COMER: nada encontrado cerca.');
+  if (d.estilo) partes.push(notaEstilo(d.estilo));
   if (d.aviso) partes.push(d.aviso);
   if (d.nota) partes.push(d.nota);
   return partes.filter(Boolean).join('\n');
@@ -77,7 +80,7 @@ const PER_GROUP = 4;
  * `nearby: true` builds a "what to do and where to eat nearby" block with no message at all:
  * live voice sends it when the session opens, so the first spoken answer needs no tool call.
  */
-export function contexto({ texto, lat, lon, ultima, nearby = false } = {}) {
+export function contexto({ texto, lat, lon, ultima, nearby = false, estilo } = {}) {
   const t = sinAcentos(texto);
   const mencionada = localidadEn(t);
   const porGps = typeof lat === 'number' && typeof lon === 'number' ? localidadMasCercana(lat, lon) : null;
@@ -87,7 +90,8 @@ export function contexto({ texto, lat, lon, ultima, nearby = false } = {}) {
   if (!localidad) return { localidad: null };
   if (!pide.length && !concreto && !mencionada && !nearby) return { localidad }; // nada que buscar en este mensaje
   const hora = horaEn(t);
-  const base = { localidad, hora };
+  if (!ESTILOS[estilo]) estilo = undefined;
+  const base = { localidad, hora, estilo };
   const grupos = [];
   const barato = /\b(barat|economic|low cost|gasolero)/.test(t) ? '$' : undefined;
 
@@ -116,6 +120,7 @@ export function contexto({ texto, lat, lon, ultima, nearby = false } = {}) {
     `Zona: ${localidad}, distancias en línea recta. Momento: ${mom.etiqueta}${mom.es_de_noche ? ' (de noche)' : ''}.`,
     ...utiles.map((g) => lineas(g.titulo.toUpperCase(), g.lugares)),
     plan ? 'En PARA HACER y PARA COMER ya se excluyó lo que figura cerrado a esa hora.' : '',
+    estilo ? notaEstilo(estilo) : '',
   ].filter(Boolean).join('\n');
   return { localidad, hora: mom.hora, texto_modelo, grupos: utiles };
 }
