@@ -404,7 +404,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const chat = $('chat');
-const SDK = ['/vendor/elevenlabs-client.js', 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.37.1/dist/lib.iife.js', 'https://unpkg.com/@elevenlabs/client@1.37.1/dist/lib.iife.js'];
+const SDK = ['/vendor/elevenlabs-client-1.37.1.js', 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.37.1/dist/lib.iife.js', 'https://unpkg.com/@elevenlabs/client@1.37.1/dist/lib.iife.js'];
 
 let serie = 0; // cada sesión tiene su número: los avisos de una sesión ya reemplazada se ignoran
 let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false, ultimaLocalidad = null;
@@ -935,10 +935,21 @@ $('hoja').addEventListener('click', (e) => { if (e.target === $('hoja')) $('hoja
 $('verExp').onclick = alternarExperiencias;
 
 // ---------- conexión con ElevenLabs ----------
-function cargarSDK(i = 0) {
+// La librería de voz sale primero de nuestro propio servidor; las CDN quedan de respaldo. Si una fuente falla o tarda
+// más de 10 segundos se pasa a la siguiente (una CDN llegó a tardar 41 s). Se baja una sola vez, la pida quien la pida.
+let sdkEnCurso = null;
+function cargarSDK() {
   if (window.ElevenLabsClient) return Promise.resolve();
-  if (i >= SDK.length) return Promise.reject(new Error('No se pudo cargar el SDK de ElevenLabs. Revisá la conexión a internet.'));
-  return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = SDK[i]; s.onload = ok; s.onerror = () => { s.remove(); cargarSDK(i + 1).then(ok, mal); }; document.head.append(s); });
+  const desde = (i) => new Promise((ok, mal) => {
+    if (i >= SDK.length) return mal(new Error(idioma === 'en' ? 'The voice library could not be loaded. Check your internet connection.' : 'No se pudo cargar la librería de voz. Revisá la conexión a internet.'));
+    const s = document.createElement('script'); let listo = false;
+    const otra = () => { if (listo) return; listo = true; clearTimeout(reloj); s.remove(); desde(i + 1).then(ok, mal); };
+    const reloj = setTimeout(otra, 10000);
+    s.src = SDK[i]; s.onerror = otra;
+    s.onload = () => { if (listo) return; if (!window.ElevenLabsClient) return otra(); listo = true; clearTimeout(reloj); ok(); };
+    document.head.append(s);
+  });
+  return sdkEnCurso ||= desde(0).finally(() => { sdkEnCurso = null; });
 }
 
 // Session credentials are fetched ahead of time (while typing, or when the pointer reaches the mic)
@@ -1193,7 +1204,12 @@ function conectar(nuevoModo, saludo) {
     const mia = ++serie;
     if (conv) { const v = conv; conv = null; try { await v.endSession(); } catch {} }
     estado('conectando');
-    const [s] = await Promise.all([takeSession(nuevoModo), cargarSDK()]);
+    let vencio = false, reloj;
+    const tope = new Promise((_, mal) => { reloj = setTimeout(() => { vencio = true; mal(new Error(idioma === 'en' ? 'The connection is taking too long. Tap the microphone to try again.' : 'La conexión está tardando demasiado. Tocá el micrófono para probar de nuevo.')); }, 20000); });
+    tope.catch(() => {});
+    const aTiempo = (p) => Promise.race([p, tope]);
+    let s;
+    try { [s] = await aTiempo(Promise.all([takeSession(nuevoModo), cargarSDK()])); } catch (e) { clearTimeout(reloj); throw e; }
     const retoma = historial.length > 0;
     const overrides = {};
     if (nuevoModo === 'texto') overrides.conversation = { textOnly: true };
@@ -1216,8 +1232,7 @@ function conectar(nuevoModo, saludo) {
     if (nuevoModo === 'voz') Object.assign(opciones, { conversationToken: s.conversationToken, connectionType: 'webrtc' });
     else Object.assign(opciones, { signedUrl: s.signedUrl, connectionType: 'websocket' });
     const inicio = window.ElevenLabsClient.Conversation.startSession(opciones);
-    let vencio = false, reloj;
-    const nueva = await Promise.race([inicio, new Promise((_, mal) => { reloj = setTimeout(() => { vencio = true; mal(new Error(idioma === 'en' ? 'The connection is taking too long. Tap the microphone to try again.' : 'La conexión está tardando demasiado. Tocá el micrófono para probar de nuevo.')); }, 20000); })]).finally(() => clearTimeout(reloj));
+    const nueva = await aTiempo(inicio).finally(() => clearTimeout(reloj));
     inicio.then((c) => { if (vencio) c.endSession().catch(() => {}); }, () => {}); // si conecta tarde, se cierra
     if (mia !== serie) { try { await nueva.endSession(); } catch {} return; } // se canceló mientras conectaba
     conv = nueva; modo = nuevoModo;

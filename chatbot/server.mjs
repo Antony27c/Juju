@@ -6,7 +6,9 @@
 // - /api/pagos crea y consulta pagos (USD / cripto).
 
 import http from 'node:http';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, stat, readdir } from 'node:fs/promises';
+import { promisify } from 'node:util';
+import zlib from 'node:zlib';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,6 +29,19 @@ const HOST = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
 const URL_PUBLICA = (process.env.URL_PUBLICA || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
 const API = (process.env.ELEVENLABS_API_BASE || 'https://api.elevenlabs.io').replace(/\/$/, '');
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon' };
+
+// Archivos de texto comprimidos (la librería de voz pesa 1,1 MB y viaja en ~170 KB). Se comprime una vez por archivo y
+// por forma, y se rehace solo si el archivo cambió.
+const COMPRIMIR = { br: promisify(zlib.brotliCompress), gzip: promisify(zlib.gzip) };
+const comprimidos = new Map(); // 'forma archivo' → { mtimeMs, datos }
+function comprimido(archivo, info, forma) {
+  const clave = `${forma} ${archivo}`, hay = comprimidos.get(clave);
+  if (hay?.mtimeMs === info.mtimeMs) return hay.datos;
+  const datos = readFile(archivo).then((crudo) => COMPRIMIR[forma](crudo));
+  comprimidos.set(clave, { mtimeMs: info.mtimeMs, datos });
+  datos.catch(() => comprimidos.delete(clave));
+  return datos;
+}
 
 const agente = () => process.env.ELEVENLABS_AGENT_ID || '';
 const clave = () => process.env.ELEVENLABS_API_KEY || '';
@@ -216,10 +231,16 @@ const servidor = http.createServer(async (req, res) => {
     const pub = path.join(AQUI, 'public');
     const archivo = path.normalize(path.join(pub, ruta === '/' ? 'index.html' : decodeURIComponent(ruta)));
     if (!archivo.startsWith(pub + path.sep)) { res.writeHead(403); return res.end(); }
-    const datos = await readFile(archivo).catch(() => null);
-    if (!datos) { res.writeHead(404); return res.end('No encontrado'); }
-    res.writeHead(200, { 'Content-Type': TIPOS[path.extname(archivo)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-    res.end(datos);
+    const info = await stat(archivo).catch(() => null);
+    if (!info?.isFile()) { res.writeHead(404); return res.end('No encontrado'); }
+    const tipo = TIPOS[path.extname(archivo)] || 'application/octet-stream';
+    // vendor/ lleva la versión en el nombre del archivo: el navegador lo guarda un año y no lo vuelve a pedir
+    const cabeceras = { 'Content-Type': tipo, 'Cache-Control': ruta.startsWith('/vendor/') ? 'public, max-age=31536000, immutable' : 'no-cache' };
+    const acepta = String(req.headers['accept-encoding'] || '');
+    const forma = !/^(text|application\/json|image\/svg)/.test(tipo) || info.size < 1024 ? '' : /\bbr\b/.test(acepta) ? 'br' : /\bgzip\b/.test(acepta) ? 'gzip' : '';
+    if (!forma) { res.writeHead(200, cabeceras); return res.end(await readFile(archivo)); }
+    res.writeHead(200, { ...cabeceras, 'Content-Encoding': forma, Vary: 'Accept-Encoding' });
+    res.end(await comprimido(archivo, info, forma));
   } catch (e) {
     console.error(ruta, e);
     if (!res.headersSent) json(res, 500, { error: e.message });
@@ -234,4 +255,10 @@ servidor.listen(PUERTO, HOST, () => {
   console.log(`Voice: ${voiceAgent() ? `Eleven Realtime (${realtimeModel()}) on agent ${voiceAgent()}` : 'text agent (no realtime voice agent configured)'}`);
   console.log(`Pagos: ${JSON.stringify(pagos.estadoPagos())}`);
   prepararAgente();
+  // la librería de voz queda comprimida desde el arranque: el primer visitante no espera esos 2 segundos
+  const vendor = path.join(AQUI, 'public', 'vendor');
+  readdir(vendor).then((nombres) => Promise.all(nombres.map(async (nombre) => {
+    const archivo = path.join(vendor, nombre), info = await stat(archivo);
+    if (info.isFile()) await Promise.all([comprimido(archivo, info, 'br'), comprimido(archivo, info, 'gzip')]);
+  }))).catch(() => {});
 });
