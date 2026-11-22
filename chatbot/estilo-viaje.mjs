@@ -344,22 +344,26 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
   };
   const pedir = async (modelo) => {
     try {
-      return await fetchFn(`${API_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(cuerpo), signal: AbortSignal.timeout(30000) });
-    } catch (e) {
-      throw error(`No se pudo conectar con Gemini (modelo ${modelo}: ${e?.name || 'error'}${e?.cause?.code ? ' ' + e.cause.code : ''}).`, 502);
+      return await fetchFn(`${API_GEMINI}/models/${encodeURIComponent(modelo)}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(cuerpo), signal: AbortSignal.timeout(12000) });
+    } catch (e) { // sin respuesta o tardó de más: cuenta como un modelo caído y se prueba con otro
+      return { ok: false, status: 0, fallo: error(`No se pudo conectar con Gemini (modelo ${modelo}: ${e?.name || 'error'}${e?.cause?.code ? ' ' + e.cause.code : ''}).`, 502) };
     }
   };
+  const otroModelo = (x) => x.status === 0 || REINTENTAR_CON_OTRO.has(x.status);
+  const desde = Date.now();
   let modelo = modeloElegido || MODELO_GEMINI();
   let r = await pedir(modelo);
-  if (REINTENTAR_CON_OTRO.has(r.status)) { // no existe o está saturado: se prueba con los más parecidos
+  if (otroModelo(r)) { // no existe, está saturado o no contesta: se prueba con los más parecidos
     const vistos = await modelosDisponibles(apiKey, fetchFn);
     modelosVistos = vistos.filter(n => /^gemini-/.test(n)).slice(0, 60);
     const probados = new Set([modelo]);
     for (const otro of ordenModelos(vistos).filter(n => !probados.has(n)).slice(0, 3)) {
+      if (Date.now() - desde > 25000) break; // el usuario está esperando
       probados.add(otro); modelo = otro; r = await pedir(otro);
-      if (!REINTENTAR_CON_OTRO.has(r.status)) break;
+      if (!otroModelo(r)) break;
     }
   }
+  if (r.fallo) throw r.fallo;
   if (!r.ok) {
     const detalle = await r.json?.().then(d => String(d?.error?.message || '').slice(0, 160), () => '').catch(() => '') || '';
     throw error(`Gemini respondió con un error (HTTP ${r.status}${detalle ? `: ${detalle}` : ''}, modelo ${modelo}).`, 502);
