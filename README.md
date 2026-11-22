@@ -30,6 +30,21 @@ node server.mjs             y abrir http://localhost:3000
 
 Sin ninguna clave ya funcionan el directorio, la búsqueda y las reservas en modo de prueba.
 
+### Estilo de viaje (experimental)
+
+`chatbot/estilo-viaje.mjs` lee un perfil público de Instagram o X y estima si la persona viaja más "hippie" (mochila, camping, naturaleza) o "luxury" (resorts, spa, lujo). Sin clave usa palabras clave y emojis; con `GEMINI_API_KEY` en `chatbot/.env` también le pasa a Gemini el texto y hasta 6 imágenes.
+
+```
+cd chatbot
+node estilo-viaje.mjs @usuario --es-mi-perfil
+npm test
+```
+
+- Solo con el perfil propio y con permiso: sin `--es-mi-perfil` no analiza nada. Quien lo integre a la página o al agente tiene que mostrar `AVISO_CONSENTIMIENTO` antes. No se guarda nada.
+- Las imágenes solo se bajan por HTTPS desde los CDN de Instagram y X, con tope de 4 MB y 10 segundos.
+- Instagram no tiene API pública para esto: se usa el pedido de su sitio web, que suele bloquear servidores como Railway. Para X se usa FxTwitter, un servicio de terceros.
+- Todavía no está conectado al servidor, la página ni el agente.
+
 ### Para activar la voz
 
 1. Pegá tu clave de ElevenLabs en `chatbot/.env` (`ELEVENLABS_API_KEY`).
