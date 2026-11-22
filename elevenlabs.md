@@ -128,7 +128,7 @@ Cada vez que se cambie el prompt o las herramientas hay que volver a correr el p
 |---|---|
 | `ELEVENLABS_API_KEY` | Obligatoria |
 | `ELEVENLABS_AGENT_ID` | La completa `crear-agente.mjs` |
-| `ELEVENLABS_VOICE_ID` | Opcional. Id de una voz en español. Sin esto usa la voz por defecto de la cuenta |
+| (voz) | No es una variable: la voz va fija en `crear-agente.mjs` (constante `VOZ`). Hoy es "Sarah", femenina, de las que trae toda cuenta. Para cambiarla se edita ese id y se vuelve a correr el script |
 | `ELEVENLABS_TTS_MODEL` | Opcional. Por defecto `eleven_turbo_v2_5` |
 | `ELEVENLABS_LLM` | Opcional. Por defecto `claude-haiku-5-5` |
 | `ELEVENLABS_REALTIME_MODEL` | Optional. Live voice model: `eleven_realtime_v1_mini` (default), `eleven_realtime_v1_max` or `off` |

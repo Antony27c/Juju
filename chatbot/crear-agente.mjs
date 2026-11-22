@@ -155,7 +155,9 @@ for (const h of HERRAMIENTAS) {
 const toolIds = HERRAMIENTAS.map((h) => ids.herramientas[h.name]);
 
 const LLM = process.env.ELEVENLABS_LLM || 'claude-haiku-5-5';
-const VOZ = process.env.ELEVENLABS_VOICE_ID;
+// La voz de juju va fija acá, no por variable de entorno: "Sarah", voz femenina que viene con toda cuenta de
+// ElevenLabs y está verificada para español. Para cambiarla, reemplazá el id por el de otra voz de la cuenta.
+const VOZ = 'EXAVITQu4vr4xnSDxMaL';
 // "Turbo": eleven_turbo_v2_5 es el modelo Turbo multilingüe (el turbo_v2 a secas es solo inglés).
 const TTS = process.env.ELEVENLABS_TTS_MODEL || 'eleven_turbo_v2_5';
 
@@ -178,7 +180,7 @@ function config(kind, level) {
         language: 'es',
         prompt: { prompt: PROMPT, llm: LLM, temperature: 0.3, tool_ids: toolIds },
       },
-      tts: { model_id: TTS, ...(VOZ ? { voice_id: VOZ } : {}) },
+      tts: { model_id: TTS, voice_id: VOZ },
       conversation: { text_only: false },
     },
     // Permite cambiar el saludo al reconectar; el agente de texto además admite sesiones de solo texto.
@@ -247,6 +249,6 @@ if (REALTIME) {
 setEnv('ELEVENLABS_AGENT_ID', ids.agente);
 setEnv('ELEVENLABS_VOICE_AGENT_ID', voice ? voice.id : '');
 
-console.log(`\nText agent ${text.action}: ${ids.agente} (LLM ${LLM}, TTS ${TTS})`);
+console.log(`\nText agent ${text.action}: ${ids.agente} (LLM ${LLM}, TTS ${TTS}, voz ${VOZ})`);
 console.log(voice ? `Voice agent ${voice.action}: ${voice.id} (Eleven Realtime ${REALTIME})` : 'Live voice: text agent (no Eleven Realtime agent)');
 console.log('Done. Now run: node server.mjs and open http://localhost:3000');
