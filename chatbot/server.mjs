@@ -40,6 +40,8 @@ const agentFor = (modo) => (modo === 'voz' && voiceAgent()) || agente();
 // y los ids quedan en memoria. Corre en segundo plano: el servidor atiende mientras tanto, y un error solo se registra.
 // ELEVENLABS_SINCRONIZAR=off lo desactiva y usa los ids de las variables tal como están.
 let preparacion = null, errorAgente = '';
+// Con qué nivel de configuración aceptó ElevenLabs cada agente (3 = con detección de idioma, o sea inglés por voz).
+const niveles = { texto: null, voz: null };
 function prepararAgente() {
   if (!clave() || /^(off|no|0|false)$/i.test(process.env.ELEVENLABS_SINCRONIZAR || '')) return;
   const archivo = path.join(AQUI, 'agente.json');
@@ -55,6 +57,7 @@ function prepararAgente() {
       process.env.ELEVENLABS_AGENT_ID = text.id;
       if (voice) process.env.ELEVENLABS_VOICE_AGENT_ID = voice.id;
       errorAgente = '';
+      niveles.texto = text.level; niveles.voz = voice ? voice.level : null;
       console.log(`ElevenLabs: agente ${text.id} ${text.action === 'created' ? 'creado' : 'actualizado'} · voz: ${voice ? `tiempo real, agente ${voice.id}` : 'con el agente de texto'}`);
     } catch (e) {
       errorAgente = String(e.message || e).slice(0, 400);
@@ -155,6 +158,8 @@ const servidor = http.createServer(async (req, res) => {
         agente_configurado: Boolean(clave() && (agente() || preparacion)), clave_cargada: Boolean(clave()), ...(errorAgente ? { error_agente: errorAgente } : {}),
         datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
         voz: { tiempo_real: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
+        // null = todavía no se sabe (el agente se está preparando, o no se sincronizó en este arranque)
+        ingles_por_voz: { chat: niveles.texto == null ? null : niveles.texto >= 3, tiempo_real: niveles.voz == null ? null : niveles.voz >= 3 },
       });
     }
     if (ruta === '/api/reservas' && req.method === 'POST') {
