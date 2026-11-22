@@ -31,11 +31,13 @@ node server.mjs             y abrir http://localhost:3000
 
 Sin ninguna clave ya funcionan el directorio, la búsqueda y las reservas en modo de prueba.
 
-### Estilo de viaje: low cost o fancy
+### Estilo de viaje: low cost, fancy o neutral
 
-Al empezar cada charla juju pide el usuario de Instagram (por voz en el saludo; por chat en la primera respuesta, y hay un cuadro en pantalla para escribirlo). El servidor lee el perfil público (`POST /api/estilo`), estima el estilo y, desde ahí, todas las búsquedas vuelven ordenadas: con low cost van primero hostels, campings y lo más barato; con fancy, hoteles y posadas de más categoría y restaurantes. El estilo no deja lugares afuera, solo cambia el orden.
+Al empezar cada charla juju pide el usuario de Instagram (por voz en el saludo; por chat en la primera respuesta, y hay un cuadro en pantalla para escribirlo). El servidor lee el perfil público (`POST /api/estilo`) y devuelve siempre uno de tres estilos: `fancy`, `low_cost` o `neutral` (cuando ninguno de los dos llega al 60%). Desde ahí, todas las búsquedas vuelven ordenadas: con low cost van primero hostels, campings y lo más barato; con fancy, hoteles y posadas de más categoría y restaurantes; con neutral, lo de precio medio. El estilo no deja lugares afuera, solo cambia el orden (`estilo-ruta.test.mjs` lo prueba).
 
-Qué se puede leer de verdad: Instagram suele bloquear el pedido completo (bio y publicaciones), sobre todo desde servidores. En ese caso queda la página pública del perfil, que trae solo el nombre y los números de seguidores: el estilo sale únicamente si el nombre o el usuario lo dicen ("mochilera", "luxury"). Si no alcanza, juju lo dice y pregunta "¿Preferís viajar low cost o más fancy?" (también están los dos botones en pantalla). Nunca inventa el estilo. Para leer siempre bio y publicaciones haría falta la API oficial de Instagram con inicio de sesión del usuario.
+Quién analiza: con una clave de Google AI Studio en la variable `GA` (o `GEMINI_API_KEY`), Gemini recibe el texto y las imágenes del perfil y su estimación pesa el 80%; el 20% restante son las palabras clave. Sin clave, o si Gemini falla, quedan solo las palabras clave. `/api/estado` muestra en `estilo.analiza` cuál está activo y, si Gemini falló, el último error en `estilo.error_gemini`.
+
+Qué se puede leer de verdad: Instagram suele bloquear el pedido completo (bio y publicaciones), sobre todo desde servidores. En ese caso queda la página pública del perfil, que trae solo el nombre, la foto de perfil y los números de seguidores. Con eso Gemini tiene poco para mirar, y sin Gemini el estilo sale únicamente si el nombre o el usuario lo dicen ("mochilera", "luxury"); si no hay señales, el resultado es neutral. Si el perfil no se puede leer (no existe, es privado), juju lo dice y pregunta "¿Preferís viajar low cost o más fancy?". En pantalla están los botones Low cost, Neutral y Fancy para elegirlo o cambiarlo. Nunca inventa el estilo. Para leer siempre bio y publicaciones haría falta la API oficial de Instagram con inicio de sesión del usuario.
 
 El clasificador:
 
@@ -95,6 +97,7 @@ El agente se prepara solo en cada arranque, en segundo plano. Si ElevenLabs lo r
 | `ELEVENLABS_API_KEY` | Sí | Tu clave de ElevenLabs |
 | `ELEVENLABS_AGENT_ID` | No | Id de un agente de texto ya creado. Vacío: el servidor lo busca por nombre o lo crea |
 | `ELEVENLABS_VOICE_AGENT_ID` | No | Id del agente de voz en tiempo real. Vacío: el servidor lo busca o lo crea; si la cuenta no lo admite, la voz usa el agente de texto |
+| `GA` o `GEMINI_API_KEY` | No | Clave de Google AI Studio: el estilo de viaje lo analiza Gemini. Vacío: palabras clave |
 | `VOZ_TIEMPO_REAL` | No | `si` para que la voz la atienda el agente de tiempo real. Vacío: la atiende el agente del chat |
 | `ELEVENLABS_SINCRONIZAR` | No | `off` para que el servidor no toque los agentes al arrancar |
 | `PAGOS_PROVEEDOR` | No | `simulado` para probar o `cosmospay` para cobrar |

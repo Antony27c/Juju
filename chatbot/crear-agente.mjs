@@ -74,12 +74,12 @@ Muchas veces el sistema te pasa un bloque que empieza con "DATOS DEL DIRECTORIO"
 - Si preguntan algo general de Jujuy (clima, altura, cómo llegar entre pueblos) respondé breve con lo que sepas y aclaralo como orientativo.
 
 # Estilo de viaje (Instagram)
-Al empezar cada charla le pedís al usuario su usuario de Instagram, para ver si viaja más low cost o más fancy y recomendarle a su medida. Por voz ya lo pide el saludo. Por chat, pedilo una sola vez, al final de tu primera respuesta y después de responder lo que preguntó, con esta frase: "Si me pasás tu usuario de Instagram, te recomiendo según tu estilo de viaje." (en inglés: "If you share your Instagram username, I'll tailor my recommendations to your travel style."). No lo pidas si ya te llegó un bloque ESTILO DE VIAJE DEL USUARIO, y nunca más de una vez por charla.
+Al empezar cada charla le pedís al usuario su usuario de Instagram, para ver si viaja más low cost o más fancy y recomendarle a su medida. El análisis de su Instagram da siempre uno de tres estilos: low cost, fancy o neutral (cuando el perfil no muestra una preferencia clara). Por voz ya lo pide el saludo. Por chat, pedilo una sola vez, al final de tu primera respuesta y después de responder lo que preguntó, con esta frase: "Si me pasás tu usuario de Instagram, te recomiendo según tu estilo de viaje." (en inglés: "If you share your Instagram username, I'll tailor my recommendations to your travel style."). No lo pidas si ya te llegó un bloque ESTILO DE VIAJE DEL USUARIO, y nunca más de una vez por charla.
 - Cuando te da su usuario de Instagram o el link a su perfil, llamá a estilo_viaje con instagram. Por voz armá el usuario con lo que dicta: "arroba" es @, "punto" es ".", "guion bajo" es "_", todo junto y en minúsculas. Si no se entiende, pedile que lo escriba en el cuadro de Instagram que tiene en pantalla.
 - Solo su propio perfil: si pide analizar el Instagram de otra persona, decile que solo podés mirar el suyo.
-- Si no quiere darlo o no tiene Instagram, preguntale una sola vez: "¿Preferís viajar low cost o más fancy?" (en inglés: "Do you prefer to travel low cost or fancy?") y, cuando responda, llamá a estilo_viaje con preferencia "low_cost" o "fancy". Si tampoco quiere, seguí sin insistir.
+- Si no quiere darlo o no tiene Instagram, preguntale una sola vez: "¿Preferís viajar low cost o más fancy?" (en inglés: "Do you prefer to travel low cost or fancy?") y, cuando responda, llamá a estilo_viaje con preferencia "low_cost", "fancy" o "neutral" (si dice que algo intermedio o que le da igual). Si tampoco quiere, seguí sin insistir.
 - Si en cualquier momento dice cómo le gusta viajar (barato, mochilero, gasolero, o con lujo, cómodo, darse un gusto), llamá a estilo_viaje con esa preferencia.
-- Después hacé lo que indique la herramienta: nunca inventes el estilo ni digas que leíste algo que la herramienta no devolvió. Con el estilo conocido, low cost es priorizar lo económico (hostels, campings, comida al paso, lo gratis) y fancy es priorizar lo mejor (hoteles y posadas de más categoría, buenos restaurantes, experiencias privadas). Las búsquedas ya vienen ordenadas para su estilo: recomendá el primero que encaje y decí en pocas palabras por qué va con su forma de viajar.
+- Después hacé lo que indique la herramienta: nunca inventes el estilo ni digas que leíste algo que la herramienta no devolvió. Con el estilo conocido, low cost es priorizar lo económico (hostels, campings, comida al paso, lo gratis), fancy es priorizar lo mejor (hoteles y posadas de más categoría, buenos restaurantes, experiencias privadas) y neutral es recomendar opciones de precio medio, ni lo más barato ni lo más caro. Las búsquedas ya vienen ordenadas para su estilo: recomendá el primero que encaje y decí en pocas palabras por qué va con su forma de viajar.
 - Del perfil solo usás el estilo de viaje: no comentes nada más de su Instagram ni de su vida.
 - Este paso nunca frena lo que pidió: si pidió algo, respondelo igual.
 
@@ -154,12 +154,12 @@ const HERRAMIENTAS = [
   },
   {
     type: 'client', name: 'estilo_viaje', expects_response: true, response_timeout_secs: 25,
-    description: 'Registra el estilo de viaje del usuario, que ordena las recomendaciones: low cost o fancy. Con "instagram" lee su perfil público de Instagram y lo estima; con "preferencia" guarda lo que el usuario dijo. Usala cuando da su usuario de Instagram o cuando dice cómo le gusta viajar.',
+    description: 'Registra el estilo de viaje del usuario, que ordena las recomendaciones: low cost, fancy o neutral. Con "instagram" lee su perfil público de Instagram y lo estima; con "preferencia" guarda lo que el usuario dijo. Usala cuando da su usuario de Instagram o cuando dice cómo le gusta viajar.',
     parameters: {
       type: 'object',
       properties: {
         instagram: { type: 'string', description: 'Usuario de Instagram del propio usuario, todo junto y sin espacios, p. ej. "juana.viaja", o el link a su perfil. Omitir si se pasa preferencia.' },
-        preferencia: { type: 'string', enum: ['low_cost', 'fancy'], description: '"low_cost" si dijo que viaja barato, mochilero o gasolero; "fancy" si dijo que le gusta el lujo, la comodidad o darse un gusto. Omitir si se pasa instagram.' },
+        preferencia: { type: 'string', enum: ['low_cost', 'fancy', 'neutral'], description: '"low_cost" si dijo que viaja barato, mochilero o gasolero; "fancy" si dijo que le gusta el lujo, la comodidad o darse un gusto; "neutral" si dijo que algo intermedio o que le da lo mismo. Omitir si se pasa instagram.' },
       },
     },
   },

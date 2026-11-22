@@ -254,15 +254,16 @@ function compacto(r, mom, centro) {
 
 const PUNTOS_ABIERTO = { si: 3, sin_dato: 0, no: -6 };
 
-// Estilo de viaje del usuario ('low_cost' o 'fancy'): no deja nada afuera, cambia el orden. Pesa más que la distancia
+// Estilo de viaje del usuario ('low_cost', 'fancy' o 'neutral'): no deja nada afuera, cambia el orden. Pesa más que la distancia
 // dentro de una misma localidad, y menos que estar cerrado.
 const SENCILLOS = new Set(['hostel', 'camping', 'refugio', 'comida_rapida', 'panaderia', 'patio_de_comidas', 'mercado_feria']);
 const CUIDADOS = new Set(['hotel', 'hosteria_posada', 'cabana', 'restaurante', 'vinoteca_bodega', 'termas']);
-export const ESTILOS = { low_cost: 'low cost', fancy: 'fancy' };
+export const ESTILOS = { low_cost: 'low cost', fancy: 'fancy', neutral: 'neutral' };
 export function puntosEstilo(r, estilo) {
   if (!ESTILOS[estilo]) return 0;
   const nivel = ORDEN_PRECIO.indexOf(r.rango_precio); // gratis, $, $$, $$$, $$$$ (-1 = sin dato)
   const paga = r.categoria === 'alojamiento' || r.categoria === 'gastronomia' || r.categoria === 'vida_nocturna_ocio';
+  if (estilo === 'neutral') return nivel === 2 ? 1 : 0; // ni lo más barato ni lo más caro: el precio medio va primero
   if (estilo === 'low_cost') {
     return (nivel === 0 || nivel === 1 ? 2 : nivel >= 3 ? -2.5 : 0) + (SENCILLOS.has(r.subcategoria) ? 1.5 : 0) + (r.subcategoria === 'hotel' ? -1 : 0) - (r.estrellas >= 4 ? 1.5 : 0);
   }

@@ -57,7 +57,7 @@ export function linea(l) {
 export const lineas = (titulo, lista) => (lista?.length ? `${titulo}:\n${lista.map(linea).join('\n')}` : '');
 
 /** Texto para el modelo a partir de la respuesta de buscar() o planRapido(). */
-const notaEstilo = (estilo) => `Orden: el usuario viaja ${ESTILOS[estilo]}, así que ${estilo === 'fancy' ? 'van primero los lugares de más categoría' : 'van primero los lugares más económicos'}. Recomendá los primeros que encajen.`;
+const notaEstilo = (estilo) => `Orden: el estilo de viaje del usuario es ${ESTILOS[estilo]}, así que ${estilo === 'fancy' ? 'van primero los lugares de más categoría' : estilo === 'neutral' ? 'van primero los de precio medio' : 'van primero los lugares más económicos'}. Recomendá los primeros que encajen.`;
 
 export function comoTexto(d) {
   if (d.falta) return d.mensaje;

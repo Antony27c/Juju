@@ -670,20 +670,21 @@ const conUbicacion = (p) => conEstilo(!p.localidad && ubicacion ? { ...p, lat: u
 // juju pide el usuario de Instagram al empezar cada charla. El servidor lee el perfil público y estima si la persona
 // viaja más low cost o más fancy; si lo leído no alcanza (Instagram muestra poco sin iniciar sesión), se le pregunta.
 // Con el estilo definido, todas las búsquedas vuelven ordenadas para ese estilo.
-let estilo = null; // { tipo: 'low_cost' | 'fancy', de: 'instagram' | 'dicho', usuario, nombre, razones }
+let estilo = null; // { tipo: 'low_cost' | 'fancy' | 'neutral', de: 'instagram' | 'dicho', usuario, nombre, razones }
 let gusto = { paso: 'pedir' }; // 'pedir' | 'leyendo' | 'elegir' | 'listo' | 'guardado'
 let avisoEstilo = ''; // el aviso del servidor cuando además se analizan imágenes
 let gustoPedido = false; // el cuadro ya se mostró dentro de esta charla
 const GUSTO = {
-  es: { rotulo: 'Tu estilo de viaje', campo: 'tu_instagram', nombreCampo: 'Tu usuario de Instagram', analizar: 'Analizar', o: 'o elegí', low_cost: 'Low cost', fancy: 'Fancy', leyendo: 'Leyendo', viajas: 'Viajás', segun: 'según', vos: 'lo elegiste vos', cambiar: 'Cambiar', abrir: 'Estilo de viaje',
-    nota: 'Leo solo tu perfil público, para recomendarte a tu medida. No se guarda nada.', falta: (n) => `Vi tu perfil${n ? ` (${n})` : ''}, pero no alcanza para saber tu estilo. ¿Cómo viajás?`, fallo: 'No pude leer ese perfil ahora. ¿Cómo viajás?',
-    pase: (u) => `Mi Instagram es @${u}.`, prefiero: (t) => `Prefiero viajar ${t}.` },
-  en: { rotulo: 'Your travel style', campo: 'your_instagram', nombreCampo: 'Your Instagram username', analizar: 'Analyze', o: 'or pick', low_cost: 'Low cost', fancy: 'Fancy', leyendo: 'Reading', viajas: 'You travel', segun: 'based on', vos: 'your choice', cambiar: 'Change', abrir: 'Travel style',
-    nota: 'I only read your public profile, to tailor my tips. Nothing is stored.', falta: (n) => `I found your profile${n ? ` (${n})` : ''}, but it is not enough to tell your style. How do you travel?`, fallo: "I couldn't read that profile right now. How do you travel?",
-    pase: (u) => `My Instagram is @${u}.`, prefiero: (t) => `I prefer to travel ${t}.` },
+  es: { rotulo: 'Tu estilo de viaje', campo: 'tu_instagram', nombreCampo: 'Tu usuario de Instagram', analizar: 'Analizar', o: 'o elegí', low_cost: 'Low cost', fancy: 'Fancy', neutral: 'Neutral', leyendo: 'Leyendo', viajas: 'Estilo', segun: 'según', vos: 'lo elegiste vos', cambiar: 'Cambiar', abrir: 'Estilo de viaje',
+    nota: 'Leo solo tu perfil público, para recomendarte a tu medida. No se guarda nada.', fallo: 'No pude leer ese perfil ahora. ¿Cómo viajás?',
+    pase: (u) => `Mi Instagram es @${u}.`, prefiero: (t) => `Prefiero un estilo de viaje ${t}.` },
+  en: { rotulo: 'Your travel style', campo: 'your_instagram', nombreCampo: 'Your Instagram username', analizar: 'Analyze', o: 'or pick', low_cost: 'Low cost', fancy: 'Fancy', neutral: 'Neutral', leyendo: 'Reading', viajas: 'Style', segun: 'based on', vos: 'your choice', cambiar: 'Change', abrir: 'Travel style',
+    nota: 'I only read your public profile, to tailor my tips. Nothing is stored.', fallo: "I couldn't read that profile right now. How do you travel?",
+    pase: (u) => `My Instagram is @${u}.`, prefiero: (t) => `I prefer a ${t} travel style.` },
 };
-const textoEstilo = () => `ESTILO DE VIAJE DEL USUARIO: ${estilo.tipo === 'fancy' ? 'FANCY' : 'LOW COST'} (${estilo.de === 'instagram' ? `según su Instagram @${estilo.usuario}${estilo.razones?.length ? ': ' + estilo.razones.join('; ') : ''}` : 'lo dijo el usuario'}). `
-  + (estilo.tipo === 'fancy' ? 'Priorizá lo mejor: hoteles y posadas de más categoría, buenos restaurantes, experiencias privadas.' : 'Priorizá lo económico: hostels, campings, comida al paso y lo gratis.')
+const textoEstilo = () => `ESTILO DE VIAJE DEL USUARIO: ${{ fancy: 'FANCY', low_cost: 'LOW COST', neutral: 'NEUTRAL' }[estilo.tipo]} (${estilo.de === 'instagram' ? `según su Instagram @${estilo.usuario}${estilo.razones?.length ? ': ' + estilo.razones.join('; ') : estilo.tipo === 'neutral' ? ': no muestra una preferencia clara' : ''}` : 'lo dijo el usuario'}). `
+  + { fancy: 'Priorizá lo mejor: hoteles y posadas de más categoría, buenos restaurantes, experiencias privadas.', low_cost: 'Priorizá lo económico: hostels, campings, comida al paso y lo gratis.',
+    neutral: 'Recomendá opciones de precio medio, ni lo más barato ni lo más caro; si nombrás dos, que una sea más económica y la otra de más categoría. Si el usuario dice que prefiere low cost o fancy, llamá a estilo_viaje con esa preferencia.' }[estilo.tipo]
   + ' Las búsquedas ya vienen ordenadas para ese estilo. No le vuelvas a pedir el Instagram.';
 const conEstilo = (p) => (estilo ? { ...p, estilo: estilo.tipo } : p);
 
@@ -699,12 +700,10 @@ async function analizarInstagram(entrada) {
   try {
     const d = await post('/api/estilo', { perfil: usuario, es_mi_perfil: true });
     try { localStorage.setItem('juju-instagram', d.usuario); } catch {}
-    if (d.estilo) {
-      fijarEstilo({ tipo: d.estilo, de: 'instagram', usuario: d.usuario, nombre: d.nombre, razones: d.razones }, false);
-      return textoEstilo() + ' Contale en una frase corta qué estilo le viste y seguí con lo que estaban.';
-    }
-    gusto = { paso: 'elegir', usuario: d.usuario, nombre: d.nombre }; pintarGusto();
-    return `Se encontró el perfil de Instagram @${d.usuario} (${d.nombre}), pero lo que Instagram deja leer no alcanza para saber su estilo de viaje. No lo inventes. Decíselo en una frase y preguntale: "¿Preferís viajar low cost o más fancy?" (en inglés: "Do you prefer to travel low cost or fancy?"). En pantalla tiene los dos botones. Cuando responda, llamá a estilo_viaje con preferencia.`;
+    fijarEstilo({ tipo: d.estilo, de: 'instagram', usuario: d.usuario, nombre: d.nombre, razones: d.razones }, false);
+    return textoEstilo() + (d.estilo === 'neutral'
+      ? ' Decile en una frase corta que por su Instagram le ves un estilo neutral y que le vas a recomendar opciones intermedias, y que si prefiere low cost o fancy te lo diga. Después seguí con lo que estaban.'
+      : ' Contale en una frase corta qué estilo le viste y seguí con lo que estaban.');
   } catch (e) {
     gusto = { paso: 'elegir', usuario: gusto.usuario, fallo: e.message }; pintarGusto();
     return `No se pudo leer ese perfil de Instagram (${e.message}). No inventes su estilo. Decile en una frase que no pudiste verlo y preguntale: "¿Preferís viajar low cost o más fancy?" (en inglés: "Do you prefer to travel low cost or fancy?"). En pantalla tiene los dos botones. Cuando responda, llamá a estilo_viaje con preferencia.`;
@@ -739,7 +738,7 @@ function cajaGusto(caja) {
     l.append(m, `${T.leyendo} @${gusto.usuario}`);
     return void caja.append(l);
   }
-  if (gusto.paso === 'elegir') caja.append(nodo('p', 'gusto-texto', gusto.fallo ? T.fallo : T.falta(gusto.nombre)));
+  if (gusto.paso === 'elegir') caja.append(nodo('p', 'gusto-texto', T.fallo));
   else {
     const fila = nodo('form', 'gusto-fila'), campo = nodo('label', 'gusto-campo'), entrada = document.createElement('input');
     entrada.type = 'text'; entrada.placeholder = T.campo; entrada.setAttribute('aria-label', T.nombreCampo); entrada.maxLength = 80;
@@ -753,7 +752,7 @@ function cajaGusto(caja) {
   }
   const opciones = nodo('div', 'gusto-opciones');
   if (gusto.paso === 'pedir') opciones.append(nodo('span', '', T.o));
-  opciones.append(boton(T.low_cost, '', () => gustoPorBoton('low_cost')), boton(T.fancy, '', () => gustoPorBoton('fancy')));
+  opciones.append(boton(T.low_cost, '', () => gustoPorBoton('low_cost')), boton(T.neutral, '', () => gustoPorBoton('neutral')), boton(T.fancy, '', () => gustoPorBoton('fancy')));
   caja.append(opciones);
   if (gusto.paso === 'pedir') caja.append(nodo('p', 'gusto-nota', avisoEstilo || T.nota));
 }
@@ -799,10 +798,10 @@ const herramientas = {
   // El usuario dio su Instagram o dijo cómo le gusta viajar: queda el estilo que ordena las recomendaciones.
   async estilo_viaje(p = {}) {
     const dicho = String(p?.preferencia || '');
-    const pref = /fancy|luj|lux|premium/i.test(dicho) ? 'fancy' : /low|cost|barat|econ|mochil/i.test(dicho) ? 'low_cost' : null;
+    const pref = /fancy|luj|lux|premium/i.test(dicho) ? 'fancy' : /low|cost|barat|econ|mochil/i.test(dicho) ? 'low_cost' : /neutr|medio|interm/i.test(dicho) ? 'neutral' : null;
     if (pref) { fijarEstilo({ tipo: pref, de: 'dicho' }, false); gustoEnChat(); return textoEstilo() + ' Confirmáselo en una frase corta y seguí con lo que estaban.'; }
     const usuario = String(p?.instagram || '').trim();
-    if (!usuario) return 'Falta el dato: llamá con "instagram" (el usuario) o con "preferencia" (low_cost o fancy).';
+    if (!usuario) return 'Falta el dato: llamá con "instagram" (el usuario) o con "preferencia" (low_cost, fancy o neutral).';
     const t = await analizarInstagram(usuario); gustoEnChat();
     return t;
   },

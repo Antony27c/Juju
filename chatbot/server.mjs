@@ -12,7 +12,7 @@ import zlib from 'node:zlib';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { obtenerPerfil, clasificar, AVISO_CONSENTIMIENTO } from './estilo-viaje.mjs';
+import { obtenerPerfil, clasificar, claveGemini, estiloDeViaje, AVISO_CONSENTIMIENTO } from './estilo-viaje.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 if (existsSync(path.join(AQUI, '.env'))) process.loadEnvFile(path.join(AQUI, '.env'));
@@ -131,19 +131,24 @@ function excedido(req, clase) {
 const DEMASIADO = { error: 'Demasiados pedidos seguidos. Esperá unos minutos y probá de nuevo.' };
 
 // Estilo de viaje: lee el perfil público de Instagram (o X) que el usuario dio como propio y estima si viaja más
-// low cost o más fancy. No guarda nada. Si lo leído no alcanza, estilo va en null y la página se lo pregunta.
-const AVISO_ESTILO = () => (process.env.GEMINI_API_KEY ? AVISO_CONSENTIMIENTO
+// low cost o más fancy. No guarda nada. El resultado es siempre uno de tres: 'fancy', 'low_cost' o 'neutral' (cuando
+// ninguno de los dos llega al 60%). Con la clave de Google AI Studio (GA o GEMINI_API_KEY) lo analiza Gemini, con el texto
+// y las imágenes del perfil; sin clave, o si Gemini falla, quedan las palabras clave.
+let errorGemini = null; // el último error de Gemini, para verlo en /api/estado sin entrar a los logs
+const AVISO_ESTILO = () => (claveGemini() ? AVISO_CONSENTIMIENTO
   : 'juju lee tu perfil público de Instagram para sugerirte un estilo de viaje. No se guarda nada. Usalo solo con tu propio perfil.');
 async function estiloDePerfil({ perfil, es_mi_perfil } = {}) {
   if (es_mi_perfil !== true) return [400, { error: AVISO_ESTILO(), falta: 'consentimiento' }];
   try {
     const p = await obtenerPerfil(String(perfil || '').trim().slice(0, 200));
     let c;
-    try { c = await clasificar(p); } catch (e) { console.warn('estilo: sin Gemini,', e.message); c = await clasificar(p, { apiKey: '' }); }
-    const estilo = { hippie: 'low_cost', luxury: 'fancy' }[c.estilo] || null;
+    try { c = await clasificar(p, { apiKey: claveGemini() }); if (claveGemini()) errorGemini = null; }
+    catch (e) { errorGemini = `${new Date().toISOString()} ${e.message}`; console.warn('estilo: Gemini falló,', e.message); c = await clasificar(p, { apiKey: '' }); }
+    const { hippie, luxury } = c.probabilidades;
+    const estilo = estiloDeViaje(c.probabilidades);
     return [200, {
       red: p.red, usuario: p.usuario, nombre: p.nombre, resumen: p.resumen || null, parcial: Boolean(p.parcial), estilo,
-      confianza: Math.round(Math.max(c.probabilidades.hippie, c.probabilidades.luxury) * 100), fuente: c.fuente, razones: c.razones.slice(0, 3).map((r) => String(r).slice(0, 160)),
+      porcentajes: { low_cost: Math.round(hippie * 100), fancy: Math.round(luxury * 100) }, fuente: c.fuente, razones: c.razones.slice(0, 3).map((r) => String(r).slice(0, 160)),
     }];
   } catch (e) {
     return [e.status >= 400 && e.status < 600 ? e.status : 502, { error: e.message }];
@@ -211,7 +216,7 @@ const servidor = http.createServer(async (req, res) => {
         datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
         // tiempo_real: el que atiende la voz por defecto; tiempo_real_disponible: se puede pedir con ?voz=tiempo-real
         voz: { tiempo_real: Boolean(voiceAgent()) && realtimePorDefecto(), tiempo_real_disponible: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
-        estilo: { aviso: AVISO_ESTILO(), con_imagenes: Boolean(process.env.GEMINI_API_KEY) },
+        estilo: { aviso: AVISO_ESTILO(), con_imagenes: Boolean(claveGemini()), analiza: claveGemini() ? 'Google AI Studio (Gemini) + palabras clave' : 'palabras clave', ...(errorGemini ? { error_gemini: errorGemini } : {}) },
         // null = todavía no se sabe (el agente se está preparando, o no se sincronizó en este arranque)
         ingles_por_voz: { chat: niveles.texto == null ? null : niveles.texto >= 3, tiempo_real: niveles.voz == null ? null : niveles.voz >= 3 },
       });

@@ -125,7 +125,7 @@ async function perfilInstagramPublico(usuario, fetchFn) {
   const pegado = normalizar(usuario + ' ' + nombre).replace(/[^a-z0-9]+/g, '');
   const dentro = Object.values(SENALES).flatMap(s => s.palabras).filter(p => p.length >= 6 && pegado.includes(p));
   return {
-    red: 'instagram', usuario, nombre, bio: '', imagenes: [], parcial: true,
+    red: 'instagram', usuario, nombre, bio: '', imagenes: [meta('image')].filter(Boolean), parcial: true,
     resumen: meta('description').split(' - ')[0].trim().slice(0, 80) || null,
     textos: [nombre, usuario.replace(/[._]+/g, ' '), [...new Set(dentro)].join(' ')].filter(Boolean),
   };
@@ -278,8 +278,9 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
     `Red: ${perfil?.red || '?'}`,
     `Nombre: ${perfil?.nombre || ''}`,
     `Bio: ${perfil?.bio || ''}`,
+    perfil?.resumen ? `Números del perfil: ${perfil.resumen}` : '',
     ...(Array.isArray(perfil?.textos) ? perfil.textos : []).slice(0, 12).map(t => `Publicación: ${String(t).slice(0, 500)}`),
-  ].join('\n');
+  ].filter(Boolean).join('\n');
   const cuerpo = {
     contents: [{ parts: [{ text: `${PROMPT}\n\n${descripcion}` }, ...imagenes] }],
     generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
@@ -300,7 +301,14 @@ async function clasificarConGemini(perfil, apiKey, fetchFn) {
 
 // ---------------------------------------------------------------- clasificación
 
-export async function clasificar(perfil, { apiKey = process.env.GEMINI_API_KEY || '', fetch: fetchFn = globalThis.fetch } = {}) {
+// El resultado para la página y el agente, siempre uno de tres: 'fancy', 'low_cost' o 'neutral' (ninguno llega al 60%).
+export const UMBRAL_ESTILO = 0.6;
+export const estiloDeViaje = ({ hippie, luxury }) => (luxury >= UMBRAL_ESTILO ? 'fancy' : hippie >= UMBRAL_ESTILO ? 'low_cost' : 'neutral');
+
+// La clave de Google AI Studio: GEMINI_API_KEY o, como está cargada en Railway, GA.
+export const claveGemini = () => process.env.GEMINI_API_KEY || process.env.GA || '';
+
+export async function clasificar(perfil, { apiKey = claveGemini(), fetch: fetchFn = globalThis.fetch } = {}) {
   const palabras = clasificarPorPalabras(perfil);
   let probabilidades = { hippie: palabras.hippie, luxury: palabras.luxury };
   let razones = palabras.razones;
