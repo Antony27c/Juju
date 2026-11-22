@@ -58,7 +58,9 @@ Puntos de diseño:
 | `chatbot/datos.mjs` | Carga el directorio, resuelve localidades, `buscar()` y `planRapido()` |
 | `chatbot/horarios.mjs` | Hora local de Jujuy (UTC−3) y lectura del formato `opening_hours` |
 | `chatbot/contexto.mjs` | RAG local: detecta localidad, hora e intención en el mensaje y arma el bloque de datos |
-| `chatbot/pagos.mjs` | Pagos: Cosmos Pay y proveedor simulado |
+| `chatbot/pagos.mjs` | Reservas y pagos: Cosmos Pay y proveedor simulado |
+| `chatbot/productos.json` | Experiencias reservables, con precio por persona |
+| `chatbot/verificar.mjs` | Revisa qué está listo y qué falta configurar. No cambia nada |
 | `chatbot/public/index.html` | Interfaz de juju |
 | `chatbot/.env.example` | Plantilla de configuración |
 
@@ -67,8 +69,10 @@ Puntos de diseño:
 Requiere Node 21.7 o superior.
 
 1. En `chatbot/`, copiar `.env.example` como `.env` y completar `ELEVENLABS_API_KEY`. La clave necesita permiso para ElevenLabs Agents.
-2. `node crear-agente.mjs`. Crea tres herramientas y el agente, y escribe `ELEVENLABS_AGENT_ID` en `.env`.
-3. `node server.mjs` y abrir `http://localhost:3000`. En Windows también sirve `iniciar.bat`.
+2. `node crear-agente.mjs`. Crea cuatro herramientas y el agente, y escribe `ELEVENLABS_AGENT_ID` en `.env`.
+3. `node server.mjs` y abrir `http://localhost:3000`. En Windows también sirve `iniciar.bat`, que crea el `.env` si falta y corre la verificación antes de arrancar.
+
+`node verificar.mjs` muestra en cualquier momento qué está listo (datos, búsqueda, experiencias, pagos, agente) y qué falta.
 
 Cada vez que se cambie el prompt o las herramientas hay que volver a correr el paso 2. El script actualiza el agente existente en vez de crear otro.
 

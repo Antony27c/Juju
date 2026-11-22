@@ -247,10 +247,8 @@
         <li><button type="button">Estoy en San Salvador, mañana me voy. ¿Qué hago ahora y dónde como?</button></li>
         <li><button type="button">Dónde comer comida regional esta noche en Tilcara</button></li>
         <li><button type="button">Un hostel económico en Purmamarca</button></li>
-        <li><button type="button">Museos y sitios arqueológicos de la Quebrada</button></li>
+        <li><button type="button">Quiero reservar una excursión</button></li>
       </ul>
-      <p class="seccion">Qué podés hacer con juju</p>
-      <ul class="funciones" id="funciones"></ul>
     </section>
   </main>
 
@@ -310,6 +308,7 @@ const $ = (id) => document.getElementById(id);
 const chat = $('chat');
 const SDK = ['/vendor/elevenlabs-client.js', 'https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.37.1/dist/lib.iife.js', 'https://unpkg.com/@elevenlabs/client@1.37.1/dist/lib.iife.js'];
 
+let serie = 0; // cada sesión tiene su número: los avisos de una sesión ya reemplazada se ignoran
 let conv = null, modo = null, conectando = null, ubicacion = null, ultimoEnviado = '', pensando = null, hablando = false, ultimaLocalidad = null;
 const historial = []; // { rol, texto }: sirve para retomar el hilo al reconectar o pasar de texto a voz
 
@@ -567,7 +566,7 @@ function ponerFase() {
 }
 function verVoz() { // pone botones, barra y textos de acuerdo con el estado de la sesión
   const activa = modo === 'voz';
-  $('silencio').hidden = !activa; $('fin').hidden = !activa;
+  $('silencio').hidden = !activa; $('fin').hidden = !(activa || conectandoVoz); // la cruz también cancela mientras conecta
   $('silencio').setAttribute('aria-pressed', String(silenciado));
   $('voz').hidden = !(activa && vista === 'chat'); $('mic').classList.toggle('activo', activa);
   $('texto').placeholder = activa ? 'O escribí acá' : 'Escribí tu consulta';
@@ -587,7 +586,7 @@ function enTira(lugares) { // lugares del turno actual, como fichas para desliza
 async function iniciarVoz() {
   if (sinAgente) { $('dijo').textContent = 'Para hablar falta conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.'; return; }
   if (modo === 'voz' || conectandoVoz) return;
-  conectandoVoz = true; silenciado = false; ponerFase();
+  conectandoVoz = true; silenciado = false; verVoz();
   try { await conectar('voz', historial.length ? 'Dale, te escucho.' : undefined); }
   catch (e) {
     const m = (e.name === 'NotAllowedError' ? 'Para hablar necesito permiso de micrófono. Habilitalo en el navegador y tocá de nuevo. ' : 'No pude conectar. ') + (e.message || '');
@@ -595,8 +594,9 @@ async function iniciarVoz() {
   } finally { conectandoVoz = false; verVoz(); }
 }
 async function terminarVoz() {
-  const v = conv; if (!v) return;
-  conv = null; modo = null; silenciado = false; hablando = false;
+  const v = conv; serie++; // también cancela una conexión en curso
+  conv = null; modo = null; silenciado = false; hablando = false; conectandoVoz = false; dejarDePensar();
+  if (!v) { estado('listo'); verVoz(); return; }
   try { await v.endSession(); } catch {}
   estado('listo'); verVoz();
 }
@@ -656,6 +656,7 @@ function medir() { // las siete franjas siguen el volumen de quien habla
 function conectar(nuevoModo, saludo) {
   if (conectando) return conectando;
   conectando = (async () => {
+    const mia = ++serie;
     if (conv) { const v = conv; conv = null; try { await v.endSession(); } catch {} }
     estado('conectando');
     await cargarSDK();
@@ -669,18 +670,21 @@ function conectar(nuevoModo, saludo) {
       dynamicVariables: { ...s.variables, ubicacion_usuario: ubicacion?.texto || 'desconocida' },
       clientTools: herramientas, overrides, textOnly: nuevoModo === 'texto',
       onMessage: ({ message, role }) => {
-        if (!message) return;
+        if (!message || mia !== serie) return;
         if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); $('dijiste').textContent = message; }
         else { burbuja('agent', message); $('dijo').textContent = message; }
       },
-      onModeChange: ({ mode }) => { hablando = mode === 'speaking'; if (modo === 'voz') { $('vozTitulo').textContent = hablando ? 'juju está hablando' : 'Te escucho'; estado(hablando ? 'hablando' : 'escuchando', 'voz'); ponerFase(); } },
-      onError: (m) => { dejarDePensar(); console.error(m); aviso(`Algo falló: ${m}`, true); if (vista === 'voz') $('dijo').textContent = `Algo falló: ${m}`; },
-      onDisconnect: (d) => { conv = null; modo = null; silenciado = false; hablando = false; dejarDePensar(); verVoz(); estado('listo'); if (d?.reason === 'error') aviso(`Se cortó la conexión. ${d.message || ''} Mandá un mensaje para retomar.`, true); },
+      onModeChange: ({ mode }) => { if (mia !== serie) return; hablando = mode === 'speaking'; if (modo === 'voz') { $('vozTitulo').textContent = hablando ? 'juju está hablando' : 'Te escucho'; estado(hablando ? 'hablando' : 'escuchando', 'voz'); ponerFase(); } },
+      onError: (m) => { if (mia !== serie) return; dejarDePensar(); console.error(m); aviso(`Algo falló: ${m}`, true); if (vista === 'voz') $('dijo').textContent = `Algo falló: ${m}`; },
+      onDisconnect: (d) => { if (mia !== serie) return; conv = null; modo = null; silenciado = false; hablando = false; dejarDePensar(); verVoz(); estado('listo'); if (d?.reason === 'error') aviso(`Se cortó la conexión. ${d.message || ''} Mandá un mensaje para retomar.`, true); },
     };
     if (nuevoModo === 'voz') Object.assign(opciones, { conversationToken: s.conversationToken, connectionType: 'webrtc' });
     else Object.assign(opciones, { signedUrl: s.signedUrl, connectionType: 'websocket' });
-    conv = await window.ElevenLabsClient.Conversation.startSession(opciones);
-    modo = nuevoModo;
+    const nueva = await window.ElevenLabsClient.Conversation.startSession(opciones);
+    if (mia !== serie) { try { await nueva.endSession(); } catch {} return; } // se canceló mientras conectaba
+    conv = nueva; modo = nuevoModo;
+    // si ya se sabe dónde está, la voz arranca con los lugares de esa localidad: la primera respuesta no espera una búsqueda
+    if (nuevoModo === 'voz' && ultimaLocalidad) post('/api/contexto', { texto: 'que hacer y donde comer', ultima: ultimaLocalidad }).then((c) => { if (c.texto_modelo && mia === serie) conv?.sendContextualUpdate(c.texto_modelo); }).catch(() => {});
     estado(nuevoModo === 'voz' ? 'escuchando' : 'en línea', nuevoModo === 'voz' ? 'voz' : 'on');
     verVoz();
     if (retoma) conv.sendContextualUpdate('Esta sesión continúa una charla anterior con el mismo usuario. Últimos mensajes:\n' + historial.slice(-12).map((h) => `${h.rol === 'user' ? 'Usuario' : 'juju'}: ${h.texto}`).join('\n'));
@@ -755,8 +759,8 @@ function pintarFunciones(e) {
   const total = e?.datos?.total ? e.datos.total.toLocaleString('es-AR') : 'miles de';
   const conHorario = e?.datos?.con_horario;
   const funciones = [
-    ['chat', 'Preguntá por escrito', 'El botón del teclado abre el chat. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora. La charla sigue siendo la misma.'],
     ['mic', 'Hablá en vivo', 'Tocá el círculo y conversamos con voz. Las franjas se mueven con quien habla. Tocá el círculo o el micrófono para silenciarte, y la cruz para terminar.'],
+    ['chat', 'Preguntá por escrito', 'El botón del teclado abre el chat. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora. La charla sigue siendo la misma.'],
     ['pin', 'Buscá cerca tuyo', 'Con el botón del pin uso tu ubicación para no preguntarte la localidad. Solo se usa en esta charla.'],
     ['reloj', 'Mirá qué está abierto', 'Cada lugar dice si está abierto, cerrado o sin horario.' + (conHorario ? ' Hoy ' + conHorario + ' lugares tienen horario cargado.' : '') + ' Cuando no lo tengo te aviso, no lo invento.'],
     ['lista', 'Llevate los datos', 'Distancia, precio aproximado, mapa, teléfono y sitio web de ' + total + ' lugares de toda la provincia.'],
@@ -765,7 +769,7 @@ function pintarFunciones(e) {
   const cobro = p?.proveedor === 'cosmospay' ? 'Pagás con ' + p.monedas.map((m) => m.etiqueta).join(' o ') + ' y acá te aviso cuando se acredita.' + (p.red === 'testnet' ? ' Ahora está en red de prueba: no es dinero real.' : '')
     : p?.proveedor === 'simulado' ? 'El pago está en modo de prueba: recorrés todos los pasos y no se cobra nada.' : 'El cobro en línea todavía no está conectado.';
   if (!e || p?.productos) funciones.push(['boleto', 'Reservá una experiencia', 'Pedila por voz o tocá el botón del boleto. Elegís personas y fecha y ves el total antes de pagar. ' + (e ? cobro : '')]);
-  for (const id of ['funciones', 'funcionesDlg']) {
+  for (const id of ['funcionesDlg']) {
     $(id).replaceChildren(...funciones.map(([icono, titulo, texto]) => {
       const li = nodo('li'); const m = nodo('span', 'marca'); m.setAttribute('aria-hidden', 'true');
       m.innerHTML = '<svg viewBox="0 0 24 24">' + ICONOS[icono] + '</svg>';

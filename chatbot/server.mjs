@@ -62,12 +62,27 @@ async function sesion(modo) {
   }];
 }
 
-const PAGINA_SIMULADA = (p) => `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pago de prueba</title>
-<body style="font:16px system-ui;max-width:420px;margin:12vh auto;padding:0 16px;text-align:center">
-<p style="background:#fde68a;color:#422006;padding:8px;border-radius:8px"><b>MODO DE PRUEBA</b> — no se cobra dinero real</p>
-<h2>${p.concepto.replace(/[<>&]/g, '')}</h2><p style="font-size:28px;margin:8px">${p.monto} ${p.moneda}</p><p>Estado: <b id="e">${p.estado}</b></p>
-<button id="b" style="font:inherit;padding:12px 20px;border-radius:10px;border:0;background:#b4532a;color:#fff;cursor:pointer">Simular pago aprobado</button>
-<script>b.onclick=async()=>{const r=await fetch('/api/pagos/${p.id}/simular',{method:'POST'});const d=await r.json();e.textContent=d.estado||'error';b.remove();document.body.insertAdjacentHTML('beforeend','<p>Listo. Ya podés volver al chat.</p>')}</script></body></html>`;
+// Página del pago de prueba, con los mismos colores y tipografías que juju.
+const PAGINA_SIMULADA = (p) => `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pago de prueba · juju</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{--suelo:#f2f5f8;--papel:#fff;--tinta:#171a2b;--tenue:#5a6177;--linea:#dbe1e8;--acento:#c4175c;--sobre:#fff;--si:#1b7a4b;--pf:#ffe9a8;--pt:#3d2c00;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--suelo:#0f1120;--papel:#181b30;--tinta:#eceef7;--tenue:#9aa1ba;--linea:#2a2e4a;--acento:#ff6b9d;--sobre:#1a0610;--si:#5fd39a;--pf:#4a3a08;--pt:#ffe9a8;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;background:var(--suelo);color:var(--tinta);font:400 16px/1.5 Figtree,system-ui,sans-serif}
+main{width:min(100%,400px);background:var(--papel);border:1px solid var(--linea);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.marca{font:800 26px/1 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.04em}
+.prueba{align-self:flex-start;font:500 11px/1 "JetBrains Mono",Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;background:var(--pf);color:var(--pt);border-radius:6px;padding:5px 8px}
+h1{margin:0;font:600 20px/1.25 "Bricolage Grotesque",system-ui,sans-serif;text-wrap:balance}p{margin:0;color:var(--tenue)}
+.monto{font:800 34px/1 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.03em;color:var(--tinta)}
+button{font:600 16px Figtree,system-ui,sans-serif;padding:12px;border-radius:10px;border:0;background:var(--acento);color:var(--sobre);cursor:pointer}
+.ok{color:var(--si);font-weight:600}[hidden]{display:none}
+</style></head><body><main>
+<span class="marca">juju</span><span class="prueba">Modo de prueba · no se cobra</span>
+<h1>${p.concepto.replace(/[<>&]/g, '')}</h1><p class="monto">${p.monto} ${p.moneda}</p>
+<p>${p.codigo ? `Código ${p.codigo} · ` : ''}estado: <b id="e">${p.estado}</b></p>
+<button id="b" type="button"${p.estado === 'pendiente' ? '' : ' hidden'}>Simular pago aprobado</button>
+<p class="ok" id="f"${p.estado === 'pagado' ? '' : ' hidden'}>Listo. Ya podés volver a juju.</p>
+</main><script>b.onclick=async()=>{b.disabled=true;const r=await fetch('/api/pagos/${p.id}/simular',{method:'POST'});const d=await r.json().catch(()=>({}));e.textContent=d.estado||'error';b.hidden=true;f.hidden=d.estado!=='pagado'}</script></body></html>`;
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
