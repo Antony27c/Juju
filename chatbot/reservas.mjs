@@ -27,6 +27,9 @@ const clampInt = (value, min, max, fallback) => {
   return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : fallback;
 };
 
+// These texts are in Spanish; the agent must still answer in the language the user last wrote in.
+const LANGUAGE_NOTE = 'Decilo en el idioma del último mensaje del usuario: si fue en inglés, en inglés; si fue en español, en español.';
+
 function modelText(r) {
   const details = [
     r.date, r.time && `${r.time} hs`, `${r.people} ${r.people === 1 ? 'persona' : 'personas'}`,
@@ -36,7 +39,8 @@ function modelText(r) {
   const where = r.item.locality ? `${r.item.name} (${r.item.locality})` : r.item.name;
   const what = r.kind === 'product' ? `Reserva confirmada: ${where}` : `Reserva confirmada en ${where}`;
   return `${paid} ${what} para ${details}. Código de reserva: ${r.code}. `
-    + 'Decile al usuario en una o dos frases que el pago se acreditó y que la reserva quedó confirmada, con el lugar, la fecha y el código.';
+    + 'Decile al usuario en una o dos frases que el pago se acreditó y que la reserva quedó confirmada, con el lugar, la fecha y el código. '
+    + LANGUAGE_NOTE;
 }
 
 // Lo que el agente tiene que decir después de cotizar: el usuario confirma actividad, monto y hora antes de pagar.
@@ -50,7 +54,8 @@ function quoteText(r) {
   return `Hay disponibilidad, pero todavía NO está reservado ni pagado. ${r.item.name}${r.item.locality ? ` (${r.item.locality})` : ''}, ${when}, ${details}. ${total} `
     + `Pedile la confirmación en una sola frase, con la actividad, el monto y la hora, así: ${ask} `
     + (r.method ? '' : 'Falta el método de pago: en la misma frase preguntale si paga con USDC o por transferencia bancaria. ')
-    + 'Cuando diga que sí, llamá de nuevo a reservar con los mismos datos y confirmado en true. Si dice que no o cambia algo, no reserves.';
+    + 'Cuando diga que sí, llamá de nuevo a reservar con los mismos datos y confirmado en true. Si dice que no o cambia algo, no reserves. '
+    + LANGUAGE_NOTE;
 }
 
 /**
