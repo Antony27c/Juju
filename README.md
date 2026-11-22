@@ -11,7 +11,7 @@ Guía de la provincia de Jujuy que se usa hablando. Le contás dónde estás y c
 - **Respuesta rápida.** Antes de que el mensaje llegue al modelo, el servidor ya buscó los lugares para esa localidad y esa hora (tarda milisegundos).
 - **Español e inglés.** juju responde en el idioma en que le hablás y cambia si cambiás vos.
 - **Respuestas directas.** Hace lo que le pedís y recomienda un lugar, dos como máximo, sin listas de opciones.
-- **Reservas por voz.** Pedís reservar un lugar o una experiencia, juju te dice que hay disponibilidad y te pide que confirmes la actividad, el monto y la hora (y si pagás con USDC o por transferencia). Solo con tu sí paga y te da un código. Es una demostración: el pago es simulado, no se cobra ni se reserva nada, y la disponibilidad no se consulta con nadie.
+- **Reservas por voz.** Pedís reservar un lugar o una experiencia, juju te dice que hay disponibilidad y te pide que confirmes la actividad, el monto y la hora. Antes te pregunta cómo pagás: con el dinero de tu cuenta de Wells Fargo o con USDC a través de Cosmos Pay. Solo con tu sí paga y te da un código. Es una demostración: el pago es simulado, no se cobra ni se reserva nada, y la disponibilidad no se consulta con nadie.
 - **Reservas en pantalla.** Elegís una experiencia, cuántas personas y la fecha, y ves el total. Con Cosmos Pay configurado se paga de verdad; sin eso usa la misma demostración.
 - **Pagos.** En dólares digitales (USDC o USDT) con Cosmos Pay, o en modo de prueba sin mover dinero.
 

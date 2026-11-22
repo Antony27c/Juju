@@ -565,7 +565,7 @@ const herramientas = {
       ? `Se abrió Google Maps con el camino hasta "${l.nombre}" y quedó el botón "Abrir en Google Maps" en pantalla. Decíselo en una frase.`
       : `Quedó en pantalla el botón "Abrir en Google Maps" con el camino hasta "${l.nombre}"; el navegador no dejó abrirlo solo. Pedile que lo toque, en una frase.`;
   },
-  // Reserva por voz o chat: el agente ya preguntó "¿USDC o transferencia?".
+  // Reserva por voz o chat: disponibilidad, método de pago (cuenta de Wells Fargo o USDC por Cosmos Pay), confirmación y pago.
   // La reserva va en dos llamadas. La primera cotiza: dice si hay lugar y cuánto sale, y deja en pantalla la
   // tarjeta "por confirmar". La segunda, con confirmado en true, paga (demo: reservas.mjs simula el pago).
   // Si el agente manda confirmado sin haber cotizado eso mismo, se cotiza igual: nunca se paga un monto que
@@ -602,10 +602,10 @@ const herramientas = {
   },
 };
 
-const FALTA_METODO = 'Falta el método de pago y todavía no se pagó nada. Preguntale al usuario si paga con USDC o con dinero de su cuenta bancaria por transferencia, y después llamá de nuevo a reservar con confirmado en true.';
-// Lo último que se cotizó. Para pagar, la llamada confirmada tiene que coincidir con esto.
+const FALTA_METODO = "Falta el método de pago y todavía no se pagó nada. Preguntáselo al usuario así, en su idioma: \"Tenés 2 métodos de pago disponibles: dinero en tu cuenta del Wells Fargo, o pagar con USDC a través de Cosmos Pay. ¿Con cuál querés pagar?\" (en inglés: \"You have 2 payment methods available: money in your Wells Fargo account, or paying with USDC through Cosmos Pay. Which one do you want to pay with?\"). Cuando elija, llamá de nuevo a reservar con metodo_pago y sin confirmado.";
+// Lo último que se cotizó, método de pago incluido. Para pagar, la llamada confirmada tiene que coincidir con esto.
 let cotizada = null;
-const firmaDe = (r) => [r.item.name, llano(r.date), r.time, r.people, r.nights, r.amount_usd].join('|');
+const firmaDe = (r) => [r.item.name, llano(r.date), r.time, r.people, r.nights, r.amount_usd, r.method].join('|');
 const detalleReserva = (r) => [r.item.locality, r.date, r.time && `${r.time} hs`, `${r.people} ${r.people === 1 ? 'persona' : 'personas'}`, r.nights && `${r.nights} ${r.nights === 1 ? 'noche' : 'noches'}`].filter(Boolean).join(' · ');
 const montoReserva = (r) => String(r.amount_usd).replace('.', ',');
 
@@ -619,10 +619,10 @@ function tarjetaCotizacion(r) {
   const fin = nodo('div', 'fin');
   fin.append(nodo('p', 'que', paga ? 'Por confirmar · todavía no se pagó' : 'Por confirmar'), nodo('h4', '', r.item.name), nodo('p', 'meta', detalleReserva(r)));
   if (paga) { const monto = nodo('div', 'monto'); monto.append(nodo('small', '', 'USD'), montoReserva(r)); fin.append(monto); }
-  fin.append(nodo('p', 'codigo', (paga ? (r.method_label ? `Se paga con ${r.method_label}. ` : 'Falta elegir cómo pagás: USDC o transferencia. ') : '') + 'Decí que sí para confirmar.'));
+  fin.append(nodo('p', 'codigo', paga && !r.method_label ? 'Elegí cómo pagás: cuenta de Wells Fargo o USDC por Cosmos Pay.' : (paga ? `Se paga con ${r.method_label}. ` : '') + 'Decí que sí para confirmar.'));
   c.append(fin); dejarDePensar(); agregar(c);
   const f = nodo('div', 'ficha');
-  f.append(nodo('span', 'prueba', 'Por confirmar · demo'), nodo('b', '', r.item.name), nodo('span', 'meta', detalleReserva(r)), nodo('span', 'precio', paga ? `USD ${montoReserva(r)} · decí que sí para pagar` : 'Sin costo · decí que sí para reservar'));
+  f.append(nodo('span', 'prueba', 'Por confirmar · demo'), nodo('b', '', r.item.name), nodo('span', 'meta', detalleReserva(r)), nodo('span', 'precio', paga ? `USD ${montoReserva(r)} · ${r.method_label ? 'decí que sí para pagar' : 'elegí cómo pagás'}` : 'Sin costo · decí que sí para reservar'));
   $('tira').replaceChildren(f); tiraDe = 'reserva'; $('tira').hidden = false; $('verExp').setAttribute('aria-pressed', 'false');
 }
 
@@ -709,7 +709,7 @@ function abrirReserva(prod, { personas, fecha } = {}) {
   $('hojaPrueba').textContent = modo; $('hojaPrueba').hidden = !modo;
   $('hojaNota').textContent = ''; $('hojaNota').className = 'nota';
   const fila = $('hojaPagar'); fila.replaceChildren();
-  if (sinCobro(cat)) for (const [metodo, etiqueta] of [['usdc', 'Pagar con USDC'], ['banco', 'Pagar con transferencia bancaria']]) {
+  if (sinCobro(cat)) for (const [metodo, etiqueta] of [['banco', 'Pagar con cuenta de Wells Fargo'], ['usdc', 'Pagar con USDC por Cosmos Pay']]) {
     const b = nodo('button', 'boton' + (metodo === 'usdc' ? ' lleno' : ''), etiqueta); b.type = 'button';
     b.onclick = () => reservaDemo(r, metodo); fila.append(b);
   }
@@ -1087,7 +1087,7 @@ function pintarFunciones(e) {
   const p = e?.pagos;
   const cobro = p?.proveedor === 'cosmospay' ? 'Pagás con ' + p.monedas.map((m) => m.etiqueta).join(' o ') + ' y acá te aviso cuando se acredita.' + (p.red === 'testnet' ? ' Ahora está en red de prueba: no es dinero real.' : '')
     : p?.proveedor === 'simulado' ? 'El pago está en modo de prueba: recorrés todos los pasos y no se cobra nada.' : 'Ahora es una demostración: el pago es simulado y no se cobra nada.';
-  if (!e || p?.productos) funciones.push(['boleto', 'Reservá una experiencia', 'Pedime por voz que te reserve un lugar o una experiencia: te pregunto si pagás con USDC o por transferencia y te doy el código. O tocá "Experiencias", elegí personas y fecha y mirá el total. ' + (e ? cobro : '')]);
+  if (!e || p?.productos) funciones.push(['boleto', 'Reservá una experiencia', 'Pedime por voz que te reserve un lugar o una experiencia: te pregunto si pagás con tu cuenta de Wells Fargo o con USDC por Cosmos Pay, te pido que confirmes y te doy el código. O tocá "Experiencias", elegí personas y fecha y mirá el total. ' + (e ? cobro : '')]);
   for (const id of ['funcionesDlg']) {
     $(id).replaceChildren(...funciones.map(([icono, titulo, texto]) => {
       const li = nodo('li'); const m = nodo('span', 'marca'); m.setAttribute('aria-hidden', 'true');

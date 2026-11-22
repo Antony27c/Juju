@@ -1,7 +1,7 @@
 // Demo reservations for juju.
-// The assistant asks how the user wants to pay (USDC or bank transfer) and calls the `reservar`
-// tool twice: first to quote (cotizar), so the user can confirm the activity, the amount and the
-// time, and then to confirm. This module pretends there is room and that the payment went
+// The assistant calls the `reservar` tool to quote (cotizar), asks how the user wants to pay (their
+// Wells Fargo account, or USDC through Cosmos Pay), asks them to confirm the activity, the amount and
+// the time, and only then calls it again to confirm. This module pretends there is room and that the payment went
 // through, so the demo never waits on a provider. Nothing is charged and nothing is booked.
 // No imports on purpose: server.mjs resolves the place and the product and passes them in.
 
@@ -10,10 +10,10 @@ const NIGHTLY_USD = { $: 25, $$: 50, $$$: 110, $$$$: 180 }; // lodging, per nigh
 const PER_PERSON_USD = { $: 7, $$: 14, $$$: 30, $$$$: 50 }; // food, tours and the rest, per person
 const DEFAULT_TIER = '$$';
 
-const METHOD_LABELS = { usdc: 'USDC', banco: 'transferencia bancaria' };
+const METHOD_LABELS = { usdc: 'USDC por Cosmos Pay', banco: 'cuenta de Wells Fargo' };
 const METHOD_ALIASES = {
-  usdc: 'usdc', usd_coin: 'usdc', cripto: 'usdc', crypto: 'usdc',
-  banco: 'banco', bank: 'banco', transferencia: 'banco', transferencia_bancaria: 'banco', cuenta_bancaria: 'banco',
+  usdc: 'usdc', usd_coin: 'usdc', cripto: 'usdc', crypto: 'usdc', cosmos_pay: 'usdc', cosmospay: 'usdc', cosmopay: 'usdc',
+  banco: 'banco', bank: 'banco', transferencia: 'banco', transferencia_bancaria: 'banco', cuenta_bancaria: 'banco', cuenta: 'banco', wells_fargo: 'banco', wells: 'banco',
 };
 
 /** Normalizes what the assistant sends as payment method to "usdc" | "banco", or null. */
@@ -28,6 +28,9 @@ const clampInt = (value, min, max, fallback) => {
 };
 
 // These texts are in Spanish; the agent must still answer in the language the user last wrote in.
+// The payment question, word for word as the product owner asked for it, and its English version.
+const METHOD_QUESTION = "Tenés 2 métodos de pago disponibles: dinero en tu cuenta del Wells Fargo, o pagar con USDC a través de Cosmos Pay. ¿Con cuál querés pagar?";
+const METHOD_QUESTION_EN = "You have 2 payment methods available: money in your Wells Fargo account, or paying with USDC through Cosmos Pay. Which one do you want to pay with?";
 const LANGUAGE_NOTE = 'Decilo en el idioma del último mensaje del usuario: si fue en inglés, en inglés; si fue en español, en español.';
 
 function modelText(r) {
@@ -48,12 +51,20 @@ function quoteText(r) {
   const when = [r.date, r.time && `a las ${r.time}`].filter(Boolean).join(' ');
   const details = [`${r.people} ${r.people === 1 ? 'persona' : 'personas'}`, r.nights && `${r.nights} ${r.nights === 1 ? 'noche' : 'noches'}`].filter(Boolean).join(', ');
   const total = r.amount_usd > 0 ? `Total: USD ${r.amount_usd}${r.method_label ? ` con ${r.method_label}` : ''}.` : 'No tiene costo.';
+  const summary = `Hay disponibilidad, pero todavía NO está reservado ni pagado. ${r.item.name}${r.item.locality ? ` (${r.item.locality})` : ''}, ${when}, ${details}. ${total} `;
+  // No method yet: the only thing to ask now is how they pay. The confirmation comes with the next call.
+  if (!r.method && r.amount_usd > 0) {
+    return summary
+      + `Falta el método de pago. Decile que hay disponibilidad y preguntale cómo paga con esta frase, sin cambiarla: "Hay disponibilidad. ${METHOD_QUESTION}" `
+      + `Si el usuario habla en inglés, la frase es: "There is availability. ${METHOD_QUESTION_EN}" `
+      + 'Cuando elija, llamá de nuevo a reservar con los mismos datos y metodo_pago ("banco" si elige la cuenta de Wells Fargo, "usdc" si elige USDC), todavía sin confirmado: todavía no se paga. '
+      + LANGUAGE_NOTE;
+  }
   const ask = r.amount_usd > 0
-    ? `"Hay disponibilidad. Para conectar la reserva y pagar, confirmame por favor que querés pagar ${r.item.name} por USD ${r.amount_usd}, ${when}."`
-    : `"Hay disponibilidad. Confirmame por favor que querés reservar ${r.item.name}, ${when}."`;
-  return `Hay disponibilidad, pero todavía NO está reservado ni pagado. ${r.item.name}${r.item.locality ? ` (${r.item.locality})` : ''}, ${when}, ${details}. ${total} `
-    + `Pedile la confirmación en una sola frase, con la actividad, el monto y la hora, así: ${ask} `
-    + (r.method ? '' : 'Falta el método de pago: en la misma frase preguntale si paga con USDC o por transferencia bancaria. ')
+    ? `"Para conectar la reserva y pagar, confirmame por favor que querés pagar ${r.item.name} por USD ${r.amount_usd} con ${r.method_label}, ${when}."`
+    : `"Confirmame por favor que querés reservar ${r.item.name}, ${when}."`;
+  return summary
+    + `Pedile la confirmación en una sola frase, con la actividad, el monto y la hora, así: ${ask} Si todavía no le dijiste que hay disponibilidad, empezá con "Hay disponibilidad." `
     + 'Cuando diga que sí, llamá de nuevo a reservar con los mismos datos y confirmado en true. Si dice que no o cambia algo, no reserves. '
     + LANGUAGE_NOTE;
 }
