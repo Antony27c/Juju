@@ -18,7 +18,7 @@ Leer esto primero, porque define qué está comprobado y qué no.
 | Página en el navegador | Revisada con capturas en escritorio y celular, tema claro y oscuro, en modo "solo directorio" (sin ElevenLabs). La pantalla principal es la vista de voz (micrófono con rótulo, subtítulos en grande y una faja de aguayo que se levanta con la voz); la faja y los estados de escucha y silencio se vieron con una sesión simulada en el navegador, no con una sesión de voz real |
 | Reserva de experiencias | Probada de punta a punta con el pago simulado: validación de personas y fecha, total, código de reserva y confirmación. La reserva de demostración (`/api/reservas`) se probó contra el servidor. Las herramientas `ver_experiencias` y `reservar` no se probaron con el agente |
 
-El primer `node crear-agente.mjs` con una clave real es la prueba que falta. Si la API rechaza algún campo, el script imprime el error completo y reintenta con una configuración mínima.
+Probado con clave real el 22/11/2026, en el deploy de Railway: el servidor creó solo los dos agentes y las cinco herramientas, `/api/sesion` entregó la URL firmada (texto) y el token (voz en tiempo real), una consulta por chat volvió con respuesta y lugares, y una sesión de voz abrió y movió la faja con un micrófono simulado del navegador. Falta probarlo hablando de verdad: cómo suena la voz, y las herramientas de reserva y de cómo llegar dentro de una charla. Si la API rechaza algún campo, queda el error completo en el log y en `/api/estado`, y se reintenta con una configuración mínima.
 
 ## Eleven Realtime voice and demo bookings
 
