@@ -22,6 +22,32 @@ export function paymentMethod(value) {
   return METHOD_ALIASES[key] || null;
 }
 
+const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+/** Turns what the user said ("mañana", "sábado 28", "28 de noviembre") into YYYY-MM-DD, never before `today`. */
+export function resolveDate(text, today) {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const base = new Date(`${today}T12:00:00Z`);
+  const plus = (n) => { const d = new Date(base); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+  let t = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let m = t.match(/\d{4}-\d{2}-\d{2}/);
+  if (m) return m[0] < today ? today : m[0];
+  t = t.replace(/(por|a|de|en) la manana/g, ' '); // "hoy a la mañana" is today, not tomorrow
+  if (/pasado manana/.test(t)) return plus(2);
+  if (/manana|tomorrow/.test(t)) return plus(1);
+  m = t.match(/\b(\d{1,2})(?:\s+de\s+([a-z]+))?/);
+  if (m && +m[1] >= 1 && +m[1] <= 31) {
+    let month = m[2] ? MONTHS.indexOf(m[2]) : -1;
+    if (month < 0) month = base.getUTCMonth() + (+m[1] < base.getUTCDate() ? 1 : 0);
+    const d = new Date(Date.UTC(base.getUTCFullYear(), month, +m[1], 12));
+    if (iso(d) < today) d.setUTCFullYear(d.getUTCFullYear() + 1);
+    return iso(d);
+  }
+  const weekday = WEEKDAYS.findIndex((w) => t.includes(w));
+  if (weekday >= 0) return plus((weekday - base.getUTCDay() + 7) % 7);
+  return today;
+}
+
 const clampInt = (value, min, max, fallback) => {
   const n = Number.parseInt(value, 10);
   return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : fallback;
@@ -43,6 +69,7 @@ function modelText(r) {
   const what = r.kind === 'product' ? `Reserva confirmada: ${where}` : `Reserva confirmada en ${where}`;
   return `${paid} ${what} para ${details}. Código de reserva: ${r.code}. `
     + 'Decile al usuario en una o dos frases que el pago se acreditó y que la reserva quedó confirmada, con el lugar, la fecha y el código. '
+    + 'En pantalla quedaron un mapa de cómo llegar y el botón para guardar la reserva en Google Calendar. Cerrá con esta frase: "También te añadí tu reserva a Google Calendar: tocá el botón para guardarla. Y en pantalla tenés el mapa de cómo llegar." '
     + LANGUAGE_NOTE;
 }
 
@@ -75,7 +102,7 @@ function quoteText(r) {
  * @param {object|null} place directory entry in the compact shape returned by buscar(), when found
  * @param {object|null} product catalog entry from productos.json, when the user hires a product
  */
-export function confirmDemoReservation(request = {}, place = null, product = null) {
+export function confirmDemoReservation(request = {}, place = null, product = null, today = new Date().toISOString().slice(0, 10)) {
   const quote = Boolean(request.cotizar);
   const method = paymentMethod(request.metodo_pago);
   if (!method && !quote) throw new Error('metodo_pago must be "usdc" or "banco"');
@@ -98,10 +125,11 @@ export function confirmDemoReservation(request = {}, place = null, product = nul
     demo: true,
     kind: product ? 'product' : 'place',
     item: {
-      name, type: product ? null : place?.tipo || null, locality: place?.localidad || request.localidad || null,
+      name, type: product ? null : place?.tipo || null, locality: place?.localidad || product?.localidad || request.localidad || null,
       address: place?.direccion || null, phone: place?.telefono || null, map: place?.mapa || null,
     },
     date: String(request.fecha || 'hoy').trim().slice(0, 60),
+    date_iso: resolveDate(request.fecha, today), // for the calendar event
     time: /^\d{1,2}:\d{2}$/.test(String(request.hora || '')) ? request.hora : null,
     people,
     nights,

@@ -168,7 +168,7 @@ const servidor = http.createServer(async (req, res) => {
       if (excedido(req, 'pago')) return json(res, 429, DEMASIADO);
       const p = comoJson(await cuerpo(req));
       const product = p.producto_id ? pagos.productos().find((x) => x.id === p.producto_id) || null : null;
-      try { return json(res, 200, confirmDemoReservation(p, product ? null : findPlace(p), product)); } catch (e) { return json(res, 400, { error: e.message }); }
+      try { return json(res, 200, confirmDemoReservation(p, product ? null : findPlace(p), product, pagos.hoyJujuy())); } catch (e) { return json(res, 400, { error: e.message }); }
     }
     if (ruta === '/api/sesion') { if (excedido(req, 'sesion')) return json(res, 429, DEMASIADO); const [c, o] = await sesion(url.searchParams.get('modo')); return json(res, c, o); }
     if (ruta === '/api/buscar' && req.method === 'POST') return json(res, 200, conTexto(buscar(comoJson(await cuerpo(req)))));
