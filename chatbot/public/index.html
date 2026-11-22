@@ -3,38 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1120" media="(prefers-color-scheme: dark)">
 <title>juju</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400..700&family=Archivo:wdth,wght@62..125,400..900&display=swap">
 <style>
-  /* Concepto: una sola columna de conversación sobre suelo de salina (blanco frío) con tinta de noche puneña.
-     Lo único vistoso son las siete franjas del aguayo / Cerro de los Siete Colores: marca, borde y medidor de voz. */
+  /* Concepto: suelo de salina (blanco frío) y tinta de noche puneña. El único color es la faja de aguayo:
+     en reposo es una cinta tejida, y cuando alguien habla cada hilo se levanta y dibuja un cerro.
+     Lo que dice juju va en serif (Alegreya); la interfaz y los datos, en Archivo. Las dos son tipografías argentinas. */
   :root {
-    --suelo: #f2f5f8; --papel: #ffffff; --tinta: #171a2b; --tenue: #5a6177; --linea: #dbe1e8;
-    --acento: #c4175c; --sobre-acento: #ffffff; --yo: #1f2440; --sobre-yo: #f4f5fb;
-    --si: #1b7a4b; --no: #b3261e; --duda: #8a6100; --prueba-fondo: #ffe9a8; --prueba-tinta: #3d2c00;
-    --f1: #e2a02b; --f2: #d4532b; --f3: #c4175c; --f4: #6b3fa0; --f5: #2b7fd1; --f6: #159a9c; --f7: #5e8c3a;
-    --titular: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
-    --texto: "Figtree", system-ui, "Segoe UI", sans-serif;
-    --dato: "JetBrains Mono", ui-monospace, Consolas, monospace;
-    --radio: 14px;
+    --suelo: #f3f5f7; --papel: #ffffff; --tinta: #14172a; --tenue: #586078; --linea: #d8dee6;
+    --acento: #c2185b; --sobre-acento: #ffffff; --yo: #1f2440; --sobre-yo: #f4f5fb;
+    --si: #17754a; --no: #b3261e; --duda: #8a6100; --prueba-fondo: #ffe9a8; --prueba-tinta: #3d2c00;
+    /* hilos del aguayo: fucsia, rojo, naranja, maíz, verde, turquesa, violeta */
+    --f1: #cf1c6b; --f2: #b5202e; --f3: #e56a1c; --f4: #edb21f; --f5: #2c8a4d; --f6: #1397a6; --f7: #5d3fa6;
+    --titular: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    --texto: "Archivo", system-ui, "Segoe UI", Arial, sans-serif;
+    --habla: "Alegreya", Georgia, "Times New Roman", serif;
+    --radio: 10px;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --suelo: #0f1120; --papel: #181b30; --tinta: #eceef7; --tenue: #9aa1ba; --linea: #2a2e4a;
+      --suelo: #0f1120; --papel: #171a2e; --tinta: #eceef7; --tenue: #9aa1ba; --linea: #2a2e4a;
       --acento: #ff6b9d; --sobre-acento: #1a0610; --yo: #2c3263; --sobre-yo: #f1f2fb;
       --si: #5fd39a; --no: #ff8a80; --duda: #e9c46a; --prueba-fondo: #4a3a08; --prueba-tinta: #ffe9a8;
-      --f1: #f0b84a; --f2: #ef7147; --f3: #ff6b9d; --f4: #a47be0; --f5: #5aa6f2; --f6: #3cc4c6; --f7: #8fc15f;
+      --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --suelo: #0f1120; --papel: #181b30; --tinta: #eceef7; --tenue: #9aa1ba; --linea: #2a2e4a;
+    --suelo: #0f1120; --papel: #171a2e; --tinta: #eceef7; --tenue: #9aa1ba; --linea: #2a2e4a;
     --acento: #ff6b9d; --sobre-acento: #1a0610; --yo: #2c3263; --sobre-yo: #f1f2fb;
     --si: #5fd39a; --no: #ff8a80; --duda: #e9c46a; --prueba-fondo: #4a3a08; --prueba-tinta: #ffe9a8;
-    --f1: #f0b84a; --f2: #ef7147; --f3: #ff6b9d; --f4: #a47be0; --f5: #5aa6f2; --f6: #3cc4c6; --f7: #8fc15f;
+    --f1: #f0468f; --f2: #e2484f; --f3: #f58238; --f4: #f4c43c; --f5: #4fb56f; --f6: #33bccb; --f7: #8d6de0;
     color-scheme: dark;
   }
 
@@ -42,178 +46,202 @@
   html, body { height: 100%; margin: 0; }
   body { background: var(--suelo); color: var(--tinta); font: 400 16px/1.5 var(--texto); display: flex; justify-content: center; -webkit-font-smoothing: antialiased; }
   [hidden] { display: none !important; }
-  button, textarea { font: inherit; color: inherit; }
+  button, textarea, input { font: inherit; color: inherit; }
+  button { -webkit-tap-highlight-color: transparent; }
   a { color: var(--acento); text-underline-offset: 3px; }
   :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 6px; }
 
-  .app { width: 100%; max-width: 720px; height: 100%; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .borde { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .app { width: 100%; max-width: 720px; height: 100%; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); }
+  @media (min-width: 760px) { .app { border-inline: 1px solid var(--linea); } }
+  .borde { padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
 
   /* --- tapa --- */
-  .tapa { display: flex; align-items: baseline; gap: 14px; padding-block: 14px 10px; min-width: 0; }
-  @media (max-width: 480px) { .tapa { gap: 10px; } .estado #estado { display: none; } .reloj { font-size: 12px; } }
-  .nombre { font: 800 30px/1 var(--titular); letter-spacing: -.04em; }
-  .reloj { font: 500 13px/1 var(--dato); color: var(--tenue); font-variant-numeric: tabular-nums; }
+  .tapa { flex: none; display: flex; align-items: baseline; gap: 12px; padding-block: 14px 12px; min-width: 0; }
+  .nombre { font: 800 28px/1 var(--titular); font-stretch: 112%; letter-spacing: -.035em; }
+  .reloj { font-size: 13px; color: var(--tenue); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .estado { margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--tenue); white-space: nowrap; }
   .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--linea); }
   .punto.on { background: var(--si); } .punto.voz { background: var(--acento); }
-  .franjas { display: grid; grid-template-columns: repeat(7, 1fr); height: 5px; flex: none; }
-  .franjas i:nth-child(1), .barras i:nth-child(1) { background: var(--f1); } .franjas i:nth-child(2), .barras i:nth-child(2) { background: var(--f2); }
-  .franjas i:nth-child(3), .barras i:nth-child(3) { background: var(--f3); } .franjas i:nth-child(4), .barras i:nth-child(4) { background: var(--f4); }
-  .franjas i:nth-child(5), .barras i:nth-child(5) { background: var(--f5); } .franjas i:nth-child(6), .barras i:nth-child(6) { background: var(--f6); }
-  .franjas i:nth-child(7), .barras i:nth-child(7) { background: var(--f7); }
+  .ayuda { background: none; border: 0; padding: 4px 0; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; text-decoration: underline; text-decoration-color: var(--tenue); text-underline-offset: 4px; }
+  .ayuda:hover { text-decoration-color: currentColor; }
+  @media (max-width: 480px) { .estado #estado { display: none; } }
+  /* la cinta del chat: el mismo tejido que la faja de voz (el fondo lo arma el script) */
+  .franjas { flex: none; height: 6px; background-color: var(--f1); background-repeat: repeat-x; background-position: center; }
 
-  /* --- conversación --- */
-  main { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding-block: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+  /* --- vista de voz: lo que dice juju es el titular; abajo, la faja y los mandos --- */
+  .app[data-vista="voz"] main, .app[data-vista="voz"] .redactar, .app[data-vista="voz"] .voz,
+  .app[data-vista="voz"] .franjas, .app[data-vista="voz"] .estado { display: none; }
+  .app[data-vista="voz"] .ayuda { margin-left: auto; }
+  .app[data-vista="chat"] .escena { display: none; }
+  .escena { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .dicho { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-block: 20px 18px; }
+  .dicho::before { content: ""; margin-top: auto; } /* empuja el texto contra la faja sin cortar el scroll */
+  .dicho p { margin: 0; overflow-wrap: anywhere; }
+  .vos { max-width: 44ch; font-size: 15px; color: var(--tenue); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .vos:empty { display: none; }
+  .dice { max-width: 30em; font: 500 20px/1.36 var(--habla); text-wrap: pretty; }
+  .dice[data-largo="medio"] { font-size: clamp(24px, 6.6vw, 32px); line-height: 1.16; letter-spacing: -.01em; text-wrap: balance; }
+  .dice[data-largo="poco"] { font-size: clamp(33px, 9.4vw, 50px); line-height: 1.03; letter-spacing: -.018em; text-wrap: balance; }
+  .probar { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+  .rotulo { margin: 0; font-size: 13px; font-weight: 600; color: var(--tenue); }
+
+  /* frases de ejemplo: filas para tocar, en la voz y en el chat */
+  .ideas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-bottom: 1px solid var(--linea); }
+  .ideas button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 14px; text-align: left; background: none; border: 0; border-top: 1px solid var(--linea); padding: 12px 0; cursor: pointer; font-weight: 500; line-height: 1.3; }
+  .ideas button::after { content: "→"; flex: none; color: var(--tenue); transition: transform .15s, color .15s; }
+  .ideas button:hover::after { transform: translateX(4px); color: var(--acento); }
+
+  .tira { flex: none; display: flex; gap: 10px; overflow-x: auto; padding-block: 2px 14px; scroll-snap-type: x proximity; scroll-padding-inline: 18px; scrollbar-width: thin; }
+  .ficha { flex: none; width: 212px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; padding: 11px 13px 12px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); color: inherit; text-decoration: none; }
+  button.ficha { cursor: pointer; text-align: left; }
+  .ficha:hover { border-color: var(--tenue); }
+  .ficha b { font: 650 15px/1.25 var(--titular); overflow-wrap: anywhere; }
+  .ficha .precio { margin-top: 2px; font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  .faja { flex: none; display: block; width: 100%; height: clamp(46px, 11vh, 96px); }
+  .pie { flex: none; background: var(--papel); padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); }
+  .aviso-fase { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding-top: 4px; }
+  .fase { margin: 0; display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 500; color: var(--tenue); }
+  .fase::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--linea); }
+  .escena[data-estado="escucha"] .fase, .escena[data-estado="habla"] .fase { color: var(--tinta); }
+  .escena[data-estado="escucha"] .fase::before, .escena[data-estado="habla"] .fase::before { background: var(--acento); }
+  .escena[data-estado="conectando"] .fase::before { background: var(--duda); }
+  .terminar { flex: none; background: none; border: 0; padding: 8px 0 8px 12px; font-size: 14px; font-weight: 650; color: var(--no); cursor: pointer; }
+  .mandos { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; justify-items: center; gap: 6px; padding-top: 2px; }
+  .mando, .hablar { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; cursor: pointer; font-size: 13px; line-height: 1.2; }
+  .mando { min-width: 84px; padding: 8px 6px; border-radius: var(--radio); font-weight: 500; color: var(--tenue); }
+  .mando:hover, .mando[aria-pressed="true"] { color: var(--tinta); }
+  .mando[aria-pressed="true"] { font-weight: 700; }
+  .mando svg, .boca svg, .icono svg, .cerrar svg, .funciones svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .mando svg { width: 24px; height: 24px; }
+  .hablar { padding: 0 6px 8px; font-weight: 650; }
+  .boca { width: 72px; height: 72px; display: grid; place-items: center; border-radius: 50%; background: var(--tinta); color: var(--suelo); transition: background-color .15s, transform .1s; }
+  .hablar:active .boca { transform: scale(.95); }
+  .hablar:focus-visible { outline: none; } .hablar:focus-visible .boca { outline: 2px solid var(--acento); outline-offset: 3px; }
+  .boca svg { width: 28px; height: 28px; }
+  .boca .tachado { display: none; }
+  .escena[data-estado="escucha"] .boca, .escena[data-estado="habla"] .boca { background: var(--acento); color: var(--sobre-acento); }
+  .escena[data-estado="silencio"] .boca { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 2px var(--tinta); }
+  .escena[data-estado="silencio"] .boca .tachado { display: inline; }
+  .escena[data-estado="sin"] .boca { background: var(--linea); color: var(--tenue); }
+  .escena[data-estado="conectando"] .boca { animation: late 1.1s ease-in-out infinite; }
+  @keyframes late { 50% { opacity: .45; } }
+  @media (max-height: 620px) { .boca { width: 60px; height: 60px; } .dicho { padding-block: 12px; } }
+
+  /* --- chat --- */
+  main { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding-block: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
   .inicio { margin-block: auto; display: flex; flex-direction: column; gap: 14px; padding-block: 8px; }
-  .sobre { margin: 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
-  .inicio h1 { margin: 0; font: 800 clamp(40px, 11vw, 68px)/.95 var(--titular); letter-spacing: -.045em; text-wrap: balance; }
-  .inicio h1 em { font-style: normal; color: var(--acento); }
+  .sobre { margin: 0; font-size: 13px; font-weight: 600; color: var(--tenue); font-variant-numeric: tabular-nums; }
+  .inicio h1 { margin: 0; font: 800 clamp(46px, 13.5vw, 84px)/.9 var(--titular); font-stretch: 75%; letter-spacing: -.02em; text-wrap: balance; }
   .bajada { margin: 0; max-width: 46ch; color: var(--tenue); font-size: 17px; }
-  .ideas { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--linea); }
-  .ideas button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--linea); padding: 13px 2px; cursor: pointer; font-weight: 500; }
-  .ideas button::after { content: "→"; color: var(--acento); font-family: var(--dato); transition: transform .15s; }
-  .ideas button:hover::after { transform: translateX(4px); }
+  .inicio .ideas { margin-top: 6px; }
 
-  .msg { max-width: min(85%, 60ch); padding: 10px 14px; border-radius: var(--radio); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .msg.bot { align-self: flex-start; background: var(--papel); border: 1px solid var(--linea); border-top-left-radius: 4px; }
-  .msg.yo { align-self: flex-end; background: var(--yo); color: var(--sobre-yo); border-top-right-radius: 4px; }
-  .aviso { align-self: center; max-width: 90%; text-align: center; font-size: 13px; color: var(--tenue); }
-  .aviso.error { color: var(--no); }
-  .pensando { align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tenue); padding-left: 2px; }
+  .msg { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.yo { align-self: flex-end; max-width: min(85%, 56ch); padding: 9px 14px; background: var(--yo); color: var(--sobre-yo); border-radius: 14px 14px 4px 14px; }
+  .msg.bot { align-self: flex-start; max-width: 34em; font: 400 19px/1.42 var(--habla); } /* juju habla sin globo: el serif ya dice quién es */
+  .aviso { align-self: flex-start; max-width: 60ch; font-size: 14px; color: var(--tenue); }
+  .aviso.error { color: var(--no); font-weight: 500; }
+  .pensando { align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--tenue); }
   .mini { display: flex; gap: 3px; }
   .mini i { width: 5px; height: 5px; border-radius: 50%; background: var(--tenue); animation: salto 1s infinite; }
   .mini i:nth-child(2) { animation-delay: .15s; } .mini i:nth-child(3) { animation-delay: .3s; }
   @keyframes salto { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-3px); } }
 
-  /* --- resultados: una lista, no un mosaico de tarjetas --- */
-  .grupo { align-self: stretch; display: flex; flex-direction: column; gap: 6px; }
-  .grupo h3 { margin: 6px 0 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
-  .lista { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); overflow: hidden; }
-  .lugar { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
-  .lugar + .lugar { border-top: 1px solid var(--linea); }
-  .lugar .cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .lugar h4 { margin: 0; font: 600 17px/1.25 var(--titular); letter-spacing: -.01em; min-width: 0; overflow-wrap: anywhere; }
-  .pill { font: 500 12px/1 var(--dato); padding: 5px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .pill.si { color: var(--si); } .pill.no { color: var(--no); } .pill.sin_dato { color: var(--duda); border-style: dashed; }
-  .meta { margin: 0; font-size: 14px; color: var(--tenue); overflow-wrap: anywhere; }
-  .meta .num { font-family: var(--dato); font-size: 13px; font-variant-numeric: tabular-nums; }
-  .acc { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; font-weight: 500; align-items: baseline; }
-  .acc .tel { font: 400 13px var(--dato); color: var(--tenue); user-select: all; }
+  /* resultados: filas sobre el suelo, sin tarjetas */
+  .grupo { align-self: stretch; display: flex; flex-direction: column; }
+  .grupo h3 { margin: 6px 0 8px; font: 800 15px/1.2 var(--titular); font-stretch: 80%; letter-spacing: .05em; text-transform: uppercase; }
+  .lista { border-bottom: 1px solid var(--linea); }
+  .lugar { padding: 12px 0 13px; border-top: 1px solid var(--linea); display: flex; flex-direction: column; gap: 3px; }
+  .lugar .cab { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
+  .lugar h4 { margin: 0; font: 650 17px/1.25 var(--titular); min-width: 0; overflow-wrap: anywhere; }
+  /* estado del lugar: punto y palabra, no una píldora */
+  .pill { font-size: 13px; font-weight: 600; line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pill.si, .pill.no, .pill.sin_dato { display: inline-flex; align-items: center; gap: 6px; }
+  .pill.si::before, .pill.no::before, .pill.sin_dato::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.si { color: var(--si); } .pill.no { color: var(--no); }
+  .pill.sin_dato { color: var(--tenue); font-weight: 500; } .pill.sin_dato::before { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
+  .ficha .pill { align-self: flex-start; margin-top: 2px; }
+  .meta { margin: 0; font-size: 14px; line-height: 1.4; color: var(--tenue); overflow-wrap: anywhere; }
+  .meta .num { font-variant-numeric: tabular-nums; }
+  .acc { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 3px; font-size: 14px; font-weight: 500; align-items: baseline; }
+  .acc .tel { font-weight: 400; color: var(--tenue); font-variant-numeric: tabular-nums; user-select: all; }
 
-  /* --- reserva: hoja que sube desde abajo, encima de la voz o del chat --- */
-  dialog.hoja { width: min(100%, 520px); max-width: 100%; max-height: 92%; margin: auto auto 0; border-bottom: 0; border-radius: 22px 22px 0 0; background: var(--papel); }
-  @media (min-width: 720px) { dialog.hoja { margin: auto; border-bottom: 1px solid var(--linea); border-radius: 22px; } }
-  .hoja .dentro { gap: 12px; padding-bottom: max(22px, env(safe-area-inset-bottom, 0px)); }
-  .hoja h2 { font-size: 24px; text-wrap: balance; }
-  .hoja .sobre { flex: 1; }
-  .cerrar { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--linea); background: none; cursor: pointer; }
-  .cerrar svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-  .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
-  .campo input, .paso { height: 46px; border: 1px solid var(--linea); border-radius: 12px; background: var(--suelo); color: var(--tinta); font: 500 16px/1 var(--texto); letter-spacing: 0; text-transform: none; }
-  .campo input { width: 100%; min-width: 0; padding: 0 10px; }
-  .paso { display: flex; align-items: center; justify-content: space-between; }
-  .paso button { width: 46px; height: 100%; border: 0; background: none; cursor: pointer; font-size: 22px; line-height: 1; }
-  .paso button:disabled { opacity: .3; cursor: default; }
-  .paso output { font: 500 17px/1 var(--dato); font-variant-numeric: tabular-nums; }
-  .total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-top: 1px solid var(--linea); padding-top: 12px; color: var(--tenue); }
-  .total b { color: var(--tinta); font: 800 34px/1 var(--titular); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-  .hoja .fila { display: flex; flex-direction: column; gap: 8px; }
-  .hoja .fila a.boton { text-decoration: none; }
-  .nota { margin: 0; font-size: 13px; color: var(--tenue); overflow-wrap: anywhere; }
-  .nota.ok { color: var(--si); font-weight: 600; font-size: 15px; } .nota.mal { color: var(--no); font-weight: 600; }
-  .qr { align-self: center; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--linea); }
-  /* --- tarjeta de la reserva por voz (demo): primero el paso del pago, después la confirmación --- */
-  .pago { align-self: flex-start; width: min(100%, 380px); background: var(--papel); border: 2px solid var(--tinta); border-radius: var(--radio); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-  .pago .que { margin: 0; font-weight: 500; }
-  .pago .monto { font: 800 34px/1 var(--titular); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-  .pago .monto small { font: 500 13px var(--dato); color: var(--tenue); letter-spacing: 0; margin-right: 6px; }
-  /* demo reservation: the payment step first, then the confirmed booking eases in */
-  .reserva .paso { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--tenue); }
-  .reserva:not(.procesando) .paso { color: var(--si); font-weight: 600; }
-  .reserva .fin { display: flex; flex-direction: column; gap: 6px; transition: opacity .32s cubic-bezier(.22, .61, .36, 1), transform .32s cubic-bezier(.22, .61, .36, 1); }
-  .reserva.procesando .fin { opacity: 0; transform: translateY(6px); }
-  .reserva h4 { margin: 0; font: 600 19px/1.25 var(--titular); letter-spacing: -.01em; overflow-wrap: anywhere; }
-  .reserva .codigo { margin: 0; font-size: 14px; color: var(--tenue); }
-  .reserva .codigo b { font: 500 15px var(--dato); letter-spacing: .04em; color: var(--tinta); user-select: all; }
-  .prueba { align-self: flex-start; font: 500 11px/1 var(--dato); letter-spacing: .06em; text-transform: uppercase; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 6px; padding: 5px 8px; }
-  .boton { cursor: pointer; border-radius: 10px; border: 1px solid var(--tinta); background: transparent; padding: 10px 14px; font-weight: 600; text-align: center; }
+  .boton { cursor: pointer; border-radius: var(--radio); border: 1.5px solid var(--tinta); background: transparent; padding: 10px 16px; font-weight: 650; text-align: center; }
   .boton.lleno { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
+  .boton.chico { align-self: flex-start; margin-top: 5px; padding: 6px 14px; font-size: 14px; }
   .boton:disabled { opacity: .5; cursor: default; }
 
-  /* --- voz en vivo: las siete franjas se mueven con la voz --- */
-  .voz { display: flex; align-items: center; gap: 14px; padding-block: 10px; border-top: 1px solid var(--linea); }
-  .barras { display: flex; align-items: center; gap: 4px; height: 36px; flex: none; }
-  .barras i { width: 7px; height: 100%; border-radius: 4px; transform: scaleY(.18); transition: transform .09s linear; }
-  .voz p { margin: 0; flex: 1; min-width: 0; font-size: 14px; color: var(--tenue); }
-  .voz p b { display: block; color: var(--tinta); font: 600 16px/1.2 var(--titular); }
+  /* comprobante de una reserva hecha en la charla: un boleto, con el código después de la línea de corte */
+  .pago { align-self: flex-start; width: min(100%, 380px); display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .reserva .paso { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--tenue); }
+  .reserva:not(.procesando) .paso { color: var(--si); font-weight: 600; }
+  .reserva .fin { display: flex; flex-direction: column; gap: 5px; transition: opacity .32s cubic-bezier(.22, .61, .36, 1), transform .32s cubic-bezier(.22, .61, .36, 1); }
+  .reserva.procesando .fin { opacity: 0; transform: translateY(6px); }
+  .pago .que { margin: 0; font-size: 13px; font-weight: 600; color: var(--tenue); }
+  .reserva h4 { margin: 0; font: 800 24px/1.05 var(--titular); font-stretch: 78%; overflow-wrap: anywhere; }
+  .pago .monto { margin-top: 4px; font: 800 36px/1 var(--titular); font-stretch: 78%; font-variant-numeric: tabular-nums; }
+  .pago .monto small { margin-right: 6px; font: 600 14px/1 var(--texto); color: var(--tenue); }
+  .reserva .codigo { margin: 6px 0 0; padding-top: 10px; border-top: 2px dashed var(--linea); font-size: 14px; color: var(--tenue); }
+  .reserva .codigo b { font-size: 16px; font-weight: 700; letter-spacing: .06em; font-variant-numeric: tabular-nums; color: var(--tinta); user-select: all; }
 
-  /* --- vista de voz: el círculo de siete franjas es la interfaz; se mueve con quien habla --- */
-  .app[data-vista="voz"] main, .app[data-vista="voz"] .redactar, .app[data-vista="voz"] .voz { display: none; }
-  .app[data-vista="chat"] .escena { display: none; }
-  .escena { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-block: 20px 22px; }
-  .centro { margin-block: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
-  .orbe { position: relative; flex: none; width: min(52vw, 220px, 32vh); aspect-ratio: 1; margin-block: 26px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
-  /* los siete colores quedan de fondo: un resplandor difuso que crece con la voz */
-  .orbe canvas { position: absolute; inset: -20%; width: 140%; height: 140%; border-radius: 50%; filter: blur(34px); opacity: var(--halo, .3); pointer-events: none; }
-  .disco { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: var(--papel); border: 1px solid var(--linea); color: var(--tenue); transform: scale(var(--pulso, 1)); }
-  .disco svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: opacity .2s; }
-  .orbe[data-activa="true"] .disco svg { opacity: 0; }
-  .fase { margin: 0; font: 500 12px/1.2 var(--dato); letter-spacing: .1em; text-transform: uppercase; color: var(--tenue); }
-  .dicho { width: 100%; max-width: 44ch; display: flex; flex-direction: column; gap: 8px; text-align: center; }
-  .dicho p { margin: 0; overflow-wrap: anywhere; }
-  .dicho .vos { font-size: 14px; color: var(--tenue); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .dicho .dice { font: 600 clamp(18px, 4.8vw, 23px)/1.3 var(--titular); letter-spacing: -.01em; text-wrap: balance; max-height: 6.6em; overflow-y: auto; }
-  .tira { align-self: stretch; flex: none; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
-  .ficha { flex: none; width: 216px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 5px; padding: 11px 13px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); color: inherit; text-decoration: none; }
-  .ficha b { font: 600 15px/1.25 var(--titular); overflow-wrap: anywhere; }
-  .ficha .pill { align-self: flex-start; }
-  .mandos { flex: none; display: flex; align-items: center; justify-content: center; gap: 14px; }
-  .redondo { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--linea); background: var(--papel); cursor: pointer; }
-  .redondo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .redondo[aria-pressed="true"] { background: var(--tinta); color: var(--suelo); border-color: var(--tinta); }
-  .redondo.fin { color: var(--no); border-color: var(--no); }
-  .redondo:focus-visible, .orbe:focus-visible { border-radius: 50%; }
+  /* voz encendida mientras se mira el chat */
+  .voz { flex: none; display: flex; align-items: center; gap: 14px; padding-block: 10px; border-top: 1px solid var(--linea); background: var(--papel); }
+  .barras { display: flex; align-items: flex-end; gap: 0; height: 32px; flex: none; }
+  .barras i { width: 6px; height: 100%; transform-origin: bottom; transform: scaleY(.18); transition: transform .09s linear; }
+  .barras i:nth-child(1) { background: var(--f1); } .barras i:nth-child(2) { background: var(--f3); } .barras i:nth-child(3) { background: var(--f4); }
+  .barras i:nth-child(4) { background: var(--f5); } .barras i:nth-child(5) { background: var(--f6); } .barras i:nth-child(6) { background: var(--f7); }
+  .barras i:nth-child(7) { background: var(--f2); }
+  .voz p { margin: 0; flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; color: var(--tenue); }
+  .voz p b { display: block; color: var(--tinta); font-size: 15px; font-weight: 650; }
 
-  /* en la vista de voz la tapa queda en lo mínimo: nombre, hora y ayuda */
-  .app[data-vista="voz"] .franjas, .app[data-vista="voz"] .estado { display: none; }
-  .app[data-vista="voz"] .ayuda { margin-left: auto; }
-  button.ficha { cursor: pointer; text-align: left; font: inherit; }
-  .ficha .precio { font: 500 13px/1.3 var(--dato); font-variant-numeric: tabular-nums; }
-  .boton.chico { align-self: flex-start; padding: 7px 14px; font-size: 14px; }
-
-  /* --- redactar --- */
-  .redactar { display: flex; gap: 8px; align-items: flex-end; padding-block: 10px 14px; border-top: 1px solid var(--linea); }
-  .redactar textarea { flex: 1; min-width: 0; resize: none; min-height: 46px; max-height: 130px; padding: 11px 14px; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
+  .redactar { flex: none; display: flex; gap: 8px; align-items: flex-end; padding-top: 10px; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--linea); background: var(--papel); }
+  .redactar textarea { flex: 1; min-width: 0; resize: none; min-height: 46px; max-height: 130px; padding: 11px 14px; background: var(--suelo); border: 1px solid var(--linea); border-radius: var(--radio); }
   .redactar textarea::placeholder { color: var(--tenue); }
-  .icono { flex: none; width: 46px; height: 46px; display: grid; place-items: center; cursor: pointer; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); }
-  .icono svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .icono { flex: none; width: 46px; height: 46px; display: grid; place-items: center; cursor: pointer; background: none; border: 1px solid var(--linea); border-radius: var(--radio); }
+  .icono svg { width: 20px; height: 20px; }
+  .icono:hover { border-color: var(--tenue); }
   .icono.activo { background: var(--tinta); color: var(--suelo); border-color: var(--tinta); }
   .icono.enviar { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
   .icono:disabled, .redactar textarea:disabled { opacity: .45; cursor: default; }
 
-  /* --- qué puede hacer juju: cada función junto al control que la activa --- */
-  .funciones { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px 24px; }
-  .funciones li { display: grid; grid-template-columns: 34px 1fr; gap: 2px 12px; align-items: start; }
-  .funciones .marca { grid-row: span 2; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--linea); border-radius: 10px; background: var(--papel); }
-  .funciones svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .funciones b { font: 600 16px/1.3 var(--titular); }
-  .funciones li > span:last-child { font-size: 14px; color: var(--tenue); }
-  .seccion { margin: 18px 0 0; font: 500 12px/1.2 var(--dato); letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
-  .ayuda { align-self: center; background: none; border: 1px solid var(--linea); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--tenue); white-space: nowrap; }
-  dialog { width: min(92vw, 640px); max-height: 86vh; border: 1px solid var(--linea); border-radius: 18px; padding: 0; background: var(--suelo); color: var(--tinta); }
+  /* --- ventanas: cómo funciona y reserva --- */
+  dialog { width: min(92vw, 560px); max-height: 86vh; border: 1px solid var(--linea); border-radius: 16px; padding: 0; background: var(--suelo); color: var(--tinta); }
   dialog::backdrop { background: rgb(15 17 32 / .55); }
-  dialog .dentro { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 16px; }
-  dialog h2 { margin: 0; font: 800 26px/1.1 var(--titular); letter-spacing: -.03em; }
+  dialog .dentro { padding: 20px 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+  dialog h2 { margin: 0; font: 800 30px/1 var(--titular); font-stretch: 78%; letter-spacing: -.01em; text-wrap: balance; }
   dialog .cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  dialog .funciones { grid-template-columns: 1fr; }
-  .nota-modo { margin: 0; font-size: 14px; color: var(--tenue); border-left: 3px solid var(--duda); padding-left: 10px; }
+  .cerrar { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border-radius: var(--radio); border: 1px solid var(--linea); background: none; cursor: pointer; }
+  .cerrar:hover { border-color: var(--tenue); }
+  .cerrar svg { width: 16px; height: 16px; stroke-width: 2; }
+  .funciones { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 16px; }
+  .funciones li { display: grid; grid-template-columns: 24px 1fr; gap: 1px 14px; align-items: start; }
+  .funciones .marca { grid-row: span 2; padding-top: 1px; }
+  .funciones svg { display: block; width: 22px; height: 22px; }
+  .funciones b { font-weight: 650; line-height: 1.3; }
+  .funciones li > span:last-child { font-size: 14.5px; line-height: 1.45; color: var(--tenue); }
+  .nota-modo { margin: 0; padding: 10px 12px; font-size: 14px; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 8px; }
 
-  .falta { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 16px 18px; font-size: 15px; }
-  .falta h2 { margin: 0 0 6px; font: 600 18px var(--titular); }
-  .falta ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
-  .falta code { font: 400 13px var(--dato); background: var(--suelo); padding: 2px 6px; border-radius: 5px; }
+  /* reserva: hoja que sube desde abajo; el total va después de la línea de corte, como el talón de un boleto */
+  dialog.hoja { width: min(100%, 520px); max-width: 100%; max-height: 92%; margin: auto auto 0; border-bottom: 0; border-radius: 16px 16px 0 0; background: var(--papel); }
+  @media (min-width: 720px) { dialog.hoja { margin: auto; border-bottom: 1px solid var(--linea); border-radius: 16px; } }
+  .hoja .dentro { gap: 12px; padding-bottom: max(22px, env(safe-area-inset-bottom, 0px)); }
+  .hoja .sobre { flex: 1; }
+  .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--tenue); }
+  .campo input, .campo .paso { height: 46px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--suelo); color: var(--tinta); font-size: 16px; font-weight: 500; }
+  .campo input { width: 100%; min-width: 0; padding: 0 10px; }
+  .campo .paso { display: flex; align-items: center; justify-content: space-between; }
+  .campo .paso button { width: 46px; height: 100%; border: 0; background: none; cursor: pointer; font-size: 22px; line-height: 1; }
+  .campo .paso button:disabled { opacity: .3; cursor: default; }
+  .campo .paso output { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 4px; padding-top: 14px; border-top: 2px dashed var(--linea); font-size: 14px; font-weight: 600; color: var(--tenue); }
+  .total b { color: var(--tinta); font: 800 40px/1 var(--titular); font-stretch: 78%; font-variant-numeric: tabular-nums; }
+  .hoja .fila { display: flex; flex-direction: column; gap: 8px; }
+  .hoja .fila a.boton { text-decoration: none; }
+  .nota { margin: 0; font-size: 14px; color: var(--tenue); overflow-wrap: anywhere; }
+  .nota.ok { color: var(--si); font-weight: 650; font-size: 15px; } .nota.mal { color: var(--no); font-weight: 600; }
+  .qr { align-self: center; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid var(--linea); }
+  .prueba { align-self: flex-start; font-size: 12.5px; font-weight: 650; line-height: 1; background: var(--prueba-fondo); color: var(--prueba-tinta); border-radius: 6px; padding: 6px 8px; }
 
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
@@ -222,42 +250,53 @@
 <div class="app" id="app" data-vista="voz">
   <header class="tapa borde">
     <span class="nombre">juju</span>
-    <span class="reloj" id="reloj" title="Hora local de Jujuy (UTC−3)">--:-- · Jujuy</span>
+    <span class="reloj" id="reloj" title="Hora local de Jujuy (UTC−3)">--:-- en Jujuy</span>
     <span class="estado"><span class="punto" id="punto"></span><span id="estado">listo</span></span>
     <button class="ayuda" id="ayuda" type="button">Cómo funciona</button>
   </header>
-  <div class="franjas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="franjas" id="franjas" aria-hidden="true"></div>
 
-  <section class="escena borde" id="escena" aria-label="Conversación por voz">
-    <div class="centro">
-      <button class="orbe" id="orbe" type="button" aria-label="Empezar a hablar"><canvas id="lienzo" width="280" height="280" aria-hidden="true"></canvas><span class="disco" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span></button>
-      <p class="fase" id="fase">Tocá para hablar</p>
-      <div class="dicho" aria-live="polite">
-        <p class="vos" id="dijiste"></p>
-        <p class="dice" id="dijo">Contame dónde estás y qué tenés ganas de hacer.</p>
+  <section class="escena" id="escena" data-estado="reposo" aria-label="Conversación por voz">
+    <div class="dicho borde">
+      <p class="vos" id="dijiste" aria-live="polite"></p>
+      <p class="dice" id="dijo" data-largo="poco" aria-live="polite">Contame dónde estás y qué tenés ganas de hacer.</p>
+      <div class="probar" id="probar">
+        <p class="rotulo">Probá con</p>
+        <ul class="ideas" id="frases">
+          <li><button type="button">Estoy en Tilcara, ¿dónde como ahora?</button></li>
+          <li><button type="button">¿Qué hago esta tarde en Purmamarca?</button></li>
+          <li><button type="button">Quiero reservar una excursión</button></li>
+        </ul>
       </div>
     </div>
-    <div class="tira" id="tira" hidden></div>
-    <div class="mandos">
-      <button class="redondo" id="aChat" type="button" title="Escribir" aria-label="Pasar a escribir">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg>
-      </button>
-      <button class="redondo" id="verExp" type="button" title="Experiencias para reservar" aria-label="Ver experiencias para reservar" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6.5v11" stroke-dasharray="1.5 3"/></svg>
-      </button>
-      <button class="redondo" id="silencio" type="button" title="Silenciar micrófono" aria-label="Silenciar micrófono" aria-pressed="false" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
-      </button>
-      <button class="redondo fin" id="fin" type="button" title="Terminar" aria-label="Terminar la conversación" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
+    <div class="tira borde" id="tira" hidden></div>
+    <canvas class="faja" id="lienzo" aria-hidden="true"></canvas>
+    <div class="pie borde">
+      <div class="aviso-fase">
+        <p class="fase" id="fase" role="status">Tocá el micrófono y contame</p>
+        <button class="terminar" id="fin" type="button" hidden>Terminar</button>
+      </div>
+      <div class="mandos">
+        <button class="mando" id="aChat" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg>
+          <span>Escribir</span>
+        </button>
+        <button class="hablar" id="orbe" type="button" aria-label="Empezar a hablar">
+          <span class="boca" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/><path class="tachado" d="M4 4l16 16"/></svg></span>
+          <span id="orbeRotulo" aria-hidden="true">Hablar</span>
+        </button>
+        <button class="mando" id="verExp" type="button" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6.5v11" stroke-dasharray="1.5 3"/></svg>
+          <span>Experiencias</span>
+        </button>
+      </div>
     </div>
   </section>
 
   <main id="chat" class="borde" aria-live="polite">
     <section class="inicio" id="inicio">
       <p class="sobre" id="sobre">Guía de la provincia de Jujuy</p>
-      <h1>¿Qué hacemos <em>ahora</em>?</h1>
+      <h1>¿Qué hacemos ahora?</h1>
       <p class="bajada">Decime dónde estás y cuánto tiempo te queda. Te armo un plan con algo para hacer y un lugar para comer que esté abierto a esta hora.</p>
       <ul class="ideas" id="ideas">
         <li><button type="button">Estoy en San Salvador, mañana me voy. ¿Qué hago ahora y dónde como?</button></li>
@@ -270,7 +309,7 @@
 
   <dialog id="dlg" aria-labelledby="dlgTitulo">
     <div class="dentro">
-      <div class="cab"><h2 id="dlgTitulo">Cómo funciona juju</h2><button class="boton" id="cerrarDlg" type="button">Cerrar</button></div>
+      <div class="cab"><h2 id="dlgTitulo">Cómo funciona juju</h2><button class="cerrar" id="cerrarDlg" type="button" aria-label="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       <ul class="funciones" id="funcionesDlg"></ul>
       <p class="nota-modo" id="notaModo" hidden></p>
     </div>
@@ -346,6 +385,7 @@ function agregar(n, arriba) {
 function burbuja(rol, texto) {
   const n = nodo('div', 'msg ' + (rol === 'user' ? 'yo' : 'bot'), texto);
   if (rol === 'user') { turno = { ancla: n, grupo: null, vistos: new Set() }; agregar(n); } else { dejarDePensar(); agregar(n, true); }
+  $('probar').hidden = true; // las frases de ejemplo solo acompañan el arranque
   historial.push({ rol, texto }); if (historial.length > 30) historial.shift();
 }
 function aviso(texto, error, arriba) { agregar(nodo('div', 'aviso' + (error ? ' error' : ''), texto), arriba); }
@@ -356,6 +396,9 @@ function pensar(texto = 'juju está pensando') {
 }
 function dejarDePensar() { pensando?.remove(); pensando = null; }
 function estado(txt, clase) { $('estado').textContent = txt; $('punto').className = 'punto ' + (clase || ''); }
+function subtitulo(texto) { // lo último que dijo juju, en la vista de voz: cuanto más corto, más grande
+  $('dijo').textContent = texto; $('dijo').dataset.largo = texto.length <= 70 ? 'poco' : texto.length <= 150 ? 'medio' : 'mucho';
+}
 function enlace(texto, href) {
   try { if (!['http:', 'https:', 'tel:'].includes(new URL(href, location.href).protocol)) return null; } catch { return null; }
   const a = nodo('a', '', texto); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a;
@@ -552,7 +595,7 @@ function mostrarExperiencias(exps, enChat) { // fichas en la vista de voz y, si 
 }
 async function alternarExperiencias() {
   if (tiraDe === 'experiencias' && !$('tira').hidden) { $('tira').hidden = true; $('verExp').setAttribute('aria-pressed', 'false'); return; }
-  try { mostrarExperiencias((await cargarCatalogo()).lista); } catch { $('dijo').textContent = 'No pude cargar las experiencias. Revisá que el servidor esté andando.'; }
+  try { mostrarExperiencias((await cargarCatalogo()).lista); } catch { subtitulo('No pude cargar las experiencias. Revisá que el servidor esté andando.'); }
 }
 
 function pintarReserva() {
@@ -681,16 +724,24 @@ function verVista(v) {
   vista = v; $('app').dataset.vista = v; verVoz();
   if (v === 'chat') { abajo(); if (matchMedia('(pointer: fine)').matches) $('texto').focus(); }
 }
+// estado de la voz → [lo que se lee sobre los mandos, rótulo del botón del micrófono, nombre accesible del botón]
+const FASES = {
+  sin: ['La voz todavía no está conectada', 'Hablar', 'Empezar a hablar'],
+  reposo: ['Tocá el micrófono y contame', 'Hablar', 'Empezar a hablar'],
+  conectando: ['Conectando', 'Hablar', 'Conectando'],
+  escucha: ['Te escucho', 'Silenciar', 'Silenciar el micrófono'],
+  habla: ['juju está hablando', 'Silenciar', 'Silenciar el micrófono'],
+  silencio: ['Micrófono en silencio', 'Activar', 'Activar el micrófono'],
+};
 function ponerFase() {
-  $('fase').textContent = sinAgente ? 'Voz todavía no disponible' : conectandoVoz ? 'Conectando' : modo !== 'voz' ? 'Tocá para hablar'
-    : silenciado ? 'Micrófono en silencio' : hablando ? 'juju está hablando' : 'Te escucho';
-  $('orbe').setAttribute('aria-label', modo === 'voz' ? (silenciado ? 'Activar el micrófono' : 'Silenciar el micrófono') : 'Empezar a hablar');
+  const e = sinAgente ? 'sin' : conectandoVoz ? 'conectando' : modo !== 'voz' ? 'reposo' : silenciado ? 'silencio' : hablando ? 'habla' : 'escucha';
+  $('escena').dataset.estado = e; // el color del micrófono y del punto salen de acá
+  $('fase').textContent = FASES[e][0]; $('orbeRotulo').textContent = FASES[e][1]; $('orbe').setAttribute('aria-label', FASES[e][2]);
 }
 function verVoz() { // pone botones, barra y textos de acuerdo con el estado de la sesión
   const activa = modo === 'voz';
-  $('orbe').dataset.activa = String(activa || conectandoVoz);
-  $('silencio').hidden = !activa; $('fin').hidden = !(activa || conectandoVoz); // la cruz también cancela mientras conecta
-  $('silencio').setAttribute('aria-pressed', String(silenciado));
+  $('fin').hidden = !(activa || conectandoVoz); // "Terminar" también cancela mientras conecta
+  if (activa || conectandoVoz) $('probar').hidden = true;
   $('voz').hidden = !(activa && vista === 'chat'); $('mic').classList.toggle('activo', activa);
   $('texto').placeholder = activa ? 'O escribí acá' : 'Escribí tu consulta';
   ponerFase();
@@ -707,13 +758,13 @@ function enTira(lugares) { // lugares del turno actual, como fichas para desliza
   $('tira').hidden = !$('tira').childElementCount;
 }
 async function iniciarVoz() {
-  if (sinAgente) { $('dijo').textContent = 'Para hablar falta conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.'; return; }
+  if (sinAgente) { subtitulo('Para hablar falta conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.'); return; }
   if (modo === 'voz' || conectandoVoz) return;
   conectandoVoz = true; silenciado = false; verVoz();
   try { await conectar('voz', historial.length ? 'Dale, te escucho.' : undefined); }
   catch (e) {
     const m = (e.name === 'NotAllowedError' ? 'Para hablar necesito permiso de micrófono. Habilitalo en el navegador y tocá de nuevo. ' : 'No pude conectar. ') + (e.message || '');
-    $('dijo').textContent = m; aviso(m, true); estado('listo');
+    subtitulo(m); aviso(m, true); estado('listo');
   } finally { conectandoVoz = false; verVoz(); }
 }
 async function terminarVoz() {
@@ -730,40 +781,75 @@ function alternarSilencio() {
   verVoz();
 }
 
-// El círculo: siete franjas onduladas dentro de un disco. La ondulación sigue el volumen de quien habla.
+// La faja: un tejido de aguayo a todo el ancho. En reposo es una cinta plana; con la voz, cada hilo se levanta
+// con el sonido de quien habla (los graves al centro) y entre todos dibujan un cerro.
 const lienzo = $('lienzo'); const tela = lienzo.getContext('2d');
 const quieto = matchMedia('(prefers-reduced-motion: reduce)');
-let tintas = [], nivel = 0.06, giro = 0;
-function leerTintas() { const cs = getComputedStyle(document.documentElement); tintas = [1, 2, 3, 4, 5, 6, 7].map((i) => cs.getPropertyValue('--f' + i).trim() || '#888'); }
-leerTintas(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', leerTintas);
+// Media faja, del centro hacia afuera: [hilo, ancho]. Hilo 0 = tinta; 1 a 7 = --f1 a --f7. La otra mitad es el espejo.
+const MEDIA = [[1, 2], [0, 1], [4, 1], [0, 1], [3, 3], [5, 1], [6, 2], [0, 1], [7, 4], [4, 1], [1, 1], [5, 3], [0, 1], [3, 1], [6, 4], [0, 1], [2, 3], [4, 1], [7, 2], [0, 1]];
+const HILO = 4, CINTA = 12; // ancho de un hilo y alto de la cinta en reposo, en px
+const tintaDe = (c) => (c ? '--f' + c : '--tinta');
+let tintas = [], hilos = [], alturas = [], escala = 1, sucio = true;
+function leerTintas() {
+  const cs = getComputedStyle(document.documentElement);
+  tintas = [0, 1, 2, 3, 4, 5, 6, 7].map((c) => cs.getPropertyValue(tintaDe(c)).trim() || '#888'); sucio = true;
+}
+function tejer() { // reparte los hilos en el ancho que hay
+  const w = lienzo.clientWidth, h = lienzo.clientHeight;
+  if (!w) return; // la vista de voz está oculta
+  escala = Math.min(2, window.devicePixelRatio || 1);
+  lienzo.width = Math.round(w * escala); lienzo.height = Math.round(h * escala);
+  hilos = [];
+  for (let i = 0, x = 0; x < w / 2; i++) { const [c, n] = MEDIA[i % MEDIA.length]; hilos.push({ c, x, w: n * HILO }); x += n * HILO; }
+  alturas = hilos.map((_, i) => alturas[i] || 0);
+  pintar(); // cambiar el tamaño borra el lienzo
+}
+function pintar() {
+  const W = lienzo.width, H = lienzo.height, centro = W / 2, base = CINTA * escala, libre = H - base;
+  tela.clearRect(0, 0, W, H);
+  for (let i = 0; i < hilos.length; i++) {
+    const alto = Math.round(base + libre * alturas[i]), x = hilos[i].x * escala, w = hilos[i].w * escala;
+    tela.fillStyle = tintas[hilos[i].c];
+    tela.fillRect(Math.floor(centro + x), H - alto, Math.ceil(w), alto);
+    tela.fillRect(Math.floor(centro - x - w), H - alto, Math.ceil(w), alto);
+  }
+}
 function dibujar(t) {
   if (vista !== 'voz' || document.hidden) return void setTimeout(() => requestAnimationFrame(dibujar), 400);
-  let meta = 0.07; // reposo
-  if (conectandoVoz) meta = 0.3 + 0.15 * Math.sin(t / 260);
-  else if (modo === 'voz' && conv) {
-    let v = 0;
-    try { v = hablando ? conv.getOutputVolume() : silenciado ? 0 : conv.getInputVolume(); } catch {}
-    meta = 0.1 + Math.min(1, (v || 0) * 1.8) * 0.9;
+  const activa = modo === 'voz' && conv;
+  let datos = null, volumen = 0;
+  if (activa && (hablando || !silenciado)) {
+    try { datos = hablando ? conv.getOutputByteFrequencyData() : conv.getInputByteFrequencyData(); } catch {}
+    try { volumen = (hablando ? conv.getOutputVolume() : conv.getInputVolume()) || 0; } catch {}
   }
-  nivel += (meta - nivel) * 0.16;
-  if (!quieto.matches) giro += 0.008 + nivel * 0.06;
-  const W = lienzo.width, R = W / 2, alto = W / 7, amp = alto * (0.12 + nivel * 0.95);
-  tela.clearRect(0, 0, W, W);
-  tela.save(); tela.beginPath(); tela.arc(R, R, R - 1, 0, Math.PI * 2); tela.clip();
-  for (let i = 0; i < 7; i++) {
-    tela.fillStyle = tintas[i]; tela.beginPath(); tela.moveTo(0, W); tela.lineTo(0, i ? i * alto : 0);
-    for (let x = 0; x <= W; x += 7) {
-      const u = x / W;
-      tela.lineTo(x, i ? i * alto + amp * Math.sin(u * 6.283 * (1 + i * 0.13) + giro * (1 + i * 0.2) + i * 1.7) + amp * 0.4 * Math.sin(u * 15.7 - giro * 1.3 + i) : 0);
+  const conEspectro = !!datos?.length && datos.some((d) => d > 0);
+  let vivo = false;
+  for (let i = 0; i < hilos.length; i++) {
+    const u = (i + 0.5) / hilos.length; // 0 en el centro, 1 en el borde
+    let meta = 0;
+    if (conectandoVoz) meta = quieto.matches ? 0.2 : 0.17 + 0.14 * Math.sin(t / 240 - u * 7); // una onda que va hacia los bordes
+    else if (activa) {
+      const cerro = Math.cos(u * Math.PI / 2) ** 1.4;
+      // sin espectro (algunos navegadores no lo dan) se arma con el volumen general
+      const v = conEspectro ? (datos[Math.floor(u * datos.length * 0.4)] / 255) * 1.25 : Math.min(1, volumen * 2.2) * (0.6 + 0.4 * Math.sin(i * 2.1 + t / 110));
+      meta = Math.max(Math.min(1, v) * (0.35 + 0.65 * cerro), 0.05 * cerro); // un mínimo: se ve que la sesión está abierta
     }
-    tela.lineTo(W, W); tela.closePath(); tela.fill();
+    alturas[i] += (meta - alturas[i]) * (meta > alturas[i] ? 0.45 : 0.14); // sube rápido, baja despacio
+    if (alturas[i] > 0.004) vivo = true; else alturas[i] = 0;
   }
-  tela.restore();
-  $('orbe').style.setProperty('--pulso', (1 + nivel * 0.09).toFixed(3));
-  $('orbe').style.setProperty('--halo', (0.26 + nivel * 0.6).toFixed(3));
-  requestAnimationFrame(dibujar);
+  if (vivo || sucio) { pintar(); sucio = false; }
+  if (vivo || activa || conectandoVoz) requestAnimationFrame(dibujar); else setTimeout(() => requestAnimationFrame(dibujar), 200);
 }
+leerTintas(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', leerTintas);
+new ResizeObserver(tejer).observe(lienzo);
 requestAnimationFrame(dibujar);
+{ // la cinta del chat lleva el mismo tejido, armado como fondo CSS: media faja, su espejo, y se repite desde el centro
+  let x = 0;
+  const media = MEDIA.map(([c, n]) => [c, x, (x += n * HILO)]);
+  const tramos = [...media.map(([c, a, b]) => [c, x - b, x - a]).reverse(), ...media.map(([c, a, b]) => [c, x + a, x + b])];
+  $('franjas').style.backgroundImage = `linear-gradient(90deg, ${tramos.map(([c, a, b]) => `var(${tintaDe(c)}) ${a}px ${b}px`).join(', ')})`;
+  $('franjas').style.backgroundSize = `${x * 2}px 100%`;
+}
 function medir() { // las siete franjas siguen el volumen de quien habla
   if (modo !== 'voz' || !conv) { for (const b of $('barras').children) b.style.transform = ''; return; }
   let datos = null;
@@ -794,10 +880,10 @@ function conectar(nuevoModo, saludo) {
       onMessage: ({ message, role }) => {
         if (!message || mia !== serie) return;
         if (role === 'user') { if (message === ultimoEnviado) { ultimoEnviado = ''; return; } burbuja('user', message); pensar(); $('dijiste').textContent = message; if (modo === 'voz') voiceTurn(message); }
-        else { burbuja('agent', message); $('dijo').textContent = message; }
+        else { burbuja('agent', message); subtitulo(message); }
       },
       onModeChange: ({ mode }) => { if (mia !== serie) return; hablando = mode === 'speaking'; if (modo === 'voz') { $('vozTitulo').textContent = hablando ? 'juju está hablando' : 'Te escucho'; estado(hablando ? 'hablando' : 'escuchando', 'voz'); ponerFase(); } },
-      onError: (m) => { if (mia !== serie) return; dejarDePensar(); console.error(m); aviso(`Algo falló: ${m}`, true); if (vista === 'voz') $('dijo').textContent = `Algo falló: ${m}`; },
+      onError: (m) => { if (mia !== serie) return; dejarDePensar(); console.error(m); aviso(`Algo falló: ${m}`, true); if (vista === 'voz') subtitulo(`Algo falló: ${m}`); },
       onDisconnect: (d) => { if (mia !== serie) return; conv = null; modo = null; silenciado = false; hablando = false; dejarDePensar(); verVoz(); estado('listo'); if (d?.reason === 'error') aviso(`Se cortó la conexión. ${d.message || ''} Mandá un mensaje para retomar.`, true); },
     };
     if (nuevoModo === 'voz') Object.assign(opciones, { conversationToken: s.conversationToken, connectionType: 'webrtc' });
@@ -860,8 +946,9 @@ $('texto').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shif
 $('texto').addEventListener('input', (e) => { e.target.style.height = ''; e.target.style.height = Math.min(e.target.scrollHeight, 130) + 'px'; });
 $('ideas').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) enviar(b.textContent); });
 
+$('frases').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { verVista('chat'); enviar(b.textContent); } });
+
 $('orbe').onclick = () => (modo === 'voz' ? alternarSilencio() : iniciarVoz());
-$('silencio').onclick = alternarSilencio;
 $('fin').onclick = terminarVoz; $('cortar').onclick = terminarVoz;
 $('aChat').onclick = () => verVista('chat');
 $('mic').onclick = () => { verVista('voz'); iniciarVoz(); }; // desde el chat: volver a la voz
@@ -892,9 +979,9 @@ function pintarFunciones(e) {
   const total = e?.datos?.total ? e.datos.total.toLocaleString('es-AR') : 'miles de';
   const conHorario = e?.datos?.con_horario;
   const funciones = [
-    ['mic', 'Hablá en vivo', 'Tocá el círculo y conversamos con voz. El resplandor de colores crece con quien habla. Tocá el círculo o el micrófono para silenciarte, y la cruz para terminar.'],
-    ['chat', 'Preguntá por escrito', 'El botón del teclado abre el chat. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora. La charla sigue siendo la misma.'],
-    ['pin', 'Buscá cerca tuyo', 'Con el botón del pin uso tu ubicación para no preguntarte la localidad. Solo se usa en esta charla.'],
+    ['mic', 'Hablá en vivo', 'Tocá el micrófono y conversamos con voz. La faja de colores se levanta con quien habla. Tocá el micrófono otra vez para silenciarte y "Terminar" para cortar.'],
+    ['chat', 'Preguntá por escrito', '"Escribir" abre el chat. Entiendo "son las 18", "esta noche" o "al mediodía" y busco para esa hora. La charla sigue siendo la misma.'],
+    ['pin', 'Buscá cerca tuyo', 'En el chat, el botón del pin usa tu ubicación para no preguntarte la localidad. Solo se usa en esta charla.'],
     ['reloj', 'Mirá qué está abierto', 'Cada lugar dice si está abierto, cerrado o sin horario.' + (conHorario ? ' Hoy ' + conHorario + ' lugares tienen horario cargado.' : '') + ' Cuando no lo tengo te aviso, no lo invento.'],
     ['lista', 'Llevate los datos', 'Distancia, precio aproximado, mapa, teléfono y sitio web de ' + total + ' lugares de toda la provincia.'],
   ];
@@ -902,7 +989,7 @@ function pintarFunciones(e) {
   const p = e?.pagos;
   const cobro = p?.proveedor === 'cosmospay' ? 'Pagás con ' + p.monedas.map((m) => m.etiqueta).join(' o ') + ' y acá te aviso cuando se acredita.' + (p.red === 'testnet' ? ' Ahora está en red de prueba: no es dinero real.' : '')
     : p?.proveedor === 'simulado' ? 'El pago está en modo de prueba: recorrés todos los pasos y no se cobra nada.' : 'Ahora es una demostración: el pago es simulado y no se cobra nada.';
-  if (!e || p?.productos) funciones.push(['boleto', 'Reservá una experiencia', 'Pedime por voz que te reserve un lugar o una experiencia: te pregunto si pagás con USDC o por transferencia y te doy el código. O tocá el botón del boleto, elegí personas y fecha y mirá el total. ' + (e ? cobro : '')]);
+  if (!e || p?.productos) funciones.push(['boleto', 'Reservá una experiencia', 'Pedime por voz que te reserve un lugar o una experiencia: te pregunto si pagás con USDC o por transferencia y te doy el código. O tocá "Experiencias", elegí personas y fecha y mirá el total. ' + (e ? cobro : '')]);
   for (const id of ['funcionesDlg']) {
     $(id).replaceChildren(...funciones.map(([icono, titulo, texto]) => {
       const li = nodo('li'); const m = nodo('span', 'marca'); m.setAttribute('aria-hidden', 'true');
@@ -920,7 +1007,7 @@ $('dlg').addEventListener('click', (e) => { if (e.target === $('dlg')) $('dlg').
 // ---------- arranque ----------
 function reloj() {
   const h = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Jujuy', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
-  $('reloj').textContent = `${h} · Jujuy`;
+  $('reloj').textContent = `${h} en Jujuy`;
 }
 reloj(); setInterval(reloj, 20000);
 
@@ -933,7 +1020,7 @@ reloj(); setInterval(reloj, 20000);
   if (e.voz?.tiempo_real) $('vozNota').textContent = 'Voz en tiempo real. Hablá con naturalidad; también podés escribir.';
   if (!e.agente_configurado) {
     sinAgente = true; estado('solo directorio'); ponerFase();
-    $('dijo').textContent = 'La voz se activa al conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias para reservar.';
+    subtitulo('La voz se activa al conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias.');
     $('notaModo').hidden = false;
     $('notaModo').textContent = 'Ahora juju muestra solo los lugares del directorio. Para conversar por texto y por voz falta conectar ElevenLabs: copiá .env.example como .env, pegá tu clave y ejecutá "node crear-agente.mjs".';
   }

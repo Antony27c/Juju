@@ -15,7 +15,7 @@ Leer esto primero, porque define qué está comprobado y qué no.
 | Cosmos Pay: crear un pago | Probado contra su red de prueba (devolvió link de pago y QR) |
 | Cosmos Pay: consultar estado y webhook | Firma del webhook probada en local. La consulta de estado necesita una clave propia |
 | Sesión con ElevenLabs (texto y voz) | **Sin probar**: falta la clave de API. Los nombres de campos y métodos se verificaron contra la documentación y contra el código del SDK 1.37.1 |
-| Página en el navegador | Revisada con capturas en escritorio y celular, tema claro y oscuro, en modo "solo directorio" (sin ElevenLabs). La pantalla principal es la vista de voz (círculo con resplandor de siete colores, subtítulos y botones redondos); se vio en reposo, no con una sesión de voz real |
+| Página en el navegador | Revisada con capturas en escritorio y celular, tema claro y oscuro, en modo "solo directorio" (sin ElevenLabs). La pantalla principal es la vista de voz (micrófono con rótulo, subtítulos en grande y una faja de aguayo que se levanta con la voz); la faja y los estados de escucha y silencio se vieron con una sesión simulada en el navegador, no con una sesión de voz real |
 | Reserva de experiencias | Probada de punta a punta con el pago simulado: validación de personas y fecha, total, código de reserva y confirmación. La reserva de demostración (`/api/reservas`) se probó contra el servidor. Las herramientas `ver_experiencias` y `reservar` no se probaron con el agente |
 
 El primer `node crear-agente.mjs` con una clave real es la prueba que falta. Si la API rechaza algún campo, el script imprime el error completo y reintenta con una configuración mínima.
