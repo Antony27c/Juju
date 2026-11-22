@@ -52,17 +52,17 @@ try {
 const clave = process.env.ELEVENLABS_API_KEY;
 const agente = process.env.ELEVENLABS_AGENT_ID;
 if (!clave) anotar('FALTA', 'ElevenLabs', `sin clave: juju no habla ni conversa. ${existsSync(ENV) ? 'Pegá' : 'Copiá .env.example como .env y pegá'} ELEVENLABS_API_KEY`);
-else if (!agente) anotar('FALTA', 'ElevenLabs', 'hay clave pero falta crear el agente: node crear-agente.mjs');
+else if (!agente) anotar('AVISO', 'ElevenLabs', 'hay clave y todavía no hay id de agente: el servidor lo busca o lo crea solo al arrancar');
 else {
   try {
     const base = (process.env.ELEVENLABS_API_BASE || 'https://api.elevenlabs.io').replace(/\/$/, '');
     const r = await fetch(`${base}/v1/convai/agents/${encodeURIComponent(agente)}`, { headers: { 'xi-api-key': clave }, signal: AbortSignal.timeout(15000) });
     if (r.ok) { const d = await r.json(); anotar('OK', 'ElevenLabs', `agente "${d.name || agente}" encontrado`); }
-    else anotar('FALLA', 'ElevenLabs', r.status === 401 ? 'la clave fue rechazada (401)' : r.status === 404 ? 'el agente no existe: volvé a correr node crear-agente.mjs' : `respondió ${r.status}`);
+    else anotar('FALLA', 'ElevenLabs', r.status === 401 ? 'la clave fue rechazada (401)' : r.status === 404 ? 'el agente de ELEVENLABS_AGENT_ID no existe: borrá esa línea del .env y reiniciá el servidor, que lo crea solo' : `respondió ${r.status}`);
   } catch (e) { anotar('FALLA', 'ElevenLabs', `no se pudo consultar: ${e.message}`); }
   // La voz en vivo usa un segundo agente en Eleven Realtime; sin él funciona igual, con el agente de texto.
   const voz = process.env.ELEVENLABS_VOICE_AGENT_ID;
-  anotar(voz ? 'OK' : 'AVISO', 'Voz en tiempo real', voz ? `agente de voz ${voz}` : 'sin agente de voz: la voz usa el agente de texto (más lenta). Lo crea node crear-agente.mjs si la cuenta tiene Eleven Realtime');
+  anotar(voz ? 'OK' : 'AVISO', 'Voz en tiempo real', voz ? `agente de voz ${voz}` : 'sin agente de voz: la voz usa el agente de texto (más lenta). El servidor lo crea al arrancar si la cuenta tiene Eleven Realtime');
 }
 
 const ancho = Math.max(...filas.map((f) => f[1].length));

@@ -6,7 +6,7 @@
 // - /api/pagos crea y consulta pagos (USD / cripto).
 
 import http from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +35,34 @@ const clave = () => process.env.ELEVENLABS_API_KEY || '';
 const voiceAgent = () => process.env.ELEVENLABS_VOICE_AGENT_ID || '';
 const realtimeModel = () => process.env.ELEVENLABS_REALTIME_MODEL || 'eleven_realtime_v1_mini';
 const agentFor = (modo) => (modo === 'voz' && voiceAgent()) || agente();
+
+// Con ELEVENLABS_API_KEY sola alcanza: al arrancar se buscan (o se crean) los agentes y sus herramientas en la cuenta
+// y los ids quedan en memoria. Corre en segundo plano: el servidor atiende mientras tanto, y un error solo se registra.
+// ELEVENLABS_SINCRONIZAR=off lo desactiva y usa los ids de las variables tal como están.
+let preparacion = null, errorAgente = '';
+function prepararAgente() {
+  if (!clave() || /^(off|no|0|false)$/i.test(process.env.ELEVENLABS_SINCRONIZAR || '')) return;
+  const archivo = path.join(AQUI, 'agente.json');
+  const tarea = (async () => {
+    try {
+      const { prepararAgentes } = await import('./crear-agente.mjs');
+      let ids = {};
+      try { if (existsSync(archivo)) ids = JSON.parse(await readFile(archivo, 'utf8')); } catch {}
+      if (agente()) ids.agente = agente();
+      if (voiceAgent()) ids.voice_agent = voiceAgent();
+      const guardar = (x) => writeFile(archivo, JSON.stringify(x, null, 1)).catch(() => {}); // en un hosting el disco es efímero: da igual
+      const { text, voice } = await prepararAgentes({ ids, guardar, log: () => {} });
+      process.env.ELEVENLABS_AGENT_ID = text.id;
+      if (voice) process.env.ELEVENLABS_VOICE_AGENT_ID = voice.id;
+      errorAgente = '';
+      console.log(`ElevenLabs: agente ${text.id} ${text.action === 'created' ? 'creado' : 'actualizado'} · voz: ${voice ? `tiempo real, agente ${voice.id}` : 'con el agente de texto'}`);
+    } catch (e) {
+      errorAgente = String(e.message || e).slice(0, 400);
+      console.error(`ElevenLabs: no pude preparar el agente. ${errorAgente}`);
+    } finally { if (preparacion === tarea) preparacion = null; }
+  })();
+  preparacion = tarea;
+}
 
 // Resolves the place the assistant names to a directory entry, preferring matches near the locality.
 function findPlace({ lugar, localidad } = {}) {
@@ -76,7 +104,10 @@ function catalogoTexto() {
 }
 
 async function sesion(modo) {
-  if (!clave() || !agente()) return [503, { error: 'Falta configurar ELEVENLABS_API_KEY y crear el agente (node crear-agente.mjs).' }];
+  if (!clave()) return [503, { error: 'Falta cargar ELEVENLABS_API_KEY en el servidor.' }];
+  // si el agente todavía se está preparando, el pedido espera un rato en vez de fallar
+  if (preparacion) await Promise.race([preparacion, new Promise((ok) => setTimeout(ok, 25000))]);
+  if (!agente()) return [503, { error: errorAgente ? `No se pudo preparar el agente en ElevenLabs. ${errorAgente}` : 'El agente de ElevenLabs todavía se está preparando. Probá de nuevo en unos segundos.' }];
   const ruta = modo === 'voz' ? 'conversation/token' : 'conversation/get-signed-url';
   const r = await fetch(`${API}/v1/convai/${ruta}?agent_id=${encodeURIComponent(agentFor(modo))}`, { headers: { 'xi-api-key': clave() }, signal: AbortSignal.timeout(15000) });
   const d = await r.json().catch(() => ({}));
@@ -117,7 +148,9 @@ const servidor = http.createServer(async (req, res) => {
   try {
     if (ruta === '/api/estado') {
       return json(res, 200, {
-        agente_configurado: Boolean(clave() && agente()), datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
+        // mientras el agente se prepara cuenta como configurado: /api/sesion espera a que termine
+        agente_configurado: Boolean(clave() && (agente() || preparacion)), clave_cargada: Boolean(clave()), ...(errorAgente ? { error_agente: errorAgente } : {}),
+        datos: resumen(), ahora: momento().etiqueta, pagos: pagos.estadoPagos(),
         voz: { tiempo_real: Boolean(voiceAgent()), modelo: voiceAgent() ? realtimeModel() : null },
       });
     }
@@ -175,7 +208,8 @@ servidor.listen(PUERTO, HOST, () => {
   const r = resumen();
   console.log(`juju escuchando en ${HOST}:${PUERTO}${URL_PUBLICA ? ` · ${URL_PUBLICA}` : HOST === '127.0.0.1' ? ` · http://localhost:${PUERTO}` : ''}`);
   console.log(`Datos: ${r.total} registros desde ${r.origen} (${r.con_horario} con horario cargado)`);
-  console.log(`ElevenLabs: ${clave() ? 'API key OK' : 'FALTA ELEVENLABS_API_KEY'} · ${agente() ? 'agente ' + agente() : 'FALTA crear el agente (node crear-agente.mjs)'}`);
+  console.log(`ElevenLabs: ${clave() ? 'API key OK' : 'FALTA ELEVENLABS_API_KEY'} · ${agente() ? 'agente ' + agente() : clave() ? 'sin id de agente: lo busco o lo creo ahora' : 'sin clave no hay agente'}`);
   console.log(`Voice: ${voiceAgent() ? `Eleven Realtime (${realtimeModel()}) on agent ${voiceAgent()}` : 'text agent (no realtime voice agent configured)'}`);
   console.log(`Pagos: ${JSON.stringify(pagos.estadoPagos())}`);
+  prepararAgente();
 });

@@ -1,6 +1,7 @@
-// Crea (o actualiza) el agente de ElevenLabs y sus herramientas, y guarda los ids.
-//   node crear-agente.mjs
-// Requiere ELEVENLABS_API_KEY en .env. Se puede volver a correr después de cambiar el prompt.
+// Crea (o actualiza) los agentes de ElevenLabs y sus herramientas.
+// - El servidor lo importa y llama a prepararAgentes() al arrancar: con ELEVENLABS_API_KEY sola alcanza.
+// - También corre a mano: node crear-agente.mjs (guarda los ids en agente.json y en .env).
+// Se puede repetir las veces que haga falta: busca lo que ya existe y lo actualiza, no duplica.
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
@@ -11,13 +12,11 @@ const ENV = path.join(AQUI, '.env');
 const IDS = path.join(AQUI, 'agente.json');
 if (existsSync(ENV)) process.loadEnvFile(ENV);
 
-const CLAVE = process.env.ELEVENLABS_API_KEY;
-if (!CLAVE) { console.error('Falta ELEVENLABS_API_KEY. Copiá .env.example a .env y pegá tu clave.'); process.exit(1); }
 const API = (process.env.ELEVENLABS_API_BASE || 'https://api.elevenlabs.io').replace(/\/$/, '');
 const { estructura, resumen } = await import('./datos.mjs');
 
 async function api(metodo, ruta, body) {
-  const r = await fetch(API + ruta, { method: metodo, headers: { 'xi-api-key': CLAVE, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const r = await fetch(API + ruta, { method: metodo, headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY || '', 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(20000) });
   const txt = await r.text();
   let d; try { d = JSON.parse(txt); } catch { d = txt; }
   if (!r.ok) { const e = new Error(`${metodo} ${ruta} -> ${r.status}: ${typeof d === 'string' ? d : JSON.stringify(d)}`); e.status = r.status; throw e; }
@@ -138,22 +137,6 @@ const HERRAMIENTAS = [
   },
 ];
 
-const ids = existsSync(IDS) ? JSON.parse(readFileSync(IDS, 'utf8')) : { herramientas: {} };
-ids.herramientas ||= {};
-
-for (const h of HERRAMIENTAS) {
-  const previo = ids.herramientas[h.name];
-  if (previo) {
-    try { await api('PATCH', `/v1/convai/tools/${previo}`, { tool_config: h }); console.log(`Herramienta actualizada: ${h.name}`); continue; } catch (e) { console.warn(`No pude actualizar ${h.name} (${e.message}); creo una nueva.`); }
-  }
-  const d = await api('POST', '/v1/convai/tools', { tool_config: h });
-  ids.herramientas[h.name] = d.id;
-  writeFileSync(IDS, JSON.stringify(ids, null, 1));
-  console.log(`Herramienta creada: ${h.name} (${d.id})`);
-}
-// Only the current tools get attached; a tool dropped from HERRAMIENTAS stays in the account, detached.
-const toolIds = HERRAMIENTAS.map((h) => ids.herramientas[h.name]);
-
 const LLM = process.env.ELEVENLABS_LLM || 'claude-haiku-5-5';
 // La voz de juju va fija acá, no por variable de entorno: "Sarah", voz femenina que viene con toda cuenta de
 // ElevenLabs y está verificada para español. Para cambiarla, reemplazá el id por el de otra voz de la cuenta.
@@ -170,10 +153,11 @@ if (!REALTIME && realtimeSetting !== 'off') console.warn(`Unknown ELEVENLABS_REA
 
 // Config levels, tried from 2 down to 0 when the API rejects optional fields:
 // 2 = everything plus eager turn taking; 1 = time zone, variables, events, session length; 0 = minimal.
-function config(kind, level) {
+const NOMBRES = { text: 'juju', voice: 'juju (voz en tiempo real)' };
+function config(kind, level, toolIds) {
   const voice = kind === 'voice';
   const c = {
-    name: voice ? 'juju (voz en tiempo real)' : 'juju',
+    name: NOMBRES[kind],
     conversation_config: {
       agent: {
         first_message: '¡Hola! Soy juju, tu guía de Jujuy. Contame en qué localidad estás y cuánto tiempo tenés, y te armo un plan para hacer algo y comer rico. Si querés, también te reservo una excursión.',
@@ -198,10 +182,10 @@ function config(kind, level) {
   return c;
 }
 
-async function saveAgent(kind, id) {
+async function saveAgent(kind, id, toolIds) {
   let lastError;
   for (let level = 2; level >= 0; level--) {
-    const body = config(kind, level);
+    const body = config(kind, level, toolIds);
     try {
       if (id) {
         try { await api('PATCH', `/v1/convai/agents/${id}`, body); return { id, action: 'updated', level }; } catch (e) {
@@ -222,6 +206,69 @@ async function saveAgent(kind, id) {
   throw lastError;
 }
 
+// Sin agente.json (un hosting con disco efímero, como Railway) los ids se recuperan de la cuenta por nombre:
+// así cada arranque actualiza lo que ya existe en vez de crear otra copia.
+async function listar(ruta, campo) {
+  const todo = []; let cursor = '';
+  for (let pagina = 0; pagina < 20; pagina++) {
+    const d = await api('GET', `${ruta}${ruta.includes('?') ? '&' : '?'}page_size=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+    todo.push(...(d[campo] || []));
+    if (!d.has_more || !d.next_cursor) break;
+    cursor = d.next_cursor;
+  }
+  return todo;
+}
+
+// Deja las herramientas y los dos agentes creados y al día. ids trae lo que ya se conoce ({ agente, voice_agent,
+// herramientas }) y se completa; guardar(ids) se llama cada vez que cambia. Devuelve { ids, text, voice }.
+export async function prepararAgentes({ ids = {}, guardar = () => {}, log = console.log, warn = console.warn } = {}) {
+  ids.herramientas ||= {};
+  if (HERRAMIENTAS.some((h) => !ids.herramientas[h.name])) {
+    try {
+      for (const t of await listar('/v1/convai/tools', 'tools')) {
+        const nombre = t.tool_config?.name;
+        if (t.id && t.tool_config?.type === 'client' && HERRAMIENTAS.some((h) => h.name === nombre) && !ids.herramientas[nombre]) ids.herramientas[nombre] = t.id;
+      }
+    } catch (e) { warn(`No pude listar las herramientas de la cuenta (${e.message}); creo las que falten.`); }
+  }
+  await Promise.all(HERRAMIENTAS.map(async (h) => {
+    const previo = ids.herramientas[h.name];
+    if (previo) {
+      try { await api('PATCH', `/v1/convai/tools/${previo}`, { tool_config: h }); log(`Herramienta actualizada: ${h.name}`); return; } catch (e) { warn(`No pude actualizar ${h.name} (${e.message}); creo una nueva.`); }
+    }
+    const d = await api('POST', '/v1/convai/tools', { tool_config: h });
+    ids.herramientas[h.name] = d.id;
+    log(`Herramienta creada: ${h.name} (${d.id})`);
+  }));
+  guardar(ids);
+  // Only the current tools get attached; a tool dropped from HERRAMIENTAS stays in the account, detached.
+  const toolIds = HERRAMIENTAS.map((h) => ids.herramientas[h.name]);
+
+  if (!ids.agente || (REALTIME && !ids.voice_agent)) {
+    try {
+      const existentes = await listar('/v1/convai/agents?search=juju', 'agents');
+      ids.agente ||= existentes.find((x) => x.name === NOMBRES.text)?.agent_id;
+      ids.voice_agent ||= existentes.find((x) => x.name === NOMBRES.voice)?.agent_id;
+    } catch (e) { warn(`No pude listar los agentes de la cuenta (${e.message}); creo los que falten.`); }
+  }
+
+  const text = await saveAgent('text', ids.agente, toolIds);
+  ids.agente = text.id;
+  guardar(ids);
+
+  let voice = null;
+  if (REALTIME) {
+    try {
+      voice = await saveAgent('voice', ids.voice_agent, toolIds);
+      ids.voice_agent = voice.id;
+      guardar(ids);
+    } catch (e) {
+      warn(`Could not set up the Eleven Realtime voice agent:\n  ${e.message}\nLive voice will use the text agent.`);
+    }
+  }
+  return { ids, text, voice };
+}
+
 function setEnv(key, value) {
   let env = existsSync(ENV) ? readFileSync(ENV, 'utf8') : '';
   const line = new RegExp(`^${key}=.*$`, 'm');
@@ -229,26 +276,19 @@ function setEnv(key, value) {
   writeFileSync(ENV, env);
 }
 
-const text = await saveAgent('text', ids.agente);
-ids.agente = text.id;
-writeFileSync(IDS, JSON.stringify(ids, null, 1));
-if (text.level === 0) console.warn('Text agent saved with the minimal config. Check in the ElevenLabs dashboard that the "agent_response" and "client_tool_call" events are enabled.');
+// ---------- línea de comandos: node crear-agente.mjs ----------
+const igual = (x, y) => (process.platform === 'win32' ? x.toLowerCase() === y.toLowerCase() : x === y);
+if (process.argv[1] && igual(path.resolve(process.argv[1]), fileURLToPath(import.meta.url))) {
+  if (!process.env.ELEVENLABS_API_KEY) { console.error('Falta ELEVENLABS_API_KEY. Copiá .env.example a .env y pegá tu clave.'); process.exit(1); }
+  const guardados = existsSync(IDS) ? JSON.parse(readFileSync(IDS, 'utf8')) : {};
+  const { ids, text, voice } = await prepararAgentes({ ids: guardados, guardar: (x) => writeFileSync(IDS, JSON.stringify(x, null, 1)) });
+  if (text.level === 0) console.warn('Text agent saved with the minimal config. Check in the ElevenLabs dashboard that the "agent_response" and "client_tool_call" events are enabled.');
 
-let voice = null;
-if (REALTIME) {
-  try {
-    voice = await saveAgent('voice', ids.voice_agent);
-    ids.voice_agent = voice.id;
-    writeFileSync(IDS, JSON.stringify(ids, null, 1));
-  } catch (e) {
-    console.warn(`Could not set up the Eleven Realtime voice agent:\n  ${e.message}\nLive voice will use the text agent.`);
-  }
+  // ids for the server
+  setEnv('ELEVENLABS_AGENT_ID', ids.agente);
+  setEnv('ELEVENLABS_VOICE_AGENT_ID', voice ? voice.id : '');
+
+  console.log(`\nText agent ${text.action}: ${ids.agente} (LLM ${LLM}, TTS ${TTS}, voz ${VOZ})`);
+  console.log(voice ? `Voice agent ${voice.action}: ${voice.id} (Eleven Realtime ${REALTIME})` : 'Live voice: text agent (no Eleven Realtime agent)');
+  console.log('Done. Now run: node server.mjs and open http://localhost:3000');
 }
-
-// ids for the server
-setEnv('ELEVENLABS_AGENT_ID', ids.agente);
-setEnv('ELEVENLABS_VOICE_AGENT_ID', voice ? voice.id : '');
-
-console.log(`\nText agent ${text.action}: ${ids.agente} (LLM ${LLM}, TTS ${TTS}, voz ${VOZ})`);
-console.log(voice ? `Voice agent ${voice.action}: ${voice.id} (Eleven Realtime ${REALTIME})` : 'Live voice: text agent (no Eleven Realtime agent)');
-console.log('Done. Now run: node server.mjs and open http://localhost:3000');

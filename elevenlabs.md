@@ -115,8 +115,7 @@ Puntos de diseño:
 Requiere Node 21.7 o superior.
 
 1. En `chatbot/`, copiar `.env.example` como `.env` y completar `ELEVENLABS_API_KEY`. La clave necesita permiso para ElevenLabs Agents.
-2. `node crear-agente.mjs`. Crea cinco herramientas y el agente, y escribe `ELEVENLABS_AGENT_ID` en `.env`.
-3. `node server.mjs` y abrir `http://localhost:3000`. En Windows también sirve `iniciar.bat`, que crea el `.env` si falta y corre la verificación antes de arrancar.
+2. `node server.mjs` y abrir `http://localhost:3000`. En Windows también sirve `iniciar.bat`, que crea el `.env` si falta y corre la verificación antes de arrancar.
 
 `node verificar.mjs` muestra en cualquier momento qué está listo (datos, búsqueda, experiencias, pagos, agente) y qué falta.
 
@@ -127,7 +126,8 @@ Cada vez que se cambie el prompt o las herramientas hay que volver a correr el p
 | Variable | Uso |
 |---|---|
 | `ELEVENLABS_API_KEY` | Obligatoria |
-| `ELEVENLABS_AGENT_ID` | La completa `crear-agente.mjs` |
+| `ELEVENLABS_AGENT_ID` | Opcional. Vacía: el servidor busca el agente `juju` por nombre en la cuenta o lo crea, al arrancar (`prepararAgentes()` en `crear-agente.mjs`), y en cada arranque lo actualiza con el prompt, las cinco herramientas y la voz del código |
+| `ELEVENLABS_SINCRONIZAR` | Opcional. `off`: el servidor no toca los agentes al arrancar |
 | (voz) | No es una variable: la voz va fija en `crear-agente.mjs` (constante `VOZ`). Hoy es "Sarah", femenina, de las que trae toda cuenta. Para cambiarla se edita ese id y se vuelve a correr el script |
 | `ELEVENLABS_TTS_MODEL` | Opcional. Por defecto `eleven_turbo_v2_5` |
 | `ELEVENLABS_LLM` | Opcional. Por defecto `claude-haiku-5-5` |

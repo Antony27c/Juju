@@ -1077,9 +1077,12 @@ reloj(); setInterval(reloj, 20000);
   if (e.voz?.tiempo_real) $('vozNota').textContent = 'Voz en tiempo real. Hablá con naturalidad; también podés escribir.';
   if (!e.agente_configurado) {
     sinAgente = true; estado('solo directorio'); ponerFase();
-    subtitulo('La voz se activa al conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias.');
+    const fallo = e.clave_cargada && e.error_agente; // hay clave, pero ElevenLabs rechazó el armado del agente
+    subtitulo(fallo ? 'No pude conectar la voz con ElevenLabs. Mientras tanto podés escribir o mirar las experiencias.' : 'La voz se activa al conectar ElevenLabs. Mientras tanto podés escribir o mirar las experiencias.');
     $('notaModo').hidden = false;
-    $('notaModo').textContent = 'Ahora juju muestra solo los lugares del directorio. Para conversar por texto y por voz falta conectar ElevenLabs: copiá .env.example como .env, pegá tu clave y ejecutá "node crear-agente.mjs".';
+    $('notaModo').textContent = 'Ahora juju muestra solo los lugares del directorio. ' + (fallo
+      ? 'La clave de ElevenLabs está cargada, pero no se pudo preparar el agente. ElevenLabs respondió: ' + e.error_agente
+      : 'Para conversar por texto y por voz falta cargar la clave de ElevenLabs en el servidor, en la variable ELEVENLABS_API_KEY. El agente se crea solo al arrancar.');
   }
   const q = new URLSearchParams(location.search).get('q'); // link directo a una consulta: /?q=que hacer en tilcara
   if (q) { verVista('chat'); enviar(q.slice(0, 300)); }

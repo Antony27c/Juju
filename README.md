@@ -31,8 +31,9 @@ Sin ninguna clave ya funcionan el directorio, la búsqueda y las reservas en mod
 ### Para activar la voz
 
 1. Pegá tu clave de ElevenLabs en `chatbot/.env` (`ELEVENLABS_API_KEY`).
-2. `node crear-agente.mjs` crea el agente y sus herramientas.
-3. Reiniciá el servidor.
+2. Reiniciá el servidor.
+
+Con la clave sola alcanza: al arrancar, el servidor busca en tu cuenta los agentes `juju` y `juju (voz en tiempo real)` y sus herramientas, los crea si no están y los actualiza con el prompt y la voz del código. No duplica nada entre un arranque y otro. `node crear-agente.mjs` hace lo mismo a mano.
 
 ### Para cobrar de verdad
 
@@ -44,17 +45,19 @@ Sin ninguna clave ya funcionan el directorio, la búsqueda y las reservas en mod
 
 El repo ya trae `Dockerfile` y `railway.json`. No hay que configurar comandos ni carpeta raíz.
 
-1. En tu máquina, con la clave de ElevenLabs en `chatbot/.env`, corré `node crear-agente.mjs`. Anotá el `ELEVENLABS_AGENT_ID` y el `ELEVENLABS_VOICE_AGENT_ID` que escribe en `.env`.
-2. En Railway: New Project, Deploy from GitHub repo, elegí este repo y la rama `main`.
-3. En Variables, cargá las de la tabla.
-4. En Settings, Networking, generá el dominio público. Railway lo sirve con HTTPS, que es lo que el micrófono necesita.
+1. En Railway: New Project, Deploy from GitHub repo, elegí este repo y la rama `main`.
+2. En Variables, cargá `ELEVENLABS_API_KEY`. Las demás de la tabla son opcionales.
+3. En Settings, Networking, generá el dominio público. Railway lo sirve con HTTPS, que es lo que el micrófono necesita.
+
+El agente se prepara solo en cada arranque, en segundo plano. Si ElevenLabs lo rechaza (clave inválida o sin permiso para Agents), el sitio sigue andando en modo directorio y el motivo aparece en "Cómo funciona", en los logs y en `/api/estado` (`error_agente`). Usá una sola réplica: dos arranques al mismo tiempo sobre una cuenta vacía podrían crear el agente dos veces.
 
 | Variable | Obligatoria | Valor |
 |---|---|---|
 | `ELEVENLABS_API_KEY` | Sí | Tu clave de ElevenLabs |
-| `ELEVENLABS_AGENT_ID` | Sí | El id del agente de texto que dejó `crear-agente.mjs` |
-| `ELEVENLABS_VOICE_AGENT_ID` | Para voz en tiempo real | El id del agente de voz que dejó `crear-agente.mjs`. Vacío: la voz usa el agente de texto |
-| `PAGOS_PROVEEDOR` | Sí | `simulado` para probar o `cosmospay` para cobrar |
+| `ELEVENLABS_AGENT_ID` | No | Id de un agente de texto ya creado. Vacío: el servidor lo busca por nombre o lo crea |
+| `ELEVENLABS_VOICE_AGENT_ID` | No | Id del agente de voz en tiempo real. Vacío: el servidor lo busca o lo crea; si la cuenta no lo admite, la voz usa el agente de texto |
+| `ELEVENLABS_SINCRONIZAR` | No | `off` para que el servidor no toque los agentes al arrancar |
+| `PAGOS_PROVEEDOR` | No | `simulado` para probar o `cosmospay` para cobrar |
 | `COSMOSPAY_API_KEY` | Solo con `cosmospay` | `dv_…` red de prueba, `prod_…` red real |
 | `COSMOSPAY_WEBHOOK_SECRET` | No | Lo entrega `node registrar-webhook.mjs` |
 | `PAGOS_ARCHIVO` | No | Ruta dentro de un volumen, por ejemplo `/data/pagos.json` |
